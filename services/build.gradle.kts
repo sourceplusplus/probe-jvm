@@ -13,13 +13,13 @@ plugins {
 }
 
 val platformGroup: String by project
-val platformVersion: String by project
+val probeVersion: String by project
 val skywalkingVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
 
 group = platformGroup
-version = platformVersion
+version = probeVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
