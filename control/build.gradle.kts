@@ -35,7 +35,7 @@ dependencies {
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    implementation("com.github.sourceplusplus.protocol-jvm:protocol-jvm:a20dc2e81e") {
+    implementation("com.github.sourceplusplus.protocol:protocol:0.1.21") {
         isTransitive = false
     }
 
@@ -51,12 +51,7 @@ tasks.getByName<Test>("test") {
     if (System.getProperty("test.profile") != "integration") {
         exclude("integration/**")
     } else {
-        jvmArgs = listOf("-javaagent:../../e2e/spp-probe-${project.version}.jar")
-//        if (System.getProperty("build.profile") == "debian") {
-//            listOf("-javaagent:../../e2e/spp-probe-${project.version}.jar")
-//        } else {
-//            listOf("-javaagent:../../e2e/spp-probe-${project.version}-shadow.jar")
-//        }
+        jvmArgs = listOf("-javaagent:../e2e/spp-probe-${project.version}.jar")
     }
 
     testLogging {
@@ -70,7 +65,7 @@ tasks.getByName<Test>("test") {
 
 //todo: shouldn't need to put in src (github actions needs for some reason)
 tasks.create("createProperties") {
-    //if (System.getProperty("build.profile") == "debian") {
+    if (System.getProperty("build.profile") == "release") {
         val buildBuildFile = File(projectDir, "src/main/resources/build.properties")
         if (buildBuildFile.exists()) {
             buildBuildFile.delete()
@@ -86,7 +81,7 @@ tasks.create("createProperties") {
             p["apache_skywalking_version"] = skywalkingVersion
             p.store(it, null)
         }
-    //}
+    }
 }
 tasks["processResources"].dependsOn("createProperties")
 
@@ -114,13 +109,8 @@ tasks.register<Copy>("updateSkywalkingToolkit") {
 }
 
 tasks.register<Zip>("zipSppSkywalking") {
-//    if (System.getProperty("build.profile") == "debian") {
-//        dependsOn("untarSkywalking", ":services:proguard", "updateSkywalkingToolkit")
-//        mustRunAfter(":services:proguard")
-//    } else {
-        dependsOn("untarSkywalking", ":services:shadowJar", "updateSkywalkingToolkit")
-        mustRunAfter(":services:shadowJar")
-//    }
+    dependsOn("untarSkywalking", ":services:proguard", "updateSkywalkingToolkit")
+    mustRunAfter(":services:proguard")
 
     archiveFileName.set("skywalking-agent-$skywalkingVersion.zip")
     val resourcesDir = File("$buildDir/resources/main")
@@ -135,11 +125,11 @@ tasks.register<Zip>("zipSppSkywalking") {
 
     into("plugins") {
         doFirst {
-            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$version-shadow.jar").exists()) {
-                throw GradleException("Missing spp-skywalking-services-shadow")
+            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$version.jar").exists()) {
+                throw GradleException("Missing spp-skywalking-services")
             }
         }
-        from(File(projectDir, "../services/build/libs/spp-skywalking-services-$version-shadow.jar"))
+        from(File(projectDir, "../services/build/libs/spp-skywalking-services-$version.jar"))
     }
 }
 tasks["classes"].dependsOn("zipSppSkywalking")
