@@ -1,0 +1,5 @@
+rootProject.buildFileName = "build.gradle.kts"
+rootProject.name = 'probe-jvm'
+
+include 'control'
+include 'services'

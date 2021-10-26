@@ -1,0 +1,18 @@
+spp:
+  platform_host: "spp-platform"
+  platform_port: 5450
+skywalking:
+  logging:
+    level: "INFO"
+  agent:
+    is_cache_enhanced_class: true
+    class_cache_mode: "FILE"
+    service_name: "appUuid"
+  collector:
+    backend_service: "skywalking-oap:11800"
+  plugin:
+    toolkit:
+      log:
+        grpc:
+          reporter:
+            server_host: "skywalking-oap"
