@@ -35,7 +35,7 @@ dependencies {
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    implementation("com.github.sourceplusplus.protocol:protocol:0.1.21") {
+    implementation("com.github.sourceplusplus.protocol:protocol:0.1.23") {
         isTransitive = false
     }
 

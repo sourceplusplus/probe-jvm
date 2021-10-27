@@ -27,7 +27,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("com.github.sourceplusplus.protocol:protocol:0.1.21") {
+    implementation("com.github.sourceplusplus.protocol:protocol:0.1.23") {
         isTransitive = false
     }
     compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
