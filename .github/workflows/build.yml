@@ -100,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: docker-logs
-          path: ./build/container-logs
+          path: ./build/containers-logs
 
       - name: Remove Old Release Drafts
         if: github.ref == 'refs/heads/master'
