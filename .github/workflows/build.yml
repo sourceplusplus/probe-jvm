@@ -47,8 +47,9 @@ jobs:
       - run: ./gradlew -x build test -Dtest.profile=integration
 
       - name: Verify probe connected
-        run: resp=$(curl --insecure https://localhost:5445/clients) && [[ $(echo $resp | jq -r ."probes"[0]."meta"."language") == "java" ]] && echo $resp || (echo $resp && exit 1)
-        
+        run: |
+          resp=$(curl --header "Authorization: Bearer ${{ env.SPP_JWT_TOKEN }}" --insecure https://localhost:5445/clients) && [[ $(echo $resp | jq -r ."probes"[0]."meta"."language") == "java" ]] && echo $resp || (echo $resp && exit 1)
+
       - name: Live breakpoint (false condition)
         run: |
           docker exec spp-platform ./spp-cli developer add-live-breakpoint -c 1==2 VariableTests 26
