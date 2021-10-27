@@ -124,6 +124,7 @@ jobs:
           release_name: v${{ env.SPP_PROBE_VERSION }}
           draft: true
 
+      - run: ls -lh ./e2e
       - name: Upload spp-probe asset
         uses: actions/upload-release-asset@v1
         env:
