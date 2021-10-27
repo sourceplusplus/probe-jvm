@@ -90,9 +90,12 @@ jobs:
           curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
           resp=$(docker exec spp-platform ./spp-cli developer get-live-instruments) && [[ $resp == "[]" ]] && echo $resp || (echo $resp && exit 1)
 
-      - name: Docker logs
-        run: cd e2e && docker-compose logs -t --tail="all"
+      - name: Upload docker logs artifact
         if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-compose.log
+          path: ./build/docker-compose.log
 
       - name: Remove Old Release Drafts
         if: github.ref == 'refs/heads/master'
