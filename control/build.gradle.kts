@@ -14,7 +14,7 @@ plugins {
     id("java")
 }
 
-val platformGroup: String by project
+val probeGroup: String by project
 val probeVersion: String by project
 val skywalkingVersion: String by project
 val jacksonVersion: String by project
@@ -22,7 +22,7 @@ val vertxVersion: String by project
 val jupiterVersion: String by project
 val logbackVersion: String by project
 
-group = platformGroup
+group = probeGroup
 version = probeVersion
 
 tasks.getByName<JavaCompile>("compileJava") {

@@ -13,13 +13,13 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.18.1"
 }
 
-val platformGroup: String by project
+val probeGroup: String by project
 val probeVersion: String by project
 val skywalkingVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 
-group = platformGroup
+group = probeGroup
 version = probeVersion
 
 repositories {
