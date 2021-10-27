@@ -123,3 +123,13 @@ jobs:
           tag_name: ${{ env.SPP_PROBE_VERSION }}
           release_name: v${{ env.SPP_PROBE_VERSION }}
           draft: true
+
+      - name: Upload spp-probe asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.createDraft.outputs.upload_url }}
+          asset_path: ./e2e/spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
+          asset_name: spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
+          asset_content_type: application/java-archive
