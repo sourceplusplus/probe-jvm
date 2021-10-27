@@ -117,6 +117,4 @@ dockerCompose {
     dockerComposeWorkingDirectory.set(File("./e2e"))
     removeVolumes.set(true)
     waitForTcpPorts.set(false)
-
-    captureContainersOutputToFile.set(File("./build/docker-compose.log"))
 }
