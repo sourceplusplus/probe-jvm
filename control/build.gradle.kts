@@ -135,6 +135,7 @@ tasks.register<Zip>("zipSppSkywalking") {
 tasks["classes"].dependsOn("zipSppSkywalking")
 
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    onlyIf { project.tasks.getByName("build").enabled }
     dependsOn(":downloadSkywalking")
 
     archiveBaseName.set("spp-probe")
@@ -168,6 +169,7 @@ tasks.getByName("shadowJar").dependsOn("relocateShadowJar")
 
 tasks {
     create<proguard.gradle.ProGuardTask>("proguard") {
+        onlyIf { project.tasks.getByName("build").enabled }
         dependsOn("shadowJar")
         configuration("proguard.conf")
         injars(File("$buildDir/libs/spp-probe-$version-shadow.jar"))
