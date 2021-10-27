@@ -1,6 +1,7 @@
 FROM openjdk:11-jdk
 
-RUN mkdir -p /tmp/spp-probe
+RUN mkdir -p /tmp/spp-probe/ca
+ADD ./config/spp-platform.crt /tmp/spp-probe/ca/ca.crt
 
 ADD ./spp-probe.yml /tmp/spp-probe
 ADD ./spp-probe-*.jar /tmp/spp-probe/spp-probe.jar
