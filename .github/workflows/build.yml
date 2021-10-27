@@ -130,5 +130,5 @@ jobs:
         with:
           upload_url: ${{ steps.createDraft.outputs.upload_url }}
           asset_path: ./e2e/spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
-          asset_name: spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
+          asset_name: spp-probe.jar
           asset_content_type: application/java-archive
