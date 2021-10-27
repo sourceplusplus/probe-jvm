@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -113,7 +112,7 @@ jobs:
             | xargs -I '{}' \
           curl -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/$GITHUB_REPOSITORY/releases/{}
 
-      - name: Create Release Draft
+      - name: Create release draft
         if: github.ref == 'refs/heads/master'
         id: createDraft
         uses: actions/create-release@v1
@@ -124,7 +123,6 @@ jobs:
           release_name: v${{ env.SPP_PROBE_VERSION }}
           draft: true
 
-      - run: ls -lh ./e2e
       - name: Upload spp-probe asset
         uses: actions/upload-release-asset@v1
         env:
