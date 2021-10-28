@@ -26,6 +26,12 @@ repositories {
 }
 
 subprojects {
+    configurations.all {
+        resolutionStrategy.dependencySubstitution {
+            substitute(module("com.github.sourceplusplus.protocol:protocol")).using(project(":protocol"))
+        }
+    }
+
     repositories {
         mavenCentral()
         jcenter()
