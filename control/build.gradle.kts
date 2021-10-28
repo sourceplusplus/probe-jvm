@@ -157,9 +157,9 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
 tasks.getByName("build") {
     dependsOn("shadowJar", "proguard")
 
-    doLast {
-        File("$buildDir/libs/control-$version.jar").delete()
-    }
+//    doLast {
+//        File("$buildDir/libs/control-$version.jar").delete()
+//    }
 }
 
 tasks.create<com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation>("relocateShadowJar") {
@@ -179,8 +179,8 @@ tasks {
         libraryjars("${org.gradle.internal.jvm.Jvm.current().javaHome}/jmods")
         libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
 
-        doLast {
-            File("$buildDir/libs/spp-probe-$version-shadow.jar").delete()
-        }
+//        doLast {
+//            File("$buildDir/libs/spp-probe-$version-shadow.jar").delete()
+//        }
     }
 }
