@@ -1,3 +1,12 @@
+pluginManagement {
+    plugins {
+        String kotlinVersion = "1.5.31"
+        id 'org.jetbrains.kotlin.jvm' version kotlinVersion apply false
+        id 'com.avast.gradle.docker-compose' version "0.14.9" apply false
+        id 'io.gitlab.arturbosch.detekt' version "1.18.1" apply false
+    }
+}
+
 rootProject.buildFileName = "build.gradle.kts"
 rootProject.name = 'probe-jvm'
 

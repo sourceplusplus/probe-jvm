@@ -3,14 +3,11 @@ import java.net.URL
 
 plugins {
     id("java")
-    id("com.avast.gradle.docker-compose") version "0.14.9"
+    id("com.avast.gradle.docker-compose")
 
-    val kotlinVersion = "1.5.0"
-    kotlin("jvm") version kotlinVersion apply false
-    kotlin("multiplatform") version kotlinVersion apply false
-    kotlin("js") version kotlinVersion apply false
+    kotlin("jvm")
 
-    id("io.gitlab.arturbosch.detekt") version "1.18.1"
+    id("io.gitlab.arturbosch.detekt")
 }
 
 val probeGroup: String by project
