@@ -86,7 +86,8 @@ tasks.create("createProperties") {
 tasks["processResources"].dependsOn("createProperties")
 
 tasks.register<Copy>("untarSkywalking") {
-    dependsOn(":probe-jvm:downloadSkywalking")
+    val rootProject = findProject(":probe-jvm")?.name ?: ""
+    dependsOn(":${"$rootProject:"}downloadSkywalking")
     from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-apm-es7-$skywalkingVersion.tar.gz"))))
     into(File(projectDir.parentFile, "e2e"))
 }
@@ -109,8 +110,9 @@ tasks.register<Copy>("updateSkywalkingToolkit") {
 }
 
 tasks.register<Zip>("zipSppSkywalking") {
-    dependsOn("untarSkywalking", ":probe-jvm:services:proguard", "updateSkywalkingToolkit")
-    mustRunAfter(":probe-jvm:services:proguard")
+    val rootProject = findProject(":probe-jvm")?.name ?: ""
+    dependsOn("untarSkywalking", ":${"$rootProject:"}services:proguard", "updateSkywalkingToolkit")
+    mustRunAfter(":${"$rootProject:"}services:proguard")
 
     archiveFileName.set("skywalking-agent-$skywalkingVersion.zip")
     val resourcesDir = File("$buildDir/resources/main")
