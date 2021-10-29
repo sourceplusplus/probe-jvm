@@ -2,6 +2,7 @@ package integration;
 
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -55,10 +56,10 @@ public class IntegrationTest {
         client.get(5445, platformHost, "/clients")
                 .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send().onComplete(it -> {
                     if (it.succeeded()) {
-                        var result = it.result().bodyAsJsonObject();
-                        var processors = result.getJsonArray("processors");
-                        var markers = result.getJsonArray("markers");
-                        var probes = result.getJsonArray("probes");
+                        JsonObject result = it.result().bodyAsJsonObject();
+                        JsonArray processors = result.getJsonArray("processors");
+                        JsonArray markers = result.getJsonArray("markers");
+                        JsonArray probes = result.getJsonArray("probes");
                         testContext.verify(() -> {
                             assertNotEquals(0, processors.size());
                             assertEquals(0, markers.size());
