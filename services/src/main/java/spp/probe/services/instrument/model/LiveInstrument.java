@@ -6,7 +6,8 @@ import spp.probe.services.common.model.HitThrottle;
 import spp.probe.services.common.model.Location;
 
 import java.io.Serializable;
-public class LiveInstrument implements Serializable {
+
+public abstract class LiveInstrument implements Serializable {
 
     private final String id;
     private final Location location;

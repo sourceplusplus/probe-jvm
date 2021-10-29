@@ -35,8 +35,7 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static spp.protocol.probe.ProbeAddress.LIVE_BREAKPOINT_REMOTE;
-import static spp.protocol.probe.ProbeAddress.LIVE_LOG_REMOTE;
+import static spp.protocol.probe.ProbeAddress.*;
 
 public class SourceProbe {
 
@@ -200,6 +199,12 @@ public class SourceProbe {
                 FrameHelper.sendFrame(
                         BridgeEventType.REGISTER.name().toLowerCase(),
                         LIVE_LOG_REMOTE.getAddress(),
+                        new JsonObject(),
+                        SourceProbe.tcpSocket
+                );
+                FrameHelper.sendFrame(
+                        BridgeEventType.REGISTER.name().toLowerCase(),
+                        LIVE_METER_REMOTE.getAddress(),
                         new JsonObject(),
                         SourceProbe.tcpSocket
                 );

@@ -6,10 +6,15 @@ import org.apache.skywalking.apm.agent.core.context.ContextManager;
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag;
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
+import org.apache.skywalking.apm.agent.core.meter.BaseMeter;
+import org.apache.skywalking.apm.agent.core.meter.Counter;
+import org.apache.skywalking.apm.agent.core.meter.Histogram;
+import org.apache.skywalking.apm.agent.core.meter.MeterFactory;
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient;
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair;
 import org.apache.skywalking.apm.network.logging.v3.*;
 import spp.probe.services.common.model.Location;
+import spp.probe.services.instrument.model.LiveMeter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -135,6 +140,42 @@ public class ContextReceiver {
                 .setTraceSegmentId(ContextManager.getSegmentId())
                 .build()).build();
         logReport.produce(logData);
+    }
+
+    @SuppressWarnings("unused")
+    public static void putMeter(String meterId) {
+        LiveMeter liveMeter = (LiveMeter) ProbeMemory.get("spp.live-meter:" + meterId);
+        if (liveMeter == null) return;
+
+        BaseMeter meter = ProbeMemory.computeIfAbsent("spp.base-meter:" + meterId, it -> {
+            switch (liveMeter.getMeterType()) {
+                case COUNTER:
+                    return MeterFactory.counter(meterId)
+                            .tag("probe_id", "todo")
+                            .build();
+                case GAUGE:
+                    return MeterFactory.gauge(meterId, () -> liveMeter.getSupplier().get().doubleValue())
+                            .tag("probe_id", "todo")
+                            .build();
+                case HISTOGRAM:
+                    return MeterFactory.histogram(meterId)
+                            .tag("probe_id", "todo")
+                            .build();
+                default:
+                    throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
+            }
+        });
+
+        switch (liveMeter.getMeterType()) {
+            case COUNTER:
+                ((Counter) meter).increment(liveMeter.getSupplier().get().longValue());
+                break;
+            case HISTOGRAM:
+                ((Histogram) meter).addValue(liveMeter.getSupplier().get().doubleValue());
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
+        }
     }
 
     private static String encodeObject(String varName, Object value) {

@@ -21,8 +21,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 
 import static spp.probe.SourceProbe.instrumentation;
-import static spp.protocol.probe.ProbeAddress.LIVE_BREAKPOINT_REMOTE;
-import static spp.protocol.probe.ProbeAddress.LIVE_LOG_REMOTE;
+import static spp.protocol.probe.ProbeAddress.*;
 
 public class LiveInstrumentRemote extends AbstractVerticle {
 
@@ -32,14 +31,16 @@ public class LiveInstrumentRemote extends AbstractVerticle {
 
     private Method addBreakpoint;
     private Method addLog;
+    private Method addMeter;
     private Method removeInstrument;
+    private static Method putBreakpoint;
     private static Method putLog;
+    private static Method putMeter;
     private static Method isInstrumentEnabled;
     private static Method putLocalVariable;
     private static Method putField;
     private static Method putStaticField;
     private static Method isHit;
-    private static Method putBreakpoint;
 
     @Override
     public void start() {
@@ -65,6 +66,9 @@ public class LiveInstrumentRemote extends AbstractVerticle {
             addLog = serviceClass.getMethod("addLog",
                     String.class, String.class, String[].class, String.class, int.class,
                     String.class, int.class, int.class, String.class, Long.class, boolean.class);
+            addMeter = serviceClass.getMethod("addMeter",
+                    String.class, String.class, String.class, String.class, String.class, String.class, int.class,
+                    String.class, int.class, int.class, String.class, Long.class, boolean.class);
 
             Class contextClass = Class.forName(
                     "spp.probe.services.common.ContextReceiver", false, agentClassLoader);
@@ -78,6 +82,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
                     String.class, String.class, int.class, Throwable.class);
             putLog = contextClass.getMethod("putLog",
                     String.class, String.class, String[].class);
+            putMeter = contextClass.getMethod("putMeter", String.class);
         } catch (Throwable e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -161,6 +166,71 @@ public class LiveInstrumentRemote extends AbstractVerticle {
                 );
             }
         });
+        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_METER_REMOTE.getAddress()).handler(it -> {
+            try {
+                LiveInstrumentCommand command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand.class);
+                switch (command.getCommandType()) {
+                    case ADD_LIVE_INSTRUMENT:
+                        addMeter(command);
+                        break;
+                    case REMOVE_LIVE_INSTRUMENT:
+                        removeInstrument(command);
+                        break;
+                }
+            } catch (InvocationTargetException ex) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("command", it.body().toString());
+                map.put("occurredAt", System.currentTimeMillis());
+                if (ex.getCause() != null) {
+                    map.put("cause", ThrowableTransformer.INSTANCE.convert2String(ex.getCause(), 4000));
+                } else {
+                    map.put("cause", ThrowableTransformer.INSTANCE.convert2String(ex.getTargetException(), 4000));
+                }
+
+                FrameHelper.sendFrame(
+                        BridgeEventType.PUBLISH.name().toLowerCase(),
+                        PlatformAddress.LIVE_METER_REMOVED.getAddress(),
+                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
+                );
+            } catch (Throwable ex) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("command", it.body().toString());
+                map.put("occurredAt", System.currentTimeMillis());
+                map.put("cause", ThrowableTransformer.INSTANCE.convert2String(ex, 4000));
+
+                FrameHelper.sendFrame(
+                        BridgeEventType.PUBLISH.name().toLowerCase(),
+                        PlatformAddress.LIVE_METER_REMOVED.getAddress(),
+                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
+                );
+            }
+        });
+    }
+
+    private void addMeter(LiveInstrumentCommand command) throws Exception {
+        String breakpointData = command.getContext().getLiveInstruments().get(0);
+        JsonObject meterObject = new JsonObject(breakpointData);
+        String id = meterObject.getString("id");
+        String meterName = meterObject.getString("meterName");
+        String meterType = meterObject.getString("meterType");
+        JsonObject metricValue = meterObject.getJsonObject("metricValue");
+        String valueType = metricValue.getString("valueType");
+        String supplier = metricValue.getString("supplier");
+        if (supplier == null) {
+            supplier = metricValue.getString("number");
+        }
+        JsonObject location = meterObject.getJsonObject("location");
+        String source = location.getString("source");
+        int line = location.getInteger("line");
+        int hitLimit = meterObject.getInteger("hitLimit");
+        String condition = meterObject.getString("condition");
+        boolean applyImmediately = meterObject.getBoolean("applyImmediately");
+        JsonObject throttle = meterObject.getJsonObject("throttle");
+        int throttleLimit = throttle.getInteger("limit");
+        String throttleStep = throttle.getString("step");
+        Long expiresAt = meterObject.getLong("expiresAt");
+        addMeter.invoke(null, id, meterName, meterType, valueType, supplier, source, line, condition, hitLimit,
+                throttleLimit, throttleStep, expiresAt, applyImmediately);
     }
 
     private void addBreakpoint(LiveInstrumentCommand command) throws Exception {
@@ -252,6 +322,15 @@ public class LiveInstrumentRemote extends AbstractVerticle {
     public static void putLog(String logId, String logFormat, String... logArguments) {
         try {
             putLog.invoke(null, logId, logFormat, logArguments);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static void putMeter(String meterId) {
+        try {
+            putMeter.invoke(null, meterId);
         } catch (Exception e) {
             e.printStackTrace();
         }

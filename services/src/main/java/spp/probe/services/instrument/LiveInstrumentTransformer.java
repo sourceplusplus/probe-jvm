@@ -4,13 +4,16 @@ import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Label;
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisitor;
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes;
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Type;
+import spp.probe.services.common.ProbeMemory;
 import spp.probe.services.common.model.ClassField;
 import spp.probe.services.common.model.ClassMetadata;
 import spp.probe.services.common.model.LocalVariable;
 import spp.probe.services.common.model.Location;
 import spp.probe.services.common.transform.LiveTransformer;
+import spp.probe.services.instrument.model.LiveBreakpoint;
 import spp.probe.services.instrument.model.LiveInstrument;
 import spp.probe.services.instrument.model.LiveLog;
+import spp.probe.services.instrument.model.LiveMeter;
 
 import static org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes.*;
 
@@ -44,17 +47,24 @@ public class LiveInstrumentTransformer extends MethodVisitor {
             Label instrumentLabel = new Label();
             isInstrumentEnabled(instrument.getId(), instrumentLabel);
 
-            if (instrument instanceof LiveLog) {
+            if (instrument instanceof LiveBreakpoint) {
+                captureSnapshot(instrument.getId(), line);
+                isHit(instrument.getId(), instrumentLabel);
+                putBreakpoint(instrument.getId(), source, line);
+            } else if (instrument instanceof LiveLog) {
                 LiveLog log = (LiveLog) instrument;
                 if (log.getLogArguments().length > 0 || log.getExpression() != null) {
                     captureSnapshot(log.getId(), line);
                 }
                 isHit(log.getId(), instrumentLabel);
                 putLog(log);
-            } else {
-                captureSnapshot(instrument.getId(), line);
-                isHit(instrument.getId(), instrumentLabel);
-                putBreakpoint(instrument.getId(), source, line);
+            } else if (instrument instanceof LiveMeter) {
+                LiveMeter meter = (LiveMeter) instrument;
+                if (meter.getExpression() != null) {
+                    captureSnapshot(meter.getId(), line);
+                }
+                isHit(meter.getId(), instrumentLabel);
+                putMeter(meter);
             }
             mv.visitLabel(new Label());
             mv.visitLabel(instrumentLabel);
@@ -152,6 +162,13 @@ public class LiveInstrumentTransformer extends MethodVisitor {
         }
 
         mv.visitMethodInsn(INVOKESTATIC, REMOTE_CLASS_LOCATION, "putLog", PUT_LOG_DESC, false);
+    }
+
+    private void putMeter(LiveMeter meter) {
+        ProbeMemory.put("spp.live-meter:" + meter.getId(), meter);
+
+        mv.visitLdcInsn(meter.getId());
+        mv.visitMethodInsn(INVOKESTATIC, REMOTE_CLASS_LOCATION, "putMeter", "(Ljava/lang/String;)V", false);
     }
 
     @Override

@@ -15,8 +15,7 @@ import spp.probe.services.common.model.HitThrottle;
 import spp.probe.services.common.model.HitThrottleStep;
 import spp.probe.services.common.model.Location;
 import spp.probe.services.common.transform.LiveTransformer;
-import spp.probe.services.instrument.model.LiveInstrument;
-import spp.probe.services.instrument.model.LiveLog;
+import spp.probe.services.instrument.model.*;
 import spp.protocol.probe.error.LiveInstrumentException;
 import spp.protocol.probe.error.LiveInstrumentException.ErrorType;
 
@@ -101,8 +100,12 @@ public class LiveInstrumentService {
             if (!instrument.isRemoval()) {
                 if (instrument instanceof LiveLog) {
                     instrumentEventConsumer.accept(LIVE_LOG_APPLIED.getAddress(), instrument.toJson());
-                } else {
+                } else if (instrument instanceof LiveBreakpoint) {
                     instrumentEventConsumer.accept(LIVE_BREAKPOINT_APPLIED.getAddress(), instrument.toJson());
+                } else if (instrument instanceof LiveMeter) {
+                    instrumentEventConsumer.accept(LIVE_METER_APPLIED.getAddress(), instrument.toJson());
+                } else if (instrument instanceof LiveSpan) {
+                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), instrument.toJson());
                 }
             }
         } catch (Throwable ex) {
@@ -169,13 +172,13 @@ public class LiveInstrumentService {
             if (condition != null && condition.length() > 0) {
                 try {
                     Expression expression = parser.parseExpression(condition);
-                    breakpoint = new LiveInstrument(id, location, expression, hitLimit, throttle, expiresAt);
+                    breakpoint = new LiveBreakpoint(id, location, expression, hitLimit, throttle, expiresAt);
                 } catch (ParseException ex) {
                     throw new LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.getMessage())
                             .toEventBusException();
                 }
             } else {
-                breakpoint = new LiveInstrument(id, location, null, hitLimit, throttle, expiresAt);
+                breakpoint = new LiveBreakpoint(id, location, null, hitLimit, throttle, expiresAt);
             }
             breakpoint.setApplyImmediately(applyImmediately);
 
@@ -220,6 +223,31 @@ public class LiveInstrumentService {
     }
 
     @SuppressWarnings("unused")
+    public static String addMeter(String id, String meterName, String meterType, String valueType, String supplier,
+                                  String source, int line, String condition, int hitLimit, int throttleLimit,
+                                  String throttleStep, Long expiresAt, boolean applyImmediately) {
+        Location location = new Location(source, line);
+        HitThrottle throttle = new HitThrottle(throttleLimit, HitThrottleStep.valueOf(throttleStep));
+        LiveMeter meter;
+        if (condition != null && condition.length() > 0) {
+            try {
+                Expression expression = parser.parseExpression(condition);
+                meter = new LiveMeter(id, location, expression, hitLimit, throttle, expiresAt, meterName, meterType, valueType, supplier);
+            } catch (ParseException ex) {
+                throw new LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.getMessage())
+                        .toEventBusException();
+            }
+        } else {
+            meter = new LiveMeter(id, location, null, hitLimit, throttle, expiresAt, meterName, meterType, valueType, supplier);
+        }
+        meter.setApplyImmediately(applyImmediately);
+
+        liveInstrumentApplier.apply(instrumentation, meter);
+        instruments.put(meter.getId(), meter);
+        return meter.toJson();
+    }
+
+    @SuppressWarnings("unused")
     public static Collection<String> removeInstrument(String source, int line, String instrumentId) {
         if (instrumentId != null) {
             LiveInstrument removedInstrument = instruments.remove(instrumentId);
@@ -252,20 +280,30 @@ public class LiveInstrumentService {
         removeInstrument(instrument.getLocation().getSource(), instrument.getLocation().getLine(), instrument.getId());
 
         Map<String, Object> map = new HashMap<>();
-        if (instrument instanceof LiveLog) {
-            map.put("log", instrument.toJson());
-        } else {
+        if (instrument instanceof LiveBreakpoint) {
             map.put("breakpoint", instrument.toJson());
+        } else if (instrument instanceof LiveLog) {
+            map.put("log", instrument.toJson());
+        } else if (instrument instanceof LiveMeter) {
+            map.put("meter", instrument.toJson());
+        } else if (instrument instanceof LiveSpan) {
+            map.put("span", instrument.toJson());
+        } else {
+            throw new IllegalArgumentException(instrument.getClass().getSimpleName());
         }
         map.put("occurredAt", System.currentTimeMillis());
         if (ex != null) {
             map.put("cause", ThrowableTransformer.INSTANCE.convert2String(ex, 4000));
         }
 
-        if (instrument instanceof LiveLog) {
-            instrumentEventConsumer.accept(LIVE_LOG_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
-        } else {
+        if (instrument instanceof LiveBreakpoint) {
             instrumentEventConsumer.accept(LIVE_BREAKPOINT_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
+        } else if (instrument instanceof LiveLog) {
+            instrumentEventConsumer.accept(LIVE_LOG_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
+        } else if (instrument instanceof LiveMeter) {
+            instrumentEventConsumer.accept(LIVE_METER_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
+        } else {
+            instrumentEventConsumer.accept(LIVE_SPAN_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
         }
     }
 

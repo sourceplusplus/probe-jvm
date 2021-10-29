@@ -9,8 +9,8 @@ public class LiveLog extends LiveInstrument {
     private final String logFormat;
     private final String[] logArguments;
 
-    public LiveLog(String id, Location location, Expression expression, int hitLimit, HitThrottle throttle,
-                   Long expiresAt, String logFormat, String... logArguments) {
+    public LiveLog(String id, Location location, Expression expression, int hitLimit,
+                   HitThrottle throttle, Long expiresAt, String logFormat, String... logArguments) {
         super(id, location, expression, hitLimit, throttle, expiresAt);
         this.logFormat = logFormat;
         this.logArguments = logArguments;
