@@ -90,9 +90,5 @@ tasks {
         outjars(File("$buildDir/libs/spp-skywalking-services-$version.jar"))
         libraryjars("${org.gradle.internal.jvm.Jvm.current().javaHome}/jmods")
         libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
-
-        doLast {
-            File("$buildDir/libs/spp-skywalking-services-$version-shadow.jar").delete()
-        }
     }
 }
