@@ -95,7 +95,7 @@ tasks.register<Copy>("untarSkywalking") {
 tasks.register<Copy>("updateSkywalkingConfiguration") {
     dependsOn("untarSkywalking")
     from(File(projectDir, "agent.config"))
-    into(File(project.rootDir, "e2e/apache-skywalking-apm-bin-es7/agent/config"))
+    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent/config"))
 }
 
 tasks.register<Copy>("updateSkywalkingToolkit") {
@@ -106,7 +106,7 @@ tasks.register<Copy>("updateSkywalkingToolkit") {
         File(projectDir, "../.ext/toolkit/apm-toolkit-logback-1.x-activation-$skywalkingVersion.jar"),
         File(projectDir, "../.ext/toolkit/apm-toolkit-logging-common-$skywalkingVersion.jar")
     )
-    into(File(project.rootDir, "e2e/apache-skywalking-apm-bin-es7/agent/activations"))
+    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent/activations"))
 }
 
 tasks.register<Zip>("zipSppSkywalking") {
@@ -120,9 +120,9 @@ tasks.register<Zip>("zipSppSkywalking") {
     destinationDirectory.set(resourcesDir)
 
     from(
-        File(project.rootDir, "e2e/apache-skywalking-apm-bin-es7/agent"),
-        File(project.rootDir, "e2e/apache-skywalking-apm-bin-es7/LICENSE"),
-        File(project.rootDir, "e2e/apache-skywalking-apm-bin-es7/NOTICE")
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent"),
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/LICENSE"),
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/NOTICE")
     )
 
     into("plugins") {
@@ -154,13 +154,7 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
         )
     }
 }
-tasks.getByName("build") {
-    dependsOn("shadowJar", "proguard")
-
-//    doLast {
-//        File("$buildDir/libs/control-$version.jar").delete()
-//    }
-}
+tasks.getByName("build").dependsOn("shadowJar", "proguard")
 
 tasks.create<com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation>("relocateShadowJar") {
     target = tasks.getByName("shadowJar") as com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
