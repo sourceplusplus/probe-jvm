@@ -154,12 +154,12 @@ public class ContextReceiver {
                             .tag("probe_id", "todo")
                             .build();
                 case GAUGE:
-                    return MeterFactory.gauge("meter_" + meterId.replace("-", "_"),
+                    return MeterFactory.gauge("gauge_" + meterId.replace("-", "_"),
                                     () -> liveMeter.getSupplier().get().doubleValue())
                             .tag("probe_id", "todo")
                             .build();
                 case HISTOGRAM:
-                    return MeterFactory.histogram("meter_" + meterId.replace("-", "_"))
+                    return MeterFactory.histogram("histogram_" + meterId.replace("-", "_"))
                             .tag("probe_id", "todo")
                             .build();
                 default:
