@@ -150,15 +150,16 @@ public class ContextReceiver {
         BaseMeter meter = ProbeMemory.computeIfAbsent("spp.base-meter:" + meterId, it -> {
             switch (liveMeter.getMeterType()) {
                 case COUNTER:
-                    return MeterFactory.counter(meterId)
+                    return MeterFactory.counter("meter_" + meterId.replace("-", "_"))
                             .tag("probe_id", "todo")
                             .build();
                 case GAUGE:
-                    return MeterFactory.gauge(meterId, () -> liveMeter.getSupplier().get().doubleValue())
+                    return MeterFactory.gauge("meter_" + meterId.replace("-", "_"),
+                                    () -> liveMeter.getSupplier().get().doubleValue())
                             .tag("probe_id", "todo")
                             .build();
                 case HISTOGRAM:
-                    return MeterFactory.histogram(meterId)
+                    return MeterFactory.histogram("meter_" + meterId.replace("-", "_"))
                             .tag("probe_id", "todo")
                             .build();
                 default:
