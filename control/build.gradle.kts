@@ -88,7 +88,7 @@ tasks["processResources"].dependsOn("createProperties")
 tasks.register<Copy>("untarSkywalking") {
     val rootProject = findProject(":probe-jvm")?.name ?: ""
     dependsOn(":${"$rootProject:"}downloadSkywalking")
-    from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-apm-es7-$skywalkingVersion.tar.gz"))))
+    from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-apm-$skywalkingVersion.tar.gz"))))
     into(File(projectDir.parentFile, "e2e"))
 }
 
