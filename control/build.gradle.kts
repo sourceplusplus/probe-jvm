@@ -123,7 +123,8 @@ tasks["classes"].dependsOn("zipSppSkywalkingAgent")
 
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     onlyIf { project.tasks.getByName("build").enabled }
-    dependsOn(":downloadSkywalkingAgent")
+    val rootProject = findProject(":probe-jvm")?.name ?: ""
+    dependsOn(":${"$rootProject:"}downloadSkywalkingAgent")
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("shadow")
