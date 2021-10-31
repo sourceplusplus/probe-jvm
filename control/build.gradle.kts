@@ -162,6 +162,6 @@ tasks {
         injars(File("$buildDir/libs/spp-probe-$version-shadow.jar"))
         outjars(File("$buildDir/libs/spp-probe-$version.jar"))
         libraryjars("${org.gradle.internal.jvm.Jvm.current().javaHome}/jmods")
-        libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
+        libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     }
 }
