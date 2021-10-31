@@ -15,6 +15,7 @@ plugins {
 val probeGroup: String by project
 val probeVersion: String by project
 val skywalkingVersion: String by project
+val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
 
@@ -30,7 +31,7 @@ dependencies {
     implementation("com.github.sourceplusplus.protocol:protocol:0.1.23") {
         isTransitive = false
     }
-    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
+    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("org.springframework:spring-expression:5.3.12")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")

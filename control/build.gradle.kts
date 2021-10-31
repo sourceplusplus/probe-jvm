@@ -17,6 +17,7 @@ plugins {
 val probeGroup: String by project
 val probeVersion: String by project
 val skywalkingVersion: String by project
+val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 val jupiterVersion: String by project
@@ -31,7 +32,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingVersion.jar"))
+    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
@@ -95,23 +96,12 @@ tasks.register<Copy>("untarSkywalking") {
 tasks.register<Copy>("updateSkywalkingConfiguration") {
     dependsOn("untarSkywalking")
     from(File(projectDir, "agent.config"))
-    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent/config"))
-}
-
-tasks.register<Copy>("updateSkywalkingToolkit") {
-    dependsOn("updateSkywalkingConfiguration")
-    from(
-        File(projectDir, "../.ext/toolkit/apm-toolkit-log4j-1.x-activation-$skywalkingVersion.jar"),
-        File(projectDir, "../.ext/toolkit/apm-toolkit-log4j-2.x-activation-$skywalkingVersion.jar"),
-        File(projectDir, "../.ext/toolkit/apm-toolkit-logback-1.x-activation-$skywalkingVersion.jar"),
-        File(projectDir, "../.ext/toolkit/apm-toolkit-logging-common-$skywalkingVersion.jar")
-    )
-    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent/activations"))
+    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/agent/config"))
 }
 
 tasks.register<Zip>("zipSppSkywalking") {
     val rootProject = findProject(":probe-jvm")?.name ?: ""
-    dependsOn("untarSkywalking", ":${"$rootProject:"}services:proguard", "updateSkywalkingToolkit")
+    dependsOn("untarSkywalking", ":${"$rootProject:"}services:proguard", "updateSkywalkingConfiguration")
     mustRunAfter(":${"$rootProject:"}services:proguard")
 
     archiveFileName.set("skywalking-agent-$skywalkingVersion.zip")
@@ -120,9 +110,9 @@ tasks.register<Zip>("zipSppSkywalking") {
     destinationDirectory.set(resourcesDir)
 
     from(
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/agent"),
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/LICENSE"),
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin-es7/NOTICE")
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/agent"),
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/LICENSE"),
+        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/NOTICE")
     )
 
     into("plugins") {
