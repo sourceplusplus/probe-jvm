@@ -18,6 +18,7 @@ val skywalkingVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
+val protocolVersion: String by project
 
 group = probeGroup
 version = probeVersion
@@ -28,7 +29,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("com.github.sourceplusplus.protocol:protocol:0.1.23") {
+    implementation("com.github.sourceplusplus.protocol:protocol:$protocolVersion") {
         isTransitive = false
     }
     compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
