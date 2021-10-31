@@ -16,7 +16,6 @@ plugins {
 
 val probeGroup: String by project
 val probeVersion: String by project
-val skywalkingVersion: String by project
 val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
@@ -80,42 +79,37 @@ tasks.create("createProperties") {
             p["build_id"] = UUID.randomUUID().toString()
             p["build_date"] = Date().toInstant().toString()
             p["build_version"] = project.version.toString()
-            p["apache_skywalking_version"] = skywalkingVersion
+            p["apache_skywalking_version"] = skywalkingAgentVersion
             p.store(it, null)
         }
     }
 }
 tasks["processResources"].dependsOn("createProperties")
 
-tasks.register<Copy>("untarSkywalking") {
+tasks.register<Copy>("untarSkywalkingAgent") {
     val rootProject = findProject(":probe-jvm")?.name ?: ""
-    dependsOn(":${"$rootProject:"}downloadSkywalking")
-    from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-apm-$skywalkingVersion.tar.gz"))))
+    dependsOn(":${"$rootProject:"}downloadSkywalkingAgent")
+    from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
     into(File(projectDir.parentFile, "e2e"))
 }
 
-tasks.register<Copy>("updateSkywalkingConfiguration") {
-    dependsOn("untarSkywalking")
+tasks.register<Copy>("updateSkywalkingAgentConfiguration") {
+    dependsOn("untarSkywalkingAgent")
     from(File(projectDir, "agent.config"))
-    into(File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/agent/config"))
+    into(File(projectDir.parentFile, "e2e/skywalking-agent/config"))
 }
 
-tasks.register<Zip>("zipSppSkywalking") {
+tasks.register<Zip>("zipSppSkywalkingAgent") {
     val rootProject = findProject(":probe-jvm")?.name ?: ""
-    dependsOn("untarSkywalking", ":${"$rootProject:"}services:proguard", "updateSkywalkingConfiguration")
+    dependsOn("untarSkywalkingAgent", ":${"$rootProject:"}services:proguard", "updateSkywalkingAgentConfiguration")
     mustRunAfter(":${"$rootProject:"}services:proguard")
 
-    archiveFileName.set("skywalking-agent-$skywalkingVersion.zip")
+    archiveFileName.set("skywalking-agent-$skywalkingAgentVersion.zip")
     val resourcesDir = File("$buildDir/resources/main")
     resourcesDir.mkdirs()
     destinationDirectory.set(resourcesDir)
 
-    from(
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/agent"),
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/LICENSE"),
-        File(projectDir.parentFile, "e2e/apache-skywalking-apm-bin/NOTICE")
-    )
-
+    from(File(projectDir.parentFile, "e2e/skywalking-agent"))
     into("plugins") {
         doFirst {
             if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$version.jar").exists()) {
@@ -125,11 +119,11 @@ tasks.register<Zip>("zipSppSkywalking") {
         from(File(projectDir, "../services/build/libs/spp-skywalking-services-$version.jar"))
     }
 }
-tasks["classes"].dependsOn("zipSppSkywalking")
+tasks["classes"].dependsOn("zipSppSkywalkingAgent")
 
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     onlyIf { project.tasks.getByName("build").enabled }
-    dependsOn(":downloadSkywalking")
+    dependsOn(":downloadSkywalkingAgent")
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("shadow")

@@ -12,7 +12,7 @@ plugins {
 
 val probeGroup: String by project
 val probeVersion: String by project
-val skywalkingVersion: String by project
+val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 
@@ -86,18 +86,18 @@ subprojects {
 }
 
 tasks {
-    register("downloadSkywalking") {
+    register("downloadSkywalkingAgent") {
         doLast {
-            val f = File(projectDir, "e2e/apache-skywalking-apm$skywalkingVersion.tar.gz")
+            val f = File(projectDir, "e2e/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz")
             if (!f.exists()) {
-                println("Downloading Apache SkyWalking")
-                URL("https://downloads.apache.org/skywalking/$skywalkingVersion/apache-skywalking-apm-$skywalkingVersion.tar.gz")
+                println("Downloading Apache SkyWalking - Java agent")
+                URL("https://downloads.apache.org/skywalking/java-agent/$skywalkingAgentVersion/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz")
                     .openStream().use { input ->
                         FileOutputStream(f).use { output ->
                             input.copyTo(output)
                         }
                     }
-                println("Downloaded Apache SkyWalking")
+                println("Downloaded Apache SkyWalking - Java agent")
             }
         }
     }
