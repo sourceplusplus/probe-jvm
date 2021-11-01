@@ -4,6 +4,7 @@ import java.net.URL
 plugins {
     id("io.gitlab.arturbosch.detekt")
     id("com.avast.gradle.docker-compose")
+    id("org.jetbrains.kotlin.jvm") apply false
 }
 
 val probeGroup: String by project

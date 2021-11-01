@@ -10,6 +10,7 @@ buildscript {
 plugins {
     id("com.github.johnrengelman.shadow")
     id("java")
+    id("org.jetbrains.kotlin.jvm")
 }
 
 val probeGroup: String by project
