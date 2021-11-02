@@ -88,7 +88,11 @@ tasks.create("createProperties") {
 tasks["processResources"].dependsOn("createProperties")
 
 tasks.register<Copy>("untarSkywalkingAgent") {
-    dependsOn(":downloadSkywalkingAgent")
+    if (findProject(":probes:jvm") != null) {
+        dependsOn(":probes:jvm:downloadSkywalkingAgent")
+    } else {
+        dependsOn(":downloadSkywalkingAgent")
+    }
     from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
     into(File(projectDir.parentFile, "e2e"))
 }
@@ -100,8 +104,13 @@ tasks.register<Copy>("updateSkywalkingAgentConfiguration") {
 }
 
 tasks.register<Zip>("zipSppSkywalkingAgent") {
-    dependsOn("untarSkywalkingAgent", ":services:proguard", "updateSkywalkingAgentConfiguration")
-    mustRunAfter(":services:proguard")
+    if (findProject(":probes:jvm") != null) {
+        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:proguard", "updateSkywalkingAgentConfiguration")
+        mustRunAfter(":probes:jvm:services:proguard")
+    } else {
+        dependsOn("untarSkywalkingAgent", ":services:proguard", "updateSkywalkingAgentConfiguration")
+        mustRunAfter(":services:proguard")
+    }
 
     archiveFileName.set("skywalking-agent-$skywalkingAgentVersion.zip")
     val resourcesDir = File("$buildDir/resources/main")
@@ -122,7 +131,11 @@ tasks["classes"].dependsOn("zipSppSkywalkingAgent")
 
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     onlyIf { project.tasks.getByName("build").enabled }
-    dependsOn(":downloadSkywalkingAgent")
+    if (findProject(":probes:jvm") != null) {
+        dependsOn(":probes:jvm:downloadSkywalkingAgent")
+    } else {
+        dependsOn(":downloadSkywalkingAgent")
+    }
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("shadow")

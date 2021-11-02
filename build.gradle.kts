@@ -43,7 +43,11 @@ tasks {
     }
 
     register<Copy>("updateDockerFiles") {
-        dependsOn(":control:build")
+        if (findProject(":probes:jvm") != null) {
+            dependsOn(":probes:jvm:control:build")
+        } else {
+            dependsOn(":control:build")
+        }
 
         from("control/build/libs/spp-probe-$version.jar")
         into(File(projectDir, "e2e"))
