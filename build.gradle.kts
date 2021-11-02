@@ -43,8 +43,7 @@ tasks {
     }
 
     register<Copy>("updateDockerFiles") {
-        val rootProject = findProject(":probe-jvm")?.name ?: ""
-        dependsOn(":${"$rootProject:"}control:build")
+        dependsOn(":control:build")
 
         from("control/build/libs/spp-probe-$version.jar")
         into(File(projectDir, "e2e"))
