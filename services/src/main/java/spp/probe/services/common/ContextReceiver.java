@@ -150,7 +150,7 @@ public class ContextReceiver {
         BaseMeter meter = ProbeMemory.computeIfAbsent("spp.base-meter:" + meterId, it -> {
             switch (liveMeter.getMeterType()) {
                 case COUNTER:
-                    return MeterFactory.counter("meter_" + meterId.replace("-", "_"))
+                    return MeterFactory.counter("counter_" + meterId.replace("-", "_"))
                             .tag("probe_id", "todo")
                             .build();
                 case GAUGE:
