@@ -171,6 +171,8 @@ public class ContextReceiver {
             case COUNTER:
                 ((Counter) meter).increment(liveMeter.getSupplier().get().longValue());
                 break;
+            case GAUGE:
+                break;
             case HISTOGRAM:
                 ((Histogram) meter).addValue(liveMeter.getSupplier().get().doubleValue());
                 break;
