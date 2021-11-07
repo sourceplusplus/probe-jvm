@@ -69,11 +69,11 @@ public class SourceProbe {
         instrumentation = inst;
         vertx = Vertx.vertx();
 
-        connectToPlatform();
         unzipAgent(BUILD.getString("apache_skywalking_version"));
         addAgentToClassLoader();
         configureAgent();
         invokeAgent();
+        connectToPlatform();
 
         try {
             java.lang.ClassLoader agentClassLoader = (java.lang.ClassLoader) Class.forName(
@@ -178,11 +178,21 @@ public class SourceProbe {
             });
             socket.result().handler(parser);
 
-            //send probe connected status
+            //define probe metadata
             HashMap<String, Object> meta = new HashMap<>();
             meta.put("language", "java");
             meta.put("probe_version", BUILD.getString("build_version"));
             meta.put("java_version", System.getProperty("java.version"));
+            try {
+                Class<?> skywalkingConfig = Class.forName("org.apache.skywalking.apm.agent.core.conf.Config$Agent");
+                meta.put("service", skywalkingConfig.getField("SERVICE_NAME").get(null));
+                meta.put("service_instance", skywalkingConfig.getField("INSTANCE_NAME").get(null));
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+            //send probe connected status
             String replyAddress = UUID.randomUUID().toString();
             ProbeConnection pc = new ProbeConnection(UUID.randomUUID().toString(), System.currentTimeMillis(), meta);
             MessageConsumer<Boolean> consumer = vertx.eventBus().localConsumer("local." + replyAddress);
