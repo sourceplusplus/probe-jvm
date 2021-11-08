@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static spp.probe.SourceProbe.PROBE_ID;
 import static spp.probe.SourceProbe.vertx;
 import static spp.protocol.probe.ProbeAddress.LIVE_LOG_REMOTE;
 import static spp.protocol.probe.command.LiveInstrumentCommand.CommandType.ADD_LIVE_INSTRUMENT;
@@ -100,7 +101,7 @@ public class IntegrationTest {
             );
 
             AtomicBoolean unregistered = new AtomicBoolean(false);
-            MessageConsumer<JsonObject> consumer = vertx.eventBus().localConsumer("local." + LIVE_LOG_REMOTE.getAddress());
+            MessageConsumer<JsonObject> consumer = vertx.eventBus().localConsumer("local." + LIVE_LOG_REMOTE.getAddress() + ":" + PROBE_ID);
             consumer.handler(it -> {
                 log.info("Got command: {}", it.body());
                 if (unregistered.get()) {

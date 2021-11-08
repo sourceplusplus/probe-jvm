@@ -47,6 +47,7 @@ public class SourceProbe {
     private static final AtomicBoolean connected = new AtomicBoolean();
     public static NetSocket tcpSocket;
     public static LiveInstrumentRemote instrumentRemote;
+    public static final String PROBE_ID = UUID.randomUUID().toString();
 
     public static boolean isAgentInitialized() {
         return instrumentation != null;
@@ -91,10 +92,6 @@ public class SourceProbe {
             throw new RuntimeException(e);
         }
 
-        deployRemotes();
-    }
-
-    public static void deployRemotes() {
         vertx.deployVerticle(instrumentRemote = new LiveInstrumentRemote());
     }
 
@@ -194,7 +191,7 @@ public class SourceProbe {
 
             //send probe connected status
             String replyAddress = UUID.randomUUID().toString();
-            ProbeConnection pc = new ProbeConnection(UUID.randomUUID().toString(), System.currentTimeMillis(), meta);
+            ProbeConnection pc = new ProbeConnection(PROBE_ID, System.currentTimeMillis(), meta);
             MessageConsumer<Boolean> consumer = vertx.eventBus().localConsumer("local." + replyAddress);
             consumer.handler(resp -> {
                 if (ProbeConfiguration.isNotQuite()) System.out.println("Received probe connection confirmation");
@@ -202,22 +199,23 @@ public class SourceProbe {
                 //register remotes
                 FrameHelper.sendFrame(
                         BridgeEventType.REGISTER.name().toLowerCase(),
-                        LIVE_BREAKPOINT_REMOTE.getAddress(),
+                        LIVE_BREAKPOINT_REMOTE.getAddress() + ":" + PROBE_ID,
                         new JsonObject(),
                         SourceProbe.tcpSocket
                 );
                 FrameHelper.sendFrame(
                         BridgeEventType.REGISTER.name().toLowerCase(),
-                        LIVE_LOG_REMOTE.getAddress(),
+                        LIVE_LOG_REMOTE.getAddress() + ":" + PROBE_ID,
                         new JsonObject(),
                         SourceProbe.tcpSocket
                 );
                 FrameHelper.sendFrame(
                         BridgeEventType.REGISTER.name().toLowerCase(),
-                        LIVE_METER_REMOTE.getAddress(),
+                        LIVE_METER_REMOTE.getAddress() + ":" + PROBE_ID,
                         new JsonObject(),
                         SourceProbe.tcpSocket
                 );
+
                 consumer.unregister();
             });
             FrameHelper.sendFrame(

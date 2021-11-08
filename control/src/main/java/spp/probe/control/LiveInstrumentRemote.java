@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import static spp.probe.SourceProbe.PROBE_ID;
 import static spp.probe.SourceProbe.instrumentation;
 import static spp.protocol.probe.ProbeAddress.*;
 
@@ -88,7 +89,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
             throw new RuntimeException(e);
         }
 
-        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_BREAKPOINT_REMOTE.getAddress()).handler(it -> {
+        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_BREAKPOINT_REMOTE.getAddress() + ":" + PROBE_ID).handler(it -> {
             try {
                 LiveInstrumentCommand command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand.class);
                 switch (command.getCommandType()) {
@@ -127,7 +128,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
                 );
             }
         });
-        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_LOG_REMOTE.getAddress()).handler(it -> {
+        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_LOG_REMOTE.getAddress() + ":" + PROBE_ID).handler(it -> {
             try {
                 LiveInstrumentCommand command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand.class);
                 switch (command.getCommandType()) {
@@ -166,7 +167,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
                 );
             }
         });
-        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_METER_REMOTE.getAddress()).handler(it -> {
+        vertx.eventBus().<JsonObject>localConsumer("local." + LIVE_METER_REMOTE.getAddress() + ":" + PROBE_ID).handler(it -> {
             try {
                 LiveInstrumentCommand command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand.class);
                 switch (command.getCommandType()) {
