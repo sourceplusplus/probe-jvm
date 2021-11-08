@@ -42,7 +42,45 @@ public class IntegrationTest {
                     "yxcVssstt4J1Gj8WUFOdqPsIKigJZMn3yshC5S-KY-7S0dVd0VXgvpPqmpb9Q9Uho";
 
     @Test
-    public void verifyClientConnected() throws Exception {
+    public void verifyRemotesRegistered() throws Exception {
+        VertxTestContext testContext = new VertxTestContext();
+        assertTrue(SourceProbe.isAgentInitialized());
+        ProbeConfiguration.setQuietMode(false);
+
+        String platformHost = (System.getenv("SPP_PLATFORM_HOST") != null)
+                ? System.getenv("SPP_PLATFORM_HOST") : "localhost";
+        ProbeConfiguration.setString("platform_host", platformHost);
+
+        WebClient client = WebClient.create(
+                vertx, new WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
+        );
+        client.get(5445, platformHost, "/stats")
+                .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send().onComplete(it -> {
+                    if (it.succeeded()) {
+                        JsonObject result = it.result().bodyAsJsonObject().getJsonObject("platform");
+                        assertEquals(1, result.getInteger("connected-probes"));
+
+                        JsonObject services = result.getJsonObject("services");
+                        services.getJsonObject("probe").getMap().forEach((k, v) -> assertEquals(1, v));
+
+                        client.close();
+                        testContext.completeNow();
+                    } else {
+                        testContext.failNow(it.cause());
+                    }
+                });
+
+        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
+            if (testContext.failed()) {
+                throw new RuntimeException(testContext.causeOfFailure());
+            }
+        } else {
+            throw new RuntimeException("Test timed out");
+        }
+    }
+
+    @Test
+    public void verifyClientsConnected() throws Exception {
         VertxTestContext testContext = new VertxTestContext();
         assertTrue(SourceProbe.isAgentInitialized());
         ProbeConfiguration.setQuietMode(false);
