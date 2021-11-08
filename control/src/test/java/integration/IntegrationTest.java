@@ -58,10 +58,12 @@ public class IntegrationTest {
                 .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send().onComplete(it -> {
                     if (it.succeeded()) {
                         JsonObject result = it.result().bodyAsJsonObject().getJsonObject("platform");
-                        assertEquals(1, result.getInteger("connected-probes"));
+                        testContext.verify(() -> {
+                            assertEquals(1, result.getInteger("connected-probes"));
 
-                        JsonObject services = result.getJsonObject("services");
-                        services.getJsonObject("probe").getMap().forEach((k, v) -> assertEquals(1, v));
+                            JsonObject services = result.getJsonObject("services");
+                            services.getJsonObject("probe").getMap().forEach((k, v) -> assertEquals(1, v));
+                        });
 
                         client.close();
                         testContext.completeNow();
