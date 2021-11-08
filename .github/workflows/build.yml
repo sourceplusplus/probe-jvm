@@ -34,7 +34,7 @@ jobs:
           echo "::set-output name=version::$VERSION"
           echo "SPP_PROBE_VERSION=$VERSION" >> $GITHUB_ENV
 
-      - run: ./gradlew updateDockerFiles composeUp -Dbuild.profile=release
+      - run: ./gradlew assembleUp -Dbuild.profile=release
 
       - name: Docker IPs
         run: docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)

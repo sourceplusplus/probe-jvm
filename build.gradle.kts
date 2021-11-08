@@ -52,6 +52,11 @@ tasks {
         from("control/build/libs/spp-probe-$version.jar")
         into(File(projectDir, "e2e"))
     }
+
+    register("assembleUp") {
+        dependsOn("updateDockerFiles")
+        dependsOn("composeUp")
+    }
 }
 
 dockerCompose {
