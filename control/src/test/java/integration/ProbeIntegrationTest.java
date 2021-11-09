@@ -55,6 +55,7 @@ public class ProbeIntegrationTest {
 
         //wait for remotes to register
         vertx.setPeriodic(5000, id -> {
+            log.info("Checking for remotes");
             client.get(5445, platformHost, "/clients")
                     .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send().onComplete(it -> {
                         if (it.succeeded()) {
@@ -62,7 +63,8 @@ public class ProbeIntegrationTest {
                             for (int i = 0; i < probes.size(); i++) {
                                 JsonObject probe = probes.getJsonObject(i);
                                 if (probe.getString("probeId").equals(PROBE_ID)) {
-                                    if (probe.getJsonArray("remotes").size() > 1) {
+                                    if (probe.getJsonArray("remotes").size() == 3) {
+                                        log.info("Probe is ready");
                                         vertx.cancelTimer(id);
                                         client.close();
                                         testContext.completeNow();
@@ -261,7 +263,7 @@ public class ProbeIntegrationTest {
                                             ))
                             ).onComplete(it2 -> {
                                 if (it2.succeeded()) {
-                                    log.info("Reconnecting to platform");
+                                    log.info("Added live log. Reconnecting to platform");
                                     SourceProbe.connectToPlatform();
                                 } else {
                                     testContext.failNow(it2.cause());
