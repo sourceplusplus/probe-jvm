@@ -45,6 +45,10 @@ public final class ProbeConfiguration {
         return localProperties.getJsonObject("skywalking");
     }
 
+    public static JsonObject getSpp() {
+        return localProperties.getJsonObject("spp");
+    }
+
     public static String getString(String property) {
         return localProperties.getJsonObject("spp").getString(property);
     }
