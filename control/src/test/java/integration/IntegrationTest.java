@@ -59,10 +59,11 @@ public class IntegrationTest {
                     if (it.succeeded()) {
                         JsonObject result = it.result().bodyAsJsonObject().getJsonObject("platform");
                         testContext.verify(() -> {
-                            assertNotEquals(0, result.getInteger("connected-probes"));
+                            int probeCount = result.getInteger("connected-probes");
+                            assertNotEquals(0, probeCount);
 
                             JsonObject services = result.getJsonObject("services");
-                            services.getJsonObject("probe").getMap().forEach((k, v) -> assertNotEquals(0, v));
+                            services.getJsonObject("probe").getMap().forEach((k, v) -> assertEquals(probeCount, v));
                         });
 
                         client.close();
