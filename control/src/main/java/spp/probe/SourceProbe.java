@@ -183,6 +183,9 @@ public class SourceProbe {
                 e.printStackTrace();
                 throw new RuntimeException(e);
             }
+            if (ProbeConfiguration.getSpp().containsKey("probe_metadata")) {
+                meta.putAll(ProbeConfiguration.getSpp().getJsonObject("probe_metadata").getMap());
+            }
 
             //send probe connected status
             String replyAddress = UUID.randomUUID().toString();
