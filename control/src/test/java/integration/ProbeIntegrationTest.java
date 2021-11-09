@@ -8,6 +8,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -26,9 +27,9 @@ import static spp.protocol.probe.ProbeAddress.LIVE_LOG_REMOTE;
 import static spp.protocol.probe.command.LiveInstrumentCommand.CommandType.ADD_LIVE_INSTRUMENT;
 
 @ExtendWith(VertxExtension.class)
-public class IntegrationTest {
+public class ProbeIntegrationTest {
 
-    private final static Logger log = LoggerFactory.getLogger(IntegrationTest.class);
+    private final static Logger log = LoggerFactory.getLogger(ProbeIntegrationTest.class);
 
     public static final String SYSTEM_JWT_TOKEN =
             "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJkZXZlbG9wZXJfaWQiOiJzeXN0ZW0iLCJjcmVhdGVkX2F0IjoxNjIyNDIxMzY0ODY4" +
@@ -40,6 +41,48 @@ public class IntegrationTest {
                     "Sp1nOmwJ64FDIbSpfpgUAqfSWXKZYhSisfnBLEyHCjMSPzVmDh949w-W1wU9q5nGFtrx6PTOxK_WKOiWU8_oeTjL0pD8pKXqJ" +
                     "MaLW-OIzfrl3kzQNuF80YT-nxmNtp5PrcxehprlPmqSB_dyTHccsO3l63d8y9hiIzfRUgUjTJbktFn5t41ADARMs_0WMpIGZJ" +
                     "yxcVssstt4J1Gj8WUFOdqPsIKigJZMn3yshC5S-KY-7S0dVd0VXgvpPqmpb9Q9Uho";
+
+    @BeforeAll
+    public static void setup() throws Exception {
+        VertxTestContext testContext = new VertxTestContext();
+        String platformHost = (System.getenv("SPP_PLATFORM_HOST") != null)
+                ? System.getenv("SPP_PLATFORM_HOST") : "localhost";
+        ProbeConfiguration.setString("platform_host", platformHost);
+
+        WebClient client = WebClient.create(
+                vertx, new WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
+        );
+
+        //wait for remotes to register
+        vertx.setPeriodic(5000, id -> {
+            client.get(5445, platformHost, "/clients")
+                    .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send().onComplete(it -> {
+                        if (it.succeeded()) {
+                            JsonArray probes = it.result().bodyAsJsonObject().getJsonArray("probes");
+                            for (int i = 0; i < probes.size(); i++) {
+                                JsonObject probe = probes.getJsonObject(i);
+                                if (probe.getString("probeId").equals(PROBE_ID)) {
+                                    if (probe.getJsonArray("remotes").size() > 1) {
+                                        vertx.cancelTimer(id);
+                                        client.close();
+                                        testContext.completeNow();
+                                    }
+                                }
+                            }
+                        } else {
+                            testContext.failNow(it.cause());
+                        }
+                    });
+        });
+
+        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
+            if (testContext.failed()) {
+                throw new RuntimeException(testContext.causeOfFailure());
+            }
+        } else {
+            throw new RuntimeException("Test timed out");
+        }
+    }
 
     @Test
     public void verifyRemotesRegistered() throws Exception {
