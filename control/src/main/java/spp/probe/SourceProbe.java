@@ -161,13 +161,8 @@ public class SourceProbe {
                             }
                         });
                     } else {
-                        if (frame.getBoolean("send") != null && !frame.getBoolean("send")) {
-                            vertx.eventBus().publish("local." + frame.getString("address"),
-                                    frame.getJsonObject("body"));
-                        } else {
-                            vertx.eventBus().send("local." + frame.getString("address"),
-                                    frame.getJsonObject("body"));
-                        }
+                        vertx.eventBus().publish("local." + frame.getString("address"),
+                                frame.getJsonObject("body"));
                     }
                 } else {
                     throw new UnsupportedOperationException(frame.toString());
