@@ -134,6 +134,7 @@ jobs:
           draft: true
 
       - name: Upload spp-probe asset
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
