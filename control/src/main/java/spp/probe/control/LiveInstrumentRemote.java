@@ -217,7 +217,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
         JsonObject metricValue = meterObject.getJsonObject("metricValue");
         String valueType = metricValue.getString("valueType");
         String supplier = metricValue.getString("supplier");
-        if (supplier == null) {
+        if (supplier == null || supplier.isEmpty()) {
             supplier = metricValue.getString("number");
         }
         JsonObject location = meterObject.getJsonObject("location");
