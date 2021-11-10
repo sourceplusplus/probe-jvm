@@ -1,14 +1,5 @@
 import java.util.*
 
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.guardsquare:proguard-gradle:7.1.1")
-    }
-}
-
 plugins {
     id("com.github.johnrengelman.shadow")
     id("java")
@@ -105,11 +96,11 @@ tasks.register<Copy>("updateSkywalkingAgentConfiguration") {
 
 tasks.register<Zip>("zipSppSkywalkingAgent") {
     if (findProject(":probes:jvm") != null) {
-        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:proguard", "updateSkywalkingAgentConfiguration")
-        mustRunAfter(":probes:jvm:services:proguard")
+        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:shadowJar", "updateSkywalkingAgentConfiguration")
+        mustRunAfter(":probes:jvm:services:shadowJar")
     } else {
-        dependsOn("untarSkywalkingAgent", ":services:proguard", "updateSkywalkingAgentConfiguration")
-        mustRunAfter(":services:proguard")
+        dependsOn("untarSkywalkingAgent", ":services:shadowJar", "updateSkywalkingAgentConfiguration")
+        mustRunAfter(":services:shadowJar")
     }
 
     archiveFileName.set("skywalking-agent-$skywalkingAgentVersion.zip")
@@ -138,7 +129,7 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     }
 
     archiveBaseName.set("spp-probe")
-    archiveClassifier.set("shadow")
+    archiveClassifier.set("")
     exclude("module-info.class")
     exclude("META-INF/**")
     manifest {
@@ -150,24 +141,13 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
             )
         )
     }
-}
-tasks.getByName("build").dependsOn("shadowJar", "proguard")
 
-tasks.create<com.github.jengelman.gradle.plugins.shadow.tasks.ConfigureShadowRelocation>("relocateShadowJar") {
-    target = tasks.getByName("shadowJar") as com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-    prefix = "spp.probe.common"
+    relocate("kotlin", "spp.probe.common.kotlin")
+    relocate("org.intellij", "spp.probe.common.org.intellij")
+    relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
+    relocate("org.yaml", "spp.probe.common.org.yaml")
+    relocate("io", "spp.probe.common.io")
+    relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
+    relocate("spp.protocol", "spp.probe.common.spp.protocol")
 }
-
-tasks.getByName("shadowJar").dependsOn("relocateShadowJar")
-
-tasks {
-    create<proguard.gradle.ProGuardTask>("proguard") {
-        onlyIf { project.tasks.getByName("build").enabled }
-        dependsOn("shadowJar")
-        configuration("proguard.conf")
-        injars(File("$buildDir/libs/spp-probe-$version-shadow.jar"))
-        outjars(File("$buildDir/libs/spp-probe-$version.jar"))
-        libraryjars("${org.gradle.internal.jvm.Jvm.current().javaHome}/jmods")
-        libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
-    }
-}
+tasks.getByName("build").dependsOn("shadowJar")
