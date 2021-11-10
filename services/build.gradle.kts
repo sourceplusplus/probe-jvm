@@ -1,12 +1,3 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.guardsquare:proguard-gradle:7.1.1")
-    }
-}
-
 plugins {
     id("com.github.johnrengelman.shadow")
     id("java")
@@ -42,13 +33,9 @@ dependencies {
 }
 
 tasks {
-    jar {
-        baseName = "spp-skywalking-services"
-    }
-
     shadowJar {
         archiveBaseName.set("spp-skywalking-services")
-        archiveClassifier.set("shadow")
+        archiveClassifier.set("")
         exclude("META-INF/native-image/**")
         exclude("META-INF/vertx/**")
         exclude("module-info.class")
@@ -73,24 +60,11 @@ tasks {
     }
 
     build {
-        dependsOn("shadowJar", "proguard")
-
-        doLast {
-            File("$buildDir/libs/spp-skywalking-services-$version.jar").delete()
-        }
+        dependsOn("shadowJar")
     }
 
     test {
         failFast = true
         maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
-    }
-
-    create<proguard.gradle.ProGuardTask>("proguard") {
-        dependsOn("shadowJar")
-        configuration("proguard.conf")
-        injars(File("$buildDir/libs/spp-skywalking-services-$version-shadow.jar"))
-        outjars(File("$buildDir/libs/spp-skywalking-services-$version.jar"))
-        libraryjars("${org.gradle.internal.jvm.Jvm.current().javaHome}/jmods")
-        libraryjars(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     }
 }
