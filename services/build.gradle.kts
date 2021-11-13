@@ -58,10 +58,7 @@ tasks {
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
     }
-
-    build {
-        dependsOn("shadowJar")
-    }
+    getByName("jar").dependsOn("shadowJar")
 
     test {
         failFast = true

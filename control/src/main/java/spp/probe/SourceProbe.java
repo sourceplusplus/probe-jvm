@@ -26,10 +26,7 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.ResourceBundle;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -237,6 +234,17 @@ public class SourceProbe {
     private static void configureAgent() {
         ProbeConfiguration.getSkywalkingSettings().forEach(it -> System.setProperty(it[0], it[1]));
         ProbeConfiguration.getSppSettings().forEach(it -> System.setProperty(it[0], it[1]));
+
+        //add probe id to instance properties
+        try {
+            Class<?> skywalkingConfig = Class.forName("org.apache.skywalking.apm.agent.core.conf.Config$Agent");
+            Map<String, String> instanceProperties = (Map<String, String>) skywalkingConfig.getField(
+                    "INSTANCE_PROPERTIES").get(null);
+            instanceProperties.put("probe_id", PROBE_ID);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     private static void addAgentToClassLoader() throws Exception {

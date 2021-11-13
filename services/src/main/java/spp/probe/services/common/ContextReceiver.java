@@ -149,17 +149,14 @@ public class ContextReceiver {
             switch (liveMeter.getMeterType()) {
                 case COUNTER:
                     return MeterFactory.counter("counter_" + meterId.replace("-", "_"))
-                            .tag("probe_id", "todo") //todo: this
                             .build();
                 case GAUGE:
                     return MeterFactory.gauge("gauge_" + meterId.replace("-", "_"),
                                     () -> liveMeter.getSupplier().get().doubleValue())
-                            .tag("probe_id", "todo") //todo: this
                             .build();
                 case HISTOGRAM:
                     return MeterFactory.histogram("histogram_" + meterId.replace("-", "_"))
                             .steps(Collections.singletonList(0.0d)) //todo: dynamic
-                            .tag("probe_id", "todo") //todo: this
                             .build();
                 default:
                     throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
