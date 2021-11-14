@@ -8,6 +8,10 @@ import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper;
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder;
 import spp.probe.SourceProbe;
+import spp.protocol.instrument.LiveInstrument;
+import spp.protocol.instrument.breakpoint.LiveBreakpoint;
+import spp.protocol.instrument.log.LiveLog;
+import spp.protocol.instrument.meter.LiveMeter;
 import spp.protocol.platform.PlatformAddress;
 import spp.protocol.probe.command.LiveInstrumentCommand;
 
@@ -15,7 +19,6 @@ import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -30,9 +33,7 @@ public class LiveInstrumentRemote extends AbstractVerticle {
             BridgeEventType.PUBLISH.name().toLowerCase(), address, new JsonObject(json), SourceProbe.tcpSocket
     );
 
-    private Method addBreakpoint;
-    private Method addLog;
-    private Method addMeter;
+    private Method applyInstrument;
     private Method removeInstrument;
     private static Method putBreakpoint;
     private static Method putLog;
@@ -56,20 +57,11 @@ public class LiveInstrumentRemote extends AbstractVerticle {
             serviceClass.getMethod("setInstrumentEventConsumer", BiConsumer.class).invoke(null, EVENT_CONSUMER);
             serviceClass.getMethod("setInstrumentation", Instrumentation.class).invoke(null, instrumentation);
 
-            addBreakpoint = serviceClass.getMethod("addBreakpoint",
-                    String.class, String.class, int.class, String.class, int.class,
-                    int.class, String.class, Long.class, boolean.class);
+            applyInstrument = serviceClass.getMethod("applyInstrument", LiveInstrument.class);
             removeInstrument = serviceClass.getMethod("removeInstrument",
                     String.class, int.class, String.class);
             isInstrumentEnabled = serviceClass.getMethod("isInstrumentEnabled", String.class);
             isHit = serviceClass.getMethod("isHit", String.class);
-
-            addLog = serviceClass.getMethod("addLog",
-                    String.class, String.class, String[].class, String.class, int.class,
-                    String.class, int.class, int.class, String.class, Long.class, boolean.class);
-            addMeter = serviceClass.getMethod("addMeter",
-                    String.class, String.class, String.class, String.class, String.class, String.class, int.class,
-                    String.class, int.class, int.class, String.class, Long.class, boolean.class);
 
             Class contextClass = Class.forName(
                     "spp.probe.services.common.ContextReceiver", false, agentClassLoader);
@@ -208,48 +200,19 @@ public class LiveInstrumentRemote extends AbstractVerticle {
         });
     }
 
-    private void addMeter(LiveInstrumentCommand command) throws Exception {
-        String breakpointData = command.getContext().getLiveInstruments().get(0);
-        JsonObject meterObject = new JsonObject(breakpointData);
-        String id = meterObject.getString("id");
-        String meterName = meterObject.getString("meterName");
-        String meterType = meterObject.getString("meterType");
-        JsonObject metricValue = meterObject.getJsonObject("metricValue");
-        String valueType = metricValue.getString("valueType");
-        String supplier = metricValue.getString("supplier");
-        if (supplier == null || supplier.isEmpty()) {
-            supplier = metricValue.getString("number");
-        }
-        JsonObject location = meterObject.getJsonObject("location");
-        String source = location.getString("source");
-        int line = location.getInteger("line");
-        int hitLimit = meterObject.getInteger("hitLimit");
-        String condition = meterObject.getString("condition");
-        boolean applyImmediately = meterObject.getBoolean("applyImmediately");
-        JsonObject throttle = meterObject.getJsonObject("throttle");
-        int throttleLimit = throttle.getInteger("limit");
-        String throttleStep = throttle.getString("step");
-        Long expiresAt = meterObject.getLong("expiresAt");
-        addMeter.invoke(null, id, meterName, meterType, valueType, supplier, source, line, condition, hitLimit,
-                throttleLimit, throttleStep, expiresAt, applyImmediately);
-    }
-
     private void addBreakpoint(LiveInstrumentCommand command) throws Exception {
         String breakpointData = command.getContext().getLiveInstruments().get(0);
-        JsonObject breakpointObject = new JsonObject(breakpointData);
-        String id = breakpointObject.getString("id");
-        JsonObject location = breakpointObject.getJsonObject("location");
-        String source = location.getString("source");
-        int line = location.getInteger("line");
-        int hitLimit = breakpointObject.getInteger("hitLimit");
-        String condition = breakpointObject.getString("condition");
-        boolean applyImmediately = breakpointObject.getBoolean("applyImmediately");
-        JsonObject throttle = breakpointObject.getJsonObject("throttle");
-        int throttleLimit = throttle.getInteger("limit");
-        String throttleStep = throttle.getString("step");
-        Long expiresAt = breakpointObject.getLong("expiresAt");
-        addBreakpoint.invoke(null, id, source, line, condition, hitLimit,
-                throttleLimit, throttleStep, expiresAt, applyImmediately);
+        applyInstrument.invoke(null, Json.decodeValue(breakpointData, LiveBreakpoint.class));
+    }
+
+    private void addLog(LiveInstrumentCommand command) throws Exception {
+        String logData = command.getContext().getLiveInstruments().get(0);
+        applyInstrument.invoke(null, Json.decodeValue(logData, LiveLog.class));
+    }
+
+    private void addMeter(LiveInstrumentCommand command) throws Exception {
+        String meterData = command.getContext().getLiveInstruments().get(0);
+        applyInstrument.invoke(null, Json.decodeValue(meterData, LiveMeter.class));
     }
 
     private void removeInstrument(LiveInstrumentCommand command) throws Exception {
@@ -267,27 +230,6 @@ public class LiveInstrumentRemote extends AbstractVerticle {
             int line = location.getInteger("line");
             removeInstrument.invoke(null, source, line, null);
         }
-    }
-
-    private void addLog(LiveInstrumentCommand command) throws Exception {
-        String logData = command.getContext().getLiveInstruments().get(0);
-        JsonObject logObject = new JsonObject(logData);
-        String id = logObject.getString("id");
-        String logFormat = logObject.getString("logFormat");
-        Object[] objectArray = logObject.getJsonArray("logArguments").getList().toArray();
-        String[] logArguments = Arrays.copyOf(objectArray, objectArray.length, String[].class);
-        JsonObject location = logObject.getJsonObject("location");
-        String source = location.getString("source");
-        int line = location.getInteger("line");
-        int hitLimit = logObject.getInteger("hitLimit");
-        String condition = logObject.getString("condition");
-        boolean applyImmediately = logObject.getBoolean("applyImmediately");
-        JsonObject throttle = logObject.getJsonObject("throttle");
-        int throttleLimit = throttle.getInteger("limit");
-        String throttleStep = throttle.getString("step");
-        Long expiresAt = logObject.getLong("expiresAt");
-        addLog.invoke(null, id, logFormat, logArguments, source, line, condition,
-                hitLimit, throttleLimit, throttleStep, expiresAt, applyImmediately);
     }
 
     @SuppressWarnings("unused")

@@ -31,6 +31,7 @@ dependencies {
     implementation("com.github.sourceplusplus.protocol:protocol:$protocolVersion") {
         isTransitive = false
     }
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
@@ -148,6 +149,5 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("org.yaml", "spp.probe.common.org.yaml")
     relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
-    relocate("spp.protocol", "spp.probe.common.spp.protocol")
 }
 tasks.getByName("build").dependsOn("shadowJar")

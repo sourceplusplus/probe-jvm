@@ -8,12 +8,12 @@ import spp.probe.services.common.ProbeMemory;
 import spp.probe.services.common.model.ClassField;
 import spp.probe.services.common.model.ClassMetadata;
 import spp.probe.services.common.model.LocalVariable;
-import spp.probe.services.common.model.Location;
 import spp.probe.services.common.transform.LiveTransformer;
-import spp.probe.services.instrument.model.LiveBreakpoint;
-import spp.probe.services.instrument.model.LiveInstrument;
-import spp.probe.services.instrument.model.LiveLog;
-import spp.probe.services.instrument.model.LiveMeter;
+import spp.protocol.instrument.LiveInstrument;
+import spp.protocol.instrument.LiveSourceLocation;
+import spp.protocol.instrument.breakpoint.LiveBreakpoint;
+import spp.protocol.instrument.log.LiveLog;
+import spp.protocol.instrument.meter.LiveMeter;
 
 import static org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes.*;
 
@@ -43,7 +43,7 @@ public class LiveInstrumentTransformer extends MethodVisitor {
     @Override
     public void visitLineNumber(int line, Label start) {
         mv.visitLineNumber(line, start);
-        for (LiveInstrument instrument : LiveInstrumentService.getInstruments(new Location(source, line))) {
+        for (LiveInstrument instrument : LiveInstrumentService.getInstruments(new LiveSourceLocation(source, line))) {
             Label instrumentLabel = new Label();
             isInstrumentEnabled(instrument.getId(), instrumentLabel);
 
@@ -53,14 +53,14 @@ public class LiveInstrumentTransformer extends MethodVisitor {
                 putBreakpoint(instrument.getId(), source, line);
             } else if (instrument instanceof LiveLog) {
                 LiveLog log = (LiveLog) instrument;
-                if (log.getLogArguments().length > 0 || log.getExpression() != null) {
+                if (log.getLogArguments().size() > 0 || log.getCondition() != null && !log.getCondition().isEmpty()) {
                     captureSnapshot(log.getId(), line);
                 }
                 isHit(log.getId(), instrumentLabel);
                 putLog(log);
             } else if (instrument instanceof LiveMeter) {
                 LiveMeter meter = (LiveMeter) instrument;
-                if (meter.getExpression() != null) {
+                if (meter.getCondition() != null && !meter.getCondition().isEmpty()) {
                     captureSnapshot(meter.getId(), line);
                 }
                 isHit(meter.getId(), instrumentLabel);
@@ -152,12 +152,12 @@ public class LiveInstrumentTransformer extends MethodVisitor {
         mv.visitLdcInsn(log.getId());
         mv.visitLdcInsn(log.getLogFormat());
 
-        mv.visitIntInsn(Opcodes.BIPUSH, log.getLogArguments().length);
+        mv.visitIntInsn(Opcodes.BIPUSH, log.getLogArguments().size());
         mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
-        for (int i = 0; i < log.getLogArguments().length; i++) {
+        for (int i = 0; i < log.getLogArguments().size(); i++) {
             mv.visitInsn(Opcodes.DUP);
             mv.visitIntInsn(Opcodes.BIPUSH, i);
-            mv.visitLdcInsn(log.getLogArguments()[i]);
+            mv.visitLdcInsn(log.getLogArguments().get(i));
             mv.visitInsn(Opcodes.AASTORE);
         }
 

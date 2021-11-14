@@ -13,10 +13,14 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory;
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient;
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair;
 import org.apache.skywalking.apm.network.logging.v3.*;
-import spp.probe.services.common.model.Location;
-import spp.probe.services.instrument.model.LiveMeter;
+import spp.protocol.instrument.LiveSourceLocation;
+import spp.protocol.instrument.meter.LiveMeter;
+import spp.protocol.instrument.meter.MetricValueType;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
@@ -90,7 +94,7 @@ public class ContextReceiver {
         activeSpan.tag(new StringTag("spp.stack-trace:" + breakpointId),
                 ThrowableTransformer.INSTANCE.convert2String(throwable, 4000));
         activeSpan.tag(new StringTag("spp.breakpoint:" + breakpointId),
-                new Location(source, line).toJson());
+                ModelSerializer.INSTANCE.toJson(new LiveSourceLocation(source, line)));
 
         ContextManager.stopSpan(activeSpan);
     }
@@ -149,17 +153,14 @@ public class ContextReceiver {
             switch (liveMeter.getMeterType()) {
                 case COUNTER:
                     return MeterFactory.counter("counter_" + meterId.replace("-", "_"))
-                            .tag("probe_id", "todo") //todo: this
                             .build();
                 case GAUGE:
                     return MeterFactory.gauge("gauge_" + meterId.replace("-", "_"),
-                                    () -> liveMeter.getSupplier().get().doubleValue())
-                            .tag("probe_id", "todo") //todo: this
+                                    () -> Double.parseDouble(liveMeter.getMetricValue().getValue()))
                             .build();
                 case HISTOGRAM:
                     return MeterFactory.histogram("histogram_" + meterId.replace("-", "_"))
                             .steps(Collections.singletonList(0.0d)) //todo: dynamic
-                            .tag("probe_id", "todo") //todo: this
                             .build();
                 default:
                     throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
@@ -168,12 +169,20 @@ public class ContextReceiver {
 
         switch (liveMeter.getMeterType()) {
             case COUNTER:
-                ((Counter) meter).increment(liveMeter.getSupplier().get().longValue());
+                if (liveMeter.getMetricValue().getValueType() == MetricValueType.NUMBER) {
+                    ((Counter) meter).increment(Long.parseLong(liveMeter.getMetricValue().getValue()));
+                } else {
+                    throw new UnsupportedOperationException("todo"); //todo: this
+                }
                 break;
             case GAUGE:
                 break;
             case HISTOGRAM:
-                ((Histogram) meter).addValue(liveMeter.getSupplier().get().doubleValue());
+                if (liveMeter.getMetricValue().getValueType() == MetricValueType.NUMBER) {
+                    ((Histogram) meter).addValue(Double.parseDouble(liveMeter.getMetricValue().getValue()));
+                } else {
+                    throw new UnsupportedOperationException("todo"); //todo: this
+                }
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());

@@ -2,6 +2,8 @@ package spp.probe.services.common.model
 
 import junit.framework.TestCase
 import org.junit.Test
+import spp.protocol.instrument.HitThrottle
+import spp.protocol.instrument.ThrottleStep
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -10,9 +12,9 @@ class HitThrottleTest {
     @Test
     @Throws(Exception::class)
     fun oneASecond() {
-        val hitThrottle = HitThrottle(1, HitThrottleStep.SECOND)
+        val hitThrottle = HitThrottle(1, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
-        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited }, 0, 100, TimeUnit.MILLISECONDS)
+        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 100, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
         TestCase.assertEquals(5f, hitThrottle.totalHitCount.toFloat(), 1f)
@@ -22,9 +24,9 @@ class HitThrottleTest {
     @Test
     @Throws(Exception::class)
     fun twiceASecond() {
-        val hitThrottle = HitThrottle(2, HitThrottleStep.SECOND)
+        val hitThrottle = HitThrottle(2, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
-        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited }, 0, 225, TimeUnit.MILLISECONDS)
+        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
         TestCase.assertEquals(10f, hitThrottle.totalHitCount.toFloat(), 1f)
@@ -34,9 +36,9 @@ class HitThrottleTest {
     @Test
     @Throws(Exception::class)
     fun fourTimesASecond() {
-        val hitThrottle = HitThrottle(4, HitThrottleStep.SECOND)
+        val hitThrottle = HitThrottle(4, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
-        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited }, 0, 225, TimeUnit.MILLISECONDS)
+        val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
         TestCase.assertEquals(20f, hitThrottle.totalHitCount.toFloat(), 1f)
