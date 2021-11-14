@@ -25,7 +25,7 @@ dependencies {
     }
     compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     implementation("com.google.code.gson:gson:$gsonVersion")
-    implementation("org.springframework:spring-expression:5.3.12")
+    implementation("org.springframework:spring-expression:5.3.13")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
