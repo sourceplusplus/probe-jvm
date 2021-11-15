@@ -11,7 +11,7 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
         private const val ASM_VERSION = Opcodes.ASM7
     }
 
-    override fun visitField(access: Int, name: String, desc: String, signature: String, value: Any): FieldVisitor {
+    override fun visitField(access: Int, name: String, desc: String, signature: String?, value: Any?): FieldVisitor? {
         classMetadata.addField(ClassField(access, name, desc))
         return super.visitField(access, name, desc, signature, value)
     }
