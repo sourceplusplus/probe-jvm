@@ -1,9 +1,7 @@
 package integration
 
 import io.vertx.core.AsyncResult
-import io.vertx.core.Handler
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.eventbus.Message
 import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
@@ -12,7 +10,7 @@ import io.vertx.ext.web.client.WebClient
 import io.vertx.ext.web.client.WebClientOptions
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -35,13 +33,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ProbeIntegrationTest {
 
     @Test
-    @Throws(Exception::class)
     fun verifyRemotesRegistered() {
         val testContext = VertxTestContext()
-        Assertions.assertTrue(isAgentInitialized)
+        assertTrue(isAgentInitialized)
         setQuietMode(false)
-        val platformHost =
-            if (System.getenv("SPP_PLATFORM_HOST") != null) System.getenv("SPP_PLATFORM_HOST") else "localhost"
+        val platformHost = if (System.getenv("SPP_PLATFORM_HOST") != null)
+            System.getenv("SPP_PLATFORM_HOST") else "localhost"
         setString("platform_host", platformHost)
         val client = WebClient.create(
             vertx, WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
@@ -52,13 +49,10 @@ class ProbeIntegrationTest {
                     val result = it.result().bodyAsJsonObject().getJsonObject("platform")
                     testContext.verify {
                         val probeCount = result.getInteger("connected-probes")
-                        Assertions.assertNotEquals(0, probeCount)
+                        assertNotEquals(0, probeCount)
                         val services = result.getJsonObject("services")
-                        services.getJsonObject("probe").map.forEach { (k: String?, v: Any?) ->
-                            Assertions.assertEquals(
-                                probeCount,
-                                v
-                            )
+                        services.getJsonObject("probe").map.forEach {
+                            assertEquals(probeCount, it.value)
                         }
                     }
                     client.close()
@@ -77,13 +71,12 @@ class ProbeIntegrationTest {
     }
 
     @Test
-    @Throws(Exception::class)
     fun verifyClientsConnected() {
         val testContext = VertxTestContext()
-        Assertions.assertTrue(isAgentInitialized)
+        assertTrue(isAgentInitialized)
         setQuietMode(false)
-        val platformHost =
-            if (System.getenv("SPP_PLATFORM_HOST") != null) System.getenv("SPP_PLATFORM_HOST") else "localhost"
+        val platformHost = if (System.getenv("SPP_PLATFORM_HOST") != null)
+            System.getenv("SPP_PLATFORM_HOST") else "localhost"
         setString("platform_host", platformHost)
         val client = WebClient.create(
             vertx, WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
@@ -96,9 +89,9 @@ class ProbeIntegrationTest {
                     val markers = result.getJsonArray("markers")
                     val probes = result.getJsonArray("probes")
                     testContext.verify {
-                        Assertions.assertNotEquals(0, processors.size())
-                        Assertions.assertEquals(0, markers.size())
-                        Assertions.assertNotEquals(0, probes.size())
+                        assertNotEquals(0, processors.size())
+                        assertEquals(0, markers.size())
+                        assertNotEquals(0, probes.size())
                     }
                     client.close()
                     testContext.completeNow()
@@ -116,23 +109,22 @@ class ProbeIntegrationTest {
     }
 
     @Test
-    @Throws(Exception::class)
     fun receivePendingInstrumentsOnReconnect() {
         val testContext = VertxTestContext()
-        Assertions.assertTrue(isAgentInitialized)
+        assertTrue(isAgentInitialized)
         setQuietMode(false)
-        SourceProbe.tcpSocket!!.closeHandler { event: Void? ->
+        SourceProbe.tcpSocket!!.closeHandler {
             log.info("Disconnected from platform")
-            val platformHost =
-                if (System.getenv("SPP_PLATFORM_HOST") != null) System.getenv("SPP_PLATFORM_HOST") else "localhost"
+            val platformHost = if (System.getenv("SPP_PLATFORM_HOST") != null)
+                System.getenv("SPP_PLATFORM_HOST") else "localhost"
             setString("platform_host", platformHost)
             val client = WebClient.create(
                 vertx, WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
             )
             val unregistered = AtomicBoolean(false)
             val consumer: MessageConsumer<JsonObject> = vertx!!.eventBus()
-                .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_LOG_REMOTE.address + ":" + PROBE_ID)
-            consumer.handler { it: Message<JsonObject> ->
+                .localConsumer("local." + ProbeAddress.LIVE_LOG_REMOTE.address + ":" + PROBE_ID)
+            consumer.handler {
                 log.info("Got command: {}", it.body())
                 if (unregistered.get()) {
                     log.warn("Ignoring message after unregistered...")
@@ -140,10 +132,10 @@ class ProbeIntegrationTest {
                 }
                 val (commandType, context) = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                 testContext.verify {
-                    Assertions.assertEquals(CommandType.ADD_LIVE_INSTRUMENT, commandType)
-                    Assertions.assertEquals(1, context.liveInstruments.size)
+                    assertEquals(CommandType.ADD_LIVE_INSTRUMENT, commandType)
+                    assertEquals(1, context.liveInstruments.size)
                     val liveLog = JsonObject(context.liveInstruments[0])
-                    Assertions.assertEquals("test", liveLog.getString("logFormat"))
+                    assertEquals("test", liveLog.getString("logFormat"))
                 }
                 consumer.unregister { it3: AsyncResult<Void?> ->
                     if (it3.succeeded()) {
@@ -170,7 +162,7 @@ class ProbeIntegrationTest {
                         testContext.failNow(it3.cause())
                     }
                 }
-            }.completionHandler { it: AsyncResult<Void?> ->
+            }.completionHandler {
                 if (it.succeeded()) {
                     log.info("Registered consumer: {}", consumer.address())
                     client.post(5445, platformHost, "/graphql")
@@ -243,22 +235,22 @@ class ProbeIntegrationTest {
                     "yxcVssstt4J1Gj8WUFOdqPsIKigJZMn3yshC5S-KY-7S0dVd0VXgvpPqmpb9Q9Uho"
 
         @BeforeAll
-        @Throws(Exception::class)
+        @JvmStatic
         fun setup() {
             val testContext = VertxTestContext()
-            val platformHost =
-                if (System.getenv("SPP_PLATFORM_HOST") != null) System.getenv("SPP_PLATFORM_HOST") else "localhost"
+            val platformHost = if (System.getenv("SPP_PLATFORM_HOST") != null)
+                System.getenv("SPP_PLATFORM_HOST") else "localhost"
             setString("platform_host", platformHost)
             val client = WebClient.create(
                 vertx, WebClientOptions().setSsl(true).setTrustAll(true).setVerifyHost(false)
             )
 
             //wait for remotes to register
-            vertx!!.setPeriodic(5000, Handler { id: Long ->
+            vertx!!.setPeriodic(5000) { id: Long ->
                 log.info("Checking for remotes")
                 client[5445, platformHost, "/clients"]
                     .bearerTokenAuthentication(SYSTEM_JWT_TOKEN).send()
-                    .onComplete { it: AsyncResult<HttpResponse<Buffer?>> ->
+                    .onComplete {
                         if (it.succeeded()) {
                             val probes = it.result().bodyAsJsonObject().getJsonArray("probes")
                             for (i in 0 until probes.size()) {
@@ -276,7 +268,7 @@ class ProbeIntegrationTest {
                             testContext.failNow(it.cause())
                         }
                     }
-            })
+            }
             if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
                 if (testContext.failed()) {
                     throw RuntimeException(testContext.causeOfFailure())

@@ -1,7 +1,6 @@
 package spp.probe.control
 
 import io.vertx.core.AbstractVerticle
-import io.vertx.core.eventbus.Message
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.bridge.BridgeEventType
@@ -79,7 +78,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_BREAKPOINT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { it: Message<JsonObject> ->
+            .handler {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
@@ -114,7 +113,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_LOG_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { it: Message<JsonObject> ->
+            .handler {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
@@ -149,7 +148,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_METER_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { it: Message<JsonObject> ->
+            .handler {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
@@ -184,25 +183,21 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
     }
 
-    @Throws(Exception::class)
     private fun addBreakpoint(command: LiveInstrumentCommand) {
         val breakpointData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(breakpointData, LiveBreakpoint::class.java))
     }
 
-    @Throws(Exception::class)
     private fun addLog(command: LiveInstrumentCommand) {
         val logData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(logData, LiveLog::class.java))
     }
 
-    @Throws(Exception::class)
     private fun addMeter(command: LiveInstrumentCommand) {
         val meterData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(meterData, LiveMeter::class.java))
     }
 
-    @Throws(Exception::class)
     private fun removeInstrument(command: LiveInstrumentCommand) {
         for (breakpointData in command.context.liveInstruments) {
             val breakpointObject = JsonObject(breakpointData)
@@ -237,7 +232,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
         private var putField: Method? = null
         private var putStaticField: Method? = null
         private var isHit: Method? = null
-        fun isInstrumentEnabled(instrumentId: String?): Boolean {
+
+        @JvmStatic
+        fun isInstrumentEnabled(instrumentId: String): Boolean {
             return try {
                 isInstrumentEnabled!!.invoke(null, instrumentId) as Boolean
             } catch (e: Exception) {
@@ -246,7 +243,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun isHit(breakpointId: String?): Boolean {
+        @JvmStatic
+        fun isHit(breakpointId: String): Boolean {
             return try {
                 isHit!!.invoke(null, breakpointId) as Boolean
             } catch (e: Exception) {
@@ -255,7 +253,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putBreakpoint(breakpointId: String?, source: String?, line: Int, ex: Throwable?) {
+        @JvmStatic
+        fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable?) {
             try {
                 putBreakpoint!!.invoke(null, breakpointId, source, line, ex)
             } catch (e: Exception) {
@@ -263,7 +262,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putLog(logId: String?, logFormat: String?, vararg logArguments: String?) {
+        @JvmStatic
+        fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
             try {
                 putLog!!.invoke(null, logId, logFormat, logArguments)
             } catch (e: Exception) {
@@ -271,7 +271,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putMeter(meterId: String?) {
+        @JvmStatic
+        fun putMeter(meterId: String) {
             try {
                 putMeter!!.invoke(null, meterId)
             } catch (e: Exception) {
@@ -279,7 +280,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putLocalVariable(breakpointId: String?, key: String?, value: Any?) {
+        @JvmStatic
+        fun putLocalVariable(breakpointId: String, key: String, value: Any?) {
             try {
                 putLocalVariable!!.invoke(null, breakpointId, key, value)
             } catch (e: Exception) {
@@ -287,7 +289,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putField(breakpointId: String?, key: String?, value: Any?) {
+        @JvmStatic
+        fun putField(breakpointId: String, key: String, value: Any?) {
             try {
                 putField!!.invoke(null, breakpointId, key, value)
             } catch (e: Exception) {
@@ -295,7 +298,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         }
 
-        fun putStaticField(breakpointId: String?, key: String?, value: Any?) {
+        @JvmStatic
+        fun putStaticField(breakpointId: String, key: String, value: Any?) {
             try {
                 putStaticField!!.invoke(null, breakpointId, key, value)
             } catch (e: Exception) {

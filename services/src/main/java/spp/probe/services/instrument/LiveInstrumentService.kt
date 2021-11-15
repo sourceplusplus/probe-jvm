@@ -169,6 +169,7 @@ object LiveInstrumentService {
         applyingInstruments.clear()
     }
 
+    @JvmStatic
     fun applyInstrument(liveInstrument: LiveInstrument): String {
         var existingInstrument = applyingInstruments[liveInstrument.id]
         if (existingInstrument == null) existingInstrument = instruments[liveInstrument.id]
@@ -193,6 +194,7 @@ object LiveInstrumentService {
         }
     }
 
+    @JvmStatic
     fun removeInstrument(source: String?, line: Int, instrumentId: String?): Collection<String> {
         if (instrumentId != null) {
             val removedInstrument = instruments.remove(instrumentId)
@@ -271,7 +273,8 @@ object LiveInstrumentService {
         return ArrayList(instruments)
     }
 
-    fun isInstrumentEnabled(instrumentId: String?): Boolean {
+    @JvmStatic
+    fun isInstrumentEnabled(instrumentId: String): Boolean {
         val applied = instruments.containsKey(instrumentId)
         return if (applied) {
             true
@@ -280,7 +283,8 @@ object LiveInstrumentService {
         }
     }
 
-    fun isHit(instrumentId: String?): Boolean {
+    @JvmStatic
+    fun isHit(instrumentId: String): Boolean {
         val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle.isRateLimited()) {
             ContextReceiver.clear(instrumentId)
