@@ -5,7 +5,6 @@ import io.netty.util.internal.logging.InternalLoggerFactory
 import io.vertx.core.AsyncResult
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
-import io.vertx.core.eventbus.Message
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
@@ -246,11 +245,18 @@ object SourceProbe {
     }
 
     private fun configureAgent() {
-        ProbeConfiguration.skywalkingSettings.forEach {
-            System.setProperty(it[0], it[1])
-        }
-        ProbeConfiguration.sppSettings.forEach {
-            System.setProperty(it[0], it[1])
+        ProbeConfiguration.skywalkingSettings.forEach { System.setProperty(it[0], it[1]) }
+        ProbeConfiguration.sppSettings.forEach { System.setProperty(it[0], it[1]) }
+
+        //add probe id to instance properties
+        try {
+            val skywalkingConfig = Class.forName("org.apache.skywalking.apm.agent.core.conf.Config\$Agent")
+            val instanceProperties = skywalkingConfig.getField("INSTANCE_PROPERTIES").get(null)
+                    as MutableMap<String, String>
+            instanceProperties["probe_id"] = PROBE_ID
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+            throw RuntimeException(e)
         }
     }
 
