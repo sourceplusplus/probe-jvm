@@ -118,7 +118,6 @@ tasks.register<Zip>("zipSppSkywalkingAgent") {
 tasks["classes"].dependsOn("zipSppSkywalkingAgent")
 
 tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-    onlyIf { project.tasks.getByName("build").enabled }
     if (findProject(":probes:jvm") != null) {
         dependsOn(":probes:jvm:downloadSkywalkingAgent")
     } else {
@@ -146,4 +145,4 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
 }
-tasks.getByName("build").dependsOn("shadowJar")
+tasks.getByName("jar").dependsOn("shadowJar")
