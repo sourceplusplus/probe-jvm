@@ -31,6 +31,8 @@ dependencies {
     implementation("com.github.sourceplusplus.protocol:protocol:$protocolVersion") {
         isTransitive = false
     }
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
