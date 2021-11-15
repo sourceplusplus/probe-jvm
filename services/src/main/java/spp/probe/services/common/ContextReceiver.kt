@@ -68,7 +68,7 @@ object ContextReceiver {
         } else if (ignoredVariables.matcher(key).matches()) {
             return
         }
-        variableMap.computeIfAbsent(instrumentId) { it: String? -> HashMap() }[key] = value
+        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
     }
 
     @JvmStatic
@@ -121,7 +121,7 @@ object ContextReceiver {
                 KeyStringValuePair.newBuilder()
                     .setKey("thread").setValue(Thread.currentThread().name).build()
             )
-        if (logArguments.size > 0) {
+        if (logArguments.isNotEmpty()) {
             for (i in logArguments.indices) {
                 //todo: is it smarter to pass localVariables[arg]?
                 var argValue = localVars?.get(logArguments[i])
@@ -159,10 +159,12 @@ object ContextReceiver {
 
     @JvmStatic
     fun putMeter(meterId: String) {
-        val (_, meterType, metricValue) = ProbeMemory.get("spp.live-meter:$meterId") as LiveMeter ?: return
-        val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") { it: String? ->
+        val (_, meterType, metricValue) = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
+        val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             when (meterType) {
-                MeterType.COUNTER -> return@computeIfAbsent MeterFactory.counter("counter_" + meterId.replace("-", "_"))
+                MeterType.COUNTER -> return@computeIfAbsent MeterFactory.counter(
+                    "counter_" + meterId.replace("-", "_")
+                )
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
