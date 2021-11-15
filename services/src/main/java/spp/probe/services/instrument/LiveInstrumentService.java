@@ -103,14 +103,14 @@ public class LiveInstrumentService {
             instrument.setLive(true);
             if (!instrument.isRemoval()) {
                 if (instrument.getInstrument() instanceof LiveLog) {
-                    instrumentEventConsumer.accept(LIVE_LOG_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument));
+                    instrumentEventConsumer.accept(LIVE_LOG_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
                 } else if (instrument.getInstrument() instanceof LiveBreakpoint) {
-                    instrumentEventConsumer.accept(LIVE_BREAKPOINT_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument));
+                    instrumentEventConsumer.accept(LIVE_BREAKPOINT_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
                 } else if (instrument.getInstrument() instanceof LiveMeter) {
-                    instrumentEventConsumer.accept(LIVE_METER_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument));
+                    instrumentEventConsumer.accept(LIVE_METER_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
                 }
 //                else if (instrument.getInstrument() instanceof LiveSpan) {
-//                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument));
+//                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
 //                }
             }
         } catch (Throwable ex) {
@@ -162,10 +162,10 @@ public class LiveInstrumentService {
 
     @SuppressWarnings("unused")
     public static String applyInstrument(LiveInstrument liveInstrument) {
-        ActiveLiveInstrument existingBreakpoint = applyingInstruments.get(liveInstrument.getId());
-        if (existingBreakpoint == null) existingBreakpoint = instruments.get(liveInstrument.getId());
-        if (existingBreakpoint != null) {
-            return ModelSerializer.INSTANCE.toJson(existingBreakpoint.getInstrument());
+        ActiveLiveInstrument existingInstrument = applyingInstruments.get(liveInstrument.getId());
+        if (existingInstrument == null) existingInstrument = instruments.get(liveInstrument.getId());
+        if (existingInstrument != null) {
+            return ModelSerializer.INSTANCE.toJson(existingInstrument.getInstrument());
         } else {
             ActiveLiveInstrument activeInstrument;
             if (liveInstrument.getCondition() != null && !liveInstrument.getCondition().isEmpty()) {
