@@ -5,11 +5,11 @@ import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisito
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes;
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Type;
 import spp.probe.services.common.ProbeMemory;
+import spp.probe.services.common.model.ActiveLiveInstrument;
 import spp.probe.services.common.model.ClassField;
 import spp.probe.services.common.model.ClassMetadata;
 import spp.probe.services.common.model.LocalVariable;
 import spp.probe.services.common.transform.LiveTransformer;
-import spp.protocol.instrument.LiveInstrument;
 import spp.protocol.instrument.LiveSourceLocation;
 import spp.protocol.instrument.breakpoint.LiveBreakpoint;
 import spp.protocol.instrument.log.LiveLog;
@@ -43,24 +43,24 @@ public class LiveInstrumentTransformer extends MethodVisitor {
     @Override
     public void visitLineNumber(int line, Label start) {
         mv.visitLineNumber(line, start);
-        for (LiveInstrument instrument : LiveInstrumentService.getInstruments(new LiveSourceLocation(source, line))) {
+        for (ActiveLiveInstrument instrument : LiveInstrumentService.getInstruments(new LiveSourceLocation(source, line))) {
             Label instrumentLabel = new Label();
-            isInstrumentEnabled(instrument.getId(), instrumentLabel);
+            isInstrumentEnabled(instrument.getInstrument().getId(), instrumentLabel);
 
-            if (instrument instanceof LiveBreakpoint) {
-                captureSnapshot(instrument.getId(), line);
-                isHit(instrument.getId(), instrumentLabel);
-                putBreakpoint(instrument.getId(), source, line);
-            } else if (instrument instanceof LiveLog) {
-                LiveLog log = (LiveLog) instrument;
-                if (log.getLogArguments().size() > 0 || log.getCondition() != null && !log.getCondition().isEmpty()) {
+            if (instrument.getInstrument() instanceof LiveBreakpoint) {
+                captureSnapshot(instrument.getInstrument().getId(), line);
+                isHit(instrument.getInstrument().getId(), instrumentLabel);
+                putBreakpoint(instrument.getInstrument().getId(), source, line);
+            } else if (instrument.getInstrument() instanceof LiveLog) {
+                LiveLog log = (LiveLog) instrument.getInstrument();
+                if (log.getLogArguments().size() > 0 || instrument.getExpression() != null) {
                     captureSnapshot(log.getId(), line);
                 }
                 isHit(log.getId(), instrumentLabel);
                 putLog(log);
-            } else if (instrument instanceof LiveMeter) {
-                LiveMeter meter = (LiveMeter) instrument;
-                if (meter.getCondition() != null && !meter.getCondition().isEmpty()) {
+            } else if (instrument.getInstrument() instanceof LiveMeter) {
+                LiveMeter meter = (LiveMeter) instrument.getInstrument();
+                if (instrument.getExpression() != null) {
                     captureSnapshot(meter.getId(), line);
                 }
                 isHit(meter.getId(), instrumentLabel);

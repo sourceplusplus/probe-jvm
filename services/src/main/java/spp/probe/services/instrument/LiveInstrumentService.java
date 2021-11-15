@@ -200,7 +200,7 @@ public class LiveInstrumentService {
         } else {
             List<String> removedInstruments = new ArrayList<>();
             getInstruments(new LiveSourceLocation(source, line)).forEach(it -> {
-                ActiveLiveInstrument removedInstrument = instruments.remove(it.getId());
+                ActiveLiveInstrument removedInstrument = instruments.remove(it.getInstrument().getId());
 
                 if (removedInstrument != null) {
                     removedInstrument.setRemoval(true);
@@ -248,13 +248,13 @@ public class LiveInstrumentService {
         }
     }
 
-    public static List<LiveInstrument> getInstruments(LiveSourceLocation location) {
-        Set<LiveInstrument> instruments = LiveInstrumentService.instruments.values().stream()
+    public static List<ActiveLiveInstrument> getInstruments(LiveSourceLocation location) {
+        Set<ActiveLiveInstrument> instruments = LiveInstrumentService.instruments.values().stream()
                 .filter(it -> it.getInstrument().getLocation().equals(location))
-                .map(ActiveLiveInstrument::getInstrument).collect(Collectors.toSet());
+                .collect(Collectors.toSet());
         instruments.addAll(applyingInstruments.values().stream()
                 .filter(it -> it.getInstrument().getLocation().equals(location))
-                .map(ActiveLiveInstrument::getInstrument).collect(Collectors.toSet()));
+                .collect(Collectors.toSet()));
         return new ArrayList<>(instruments);
     }
 
