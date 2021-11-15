@@ -1,60 +1,26 @@
-package spp.probe.services.common.model;
+package spp.probe.services.common.model
 
-import org.springframework.expression.Expression;
-import spp.protocol.instrument.HitThrottle;
-import spp.protocol.instrument.LiveInstrument;
+import kotlin.jvm.JvmOverloads
+import spp.protocol.instrument.LiveInstrument
+import spp.protocol.instrument.HitThrottle
+import org.springframework.expression.Expression
 
-public class ActiveLiveInstrument {
+class ActiveLiveInstrument @JvmOverloads constructor(
+    val instrument: LiveInstrument,
+    val expression: Expression? = null
+) {
+    val throttle: HitThrottle
+    var isRemoval = false
+    var isLive = false
 
-    private final LiveInstrument instrument;
-    private final Expression expression;
-    private final HitThrottle throttle;
-    private boolean removal;
-    private boolean live;
-
-    public ActiveLiveInstrument(LiveInstrument instrument) {
-        this(instrument, null);
+    init {
+        throttle = HitThrottle(instrument.throttle.limit, instrument.throttle.step)
     }
 
-    public ActiveLiveInstrument(LiveInstrument instrument, Expression expression) {
-        this.instrument = instrument;
-        this.expression = expression;
-        this.throttle = new HitThrottle(instrument.getThrottle().getLimit(), instrument.getThrottle().getStep());
-    }
-
-    public LiveInstrument getInstrument() {
-        return instrument;
-    }
-
-    public boolean isRemoval() {
-        return removal;
-    }
-
-    public void setRemoval(boolean removal) {
-        this.removal = removal;
-    }
-
-    public void setLive(boolean live) {
-        this.live = live;
-    }
-
-    public boolean isLive() {
-        return live;
-    }
-
-    public Expression getExpression() {
-        return expression;
-    }
-
-    public HitThrottle getThrottle() {
-        return throttle;
-    }
-
-    public boolean isFinished() {
-        if (instrument.getExpiresAt() != null && System.currentTimeMillis() >= instrument.getExpiresAt()) {
-            return true;
+    val isFinished: Boolean
+        get() = if (instrument.expiresAt != null && System.currentTimeMillis() >= instrument.expiresAt!!) {
+            true
         } else {
-            return instrument.getHitLimit() != -1 && throttle.getTotalHitCount() >= instrument.getHitLimit();
+            instrument.hitLimit != -1 && throttle.totalHitCount >= instrument.hitLimit
         }
-    }
 }

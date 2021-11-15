@@ -1,60 +1,52 @@
-package spp.probe.services.common.serialize;
+package spp.probe.services.common.serialize
 
-import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import spp.probe.services.common.ModelSerializer;
+import com.google.gson.Gson
+import com.google.gson.TypeAdapter
+import com.google.gson.TypeAdapterFactory
+import com.google.gson.reflect.TypeToken
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonWriter
+import spp.probe.services.common.ModelSerializer
+import java.io.IOException
+import java.lang.instrument.Instrumentation
 
-import java.io.IOException;
-import java.lang.instrument.Instrumentation;
+class SizeCappedTypeAdapterFactory : TypeAdapterFactory {
 
-public class SizeCappedTypeAdapterFactory implements TypeAdapterFactory {
-
-    public static Instrumentation instrumentation;
-    public static long maxMemorySize = -1;
-
-    @SuppressWarnings("unused")
-    public static void setInstrumentation(Instrumentation instrumentation) {
-        SizeCappedTypeAdapterFactory.instrumentation = instrumentation;
-    }
-
-    @SuppressWarnings("unused")
-    public static void setMaxMemorySize(long maxMemorySize) {
-        SizeCappedTypeAdapterFactory.maxMemorySize = maxMemorySize;
-    }
-
-    @Override
-    public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        if (instrumentation == null || maxMemorySize == -1) return null;
-        return new TypeAdapter<T>() {
-
-            @Override
-            public void write(JsonWriter jsonWriter, T value) throws IOException {
-                long objSize = instrumentation.getObjectSize(value);
+    override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T>? {
+        return if (instrumentation == null || maxMemorySize == -1L) null else object : TypeAdapter<T>() {
+            @Throws(IOException::class)
+            override fun write(jsonWriter: JsonWriter, value: T?) {
+                val objSize = instrumentation!!.getObjectSize(value)
                 if (objSize <= maxMemorySize) {
-                    ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(SizeCappedTypeAdapterFactory.this, type)
-                            .write(jsonWriter, value);
+                    ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(this@SizeCappedTypeAdapterFactory, type)
+                        .write(jsonWriter, value)
                 } else {
-                    jsonWriter.beginObject();
-                    jsonWriter.name("@class");
-                    jsonWriter.value("LargeObject");
-
-                    jsonWriter.name("@size");
-                    jsonWriter.value(Long.toString(objSize));
-
-                    jsonWriter.name("@identity");
-                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)));
-                    jsonWriter.endObject();
+                    jsonWriter.beginObject()
+                    jsonWriter.name("@class")
+                    jsonWriter.value("LargeObject")
+                    jsonWriter.name("@size")
+                    jsonWriter.value(java.lang.Long.toString(objSize))
+                    jsonWriter.name("@identity")
+                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                    jsonWriter.endObject()
                 }
             }
 
-            @Override
-            public T read(JsonReader jsonReader) {
-                return null;
+            override fun read(jsonReader: JsonReader): T? {
+                return null
             }
-        };
+        }
+    }
+
+    companion object {
+        var instrumentation: Instrumentation? = null
+        var maxMemorySize: Long = -1
+//        fun setInstrumentation(instrumentation: Instrumentation?) {
+//            Companion.instrumentation = instrumentation
+//        }
+
+//        fun setMaxMemorySize(maxMemorySize: Long) {
+//            Companion.maxMemorySize = maxMemorySize
+//        }
     }
 }

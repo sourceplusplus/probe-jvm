@@ -1,87 +1,72 @@
-package spp.probe.services.common;
+package spp.probe.services.common
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import spp.probe.services.common.serialize.RuntimeClassIdentityTypeAdapterFactory;
-import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory;
-import spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory;
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.TypeAdapter
+import com.google.gson.TypeAdapterFactory
+import com.google.gson.reflect.TypeToken
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonWriter
+import spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory
+import kotlin.Throws
+import java.io.IOException
+import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
+import spp.probe.services.common.serialize.RuntimeClassIdentityTypeAdapterFactory
+import java.util.HashSet
+import java.io.OutputStream
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.HashSet;
-import java.util.Set;
-
-public enum ModelSerializer {
+enum class ModelSerializer {
     INSTANCE;
 
-    private final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+    private val gson = GsonBuilder().disableHtmlEscaping().create()
+    val extendedGson = GsonBuilder()
+        .registerTypeAdapterFactory(SizeCappedTypeAdapterFactory())
+        .registerTypeAdapterFactory(object : TypeAdapterFactory {
+            override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
+                return if (ignoredTypes.contains(typeToken.rawType.name)) {
+                    object : TypeAdapter<T>() {
+                        override fun write(jsonWriter: JsonWriter, ignored: T?) {}
+                        override fun read(jsonReader: JsonReader): T? {
+                            return null
+                        }
+                    }
+                } else null
+            }
+        })
+        .registerTypeAdapterFactory(object : TypeAdapterFactory {
+            override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
+                return if (OutputStream::class.java.isAssignableFrom(typeToken.rawType)) {
+                    object : TypeAdapter<OutputStream?>() {
+                        @Throws(IOException::class)
+                        override fun write(jsonWriter: JsonWriter, outputStream: OutputStream?) {
+                            jsonWriter.beginObject()
+                            jsonWriter.endObject()
+                        }
 
-    private final static Set<String> ignoredTypes = new HashSet<>();
+                        override fun read(jsonReader: JsonReader): OutputStream? {
+                            return null
+                        }
+                    } as TypeAdapter<T>
+                } else null
+            }
+        })
+        .registerTypeAdapterFactory(RuntimeClassIdentityTypeAdapterFactory.Companion.of<Any>(Any::class.java))
+        .registerTypeAdapterFactory(RuntimeClassNameTypeAdapterFactory.Companion.of<Any>(Any::class.java))
+        .disableHtmlEscaping().create()
 
-    static {
-        ignoredTypes.add("org.apache.skywalking.apm.plugin.spring.mvc.commons.EnhanceRequireObjectCache");
+    fun toJson(src: Any?): String {
+        return gson.toJson(src)
     }
 
-    public final Gson extendedGson = new GsonBuilder()
-            .registerTypeAdapterFactory(new SizeCappedTypeAdapterFactory())
-            .registerTypeAdapterFactory(new TypeAdapterFactory() {
-
-                @Override
-                @SuppressWarnings("unchecked")
-                public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-                    if (ignoredTypes.contains(typeToken.getRawType().getName())) {
-                        return new TypeAdapter<T>() {
-
-                            @Override
-                            public void write(JsonWriter jsonWriter, T ignored) {
-                            }
-
-                            @Override
-                            public T read(JsonReader jsonReader) {
-                                return null;
-                            }
-                        };
-                    }
-                    return null;
-                }
-            })
-            .registerTypeAdapterFactory(new TypeAdapterFactory() {
-
-                @Override
-                @SuppressWarnings("unchecked")
-                public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> typeToken) {
-                    if (OutputStream.class.isAssignableFrom(typeToken.getRawType())) {
-                        return (TypeAdapter<T>) new TypeAdapter<OutputStream>() {
-
-                            @Override
-                            public void write(JsonWriter jsonWriter, OutputStream outputStream) throws IOException {
-                                jsonWriter.beginObject();
-                                jsonWriter.endObject();
-                            }
-
-                            @Override
-                            public OutputStream read(JsonReader jsonReader) {
-                                return null;
-                            }
-                        };
-                    }
-                    return null;
-                }
-            })
-            .registerTypeAdapterFactory(RuntimeClassIdentityTypeAdapterFactory.of(Object.class))
-            .registerTypeAdapterFactory(RuntimeClassNameTypeAdapterFactory.of(Object.class))
-            .disableHtmlEscaping().create();
-
-    public String toJson(Object src) {
-        return gson.toJson(src);
+    fun toExtendedJson(src: Any?): String {
+        return extendedGson.toJson(src)
     }
 
-    public String toExtendedJson(Object src) {
-        return extendedGson.toJson(src);
+    companion object {
+        private val ignoredTypes: MutableSet<String> = HashSet()
+
+        init {
+            ignoredTypes.add("org.apache.skywalking.apm.plugin.spring.mvc.commons.EnhanceRequireObjectCache")
+        }
     }
 }

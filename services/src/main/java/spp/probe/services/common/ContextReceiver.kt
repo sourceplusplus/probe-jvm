@@ -1,210 +1,214 @@
-package spp.probe.services.common;
+package spp.probe.services.common
 
-import org.apache.skywalking.apm.agent.core.boot.ServiceManager;
-import org.apache.skywalking.apm.agent.core.conf.Config;
-import org.apache.skywalking.apm.agent.core.context.ContextManager;
-import org.apache.skywalking.apm.agent.core.context.tag.StringTag;
-import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan;
-import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
-import org.apache.skywalking.apm.agent.core.meter.BaseMeter;
-import org.apache.skywalking.apm.agent.core.meter.Counter;
-import org.apache.skywalking.apm.agent.core.meter.Histogram;
-import org.apache.skywalking.apm.agent.core.meter.MeterFactory;
-import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient;
-import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair;
-import org.apache.skywalking.apm.network.logging.v3.*;
-import spp.protocol.instrument.LiveSourceLocation;
-import spp.protocol.instrument.meter.LiveMeter;
-import spp.protocol.instrument.meter.MetricValueType;
+import org.apache.skywalking.apm.agent.core.boot.ServiceManager
+import org.apache.skywalking.apm.agent.core.conf.Config
+import org.apache.skywalking.apm.agent.core.context.ContextManager
+import org.apache.skywalking.apm.agent.core.context.tag.StringTag
+import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
+import org.apache.skywalking.apm.agent.core.meter.Counter
+import org.apache.skywalking.apm.agent.core.meter.Histogram
+import org.apache.skywalking.apm.agent.core.meter.MeterFactory
+import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
+import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
+import org.apache.skywalking.apm.network.logging.v3.*
+import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MetricValueType
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.regex.Pattern
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
+object ContextReceiver {
+    private val ignoredVariables = Pattern.compile(
+        "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
+    )
+    private val localVariables: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
+    private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
+    private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
+    private val logReport = ServiceManager.INSTANCE.findService(
+        LogReportServiceClient::class.java
+    )
 
-public class ContextReceiver {
-
-    private static final Pattern ignoredVariables = Pattern.compile("(_\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9$]+)");
-    private static final Map<String, Map<String, Object>> localVariables = new ConcurrentHashMap<>();
-    private static final Map<String, Map<String, Object>> fields = new ConcurrentHashMap<>();
-    private static final Map<String, Map<String, Object>> staticFields = new ConcurrentHashMap<>();
-    private static final LogReportServiceClient logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient.class);
-
-    public static ContextMap get(String instrumentId) {
-        ContextMap contextMap = new ContextMap();
-        contextMap.setFields(fields.get(instrumentId));
-        contextMap.setLocalVariables(localVariables.get(instrumentId));
-        contextMap.setStaticFields(staticFields.get(instrumentId));
-        return contextMap;
+    operator fun get(instrumentId: String?): ContextMap {
+        val contextMap = ContextMap()
+        contextMap.fields = fields[instrumentId]
+        contextMap.localVariables = localVariables[instrumentId]
+        contextMap.staticFields = staticFields[instrumentId]
+        return contextMap
     }
 
-    public static void clear(String instrumentId) {
-        fields.remove(instrumentId);
-        localVariables.remove(instrumentId);
-        staticFields.remove(instrumentId);
+    fun clear(instrumentId: String?) {
+        fields.remove(instrumentId)
+        localVariables.remove(instrumentId)
+        staticFields.remove(instrumentId)
     }
 
-    @SuppressWarnings("unused")
-    public static void putLocalVariable(String instrumentId, String key, Object value) {
-        addInstrumentVariable(instrumentId, key, value, localVariables);
+    fun putLocalVariable(instrumentId: String, key: String, value: Any?) {
+        addInstrumentVariable(instrumentId, key, value, localVariables)
     }
 
-    @SuppressWarnings("unused")
-    public static void putField(String instrumentId, String key, Object value) {
-        addInstrumentVariable(instrumentId, key, value, fields);
+    fun putField(instrumentId: String, key: String, value: Any?) {
+        addInstrumentVariable(instrumentId, key, value, fields)
     }
 
-    @SuppressWarnings("unused")
-    public static void putStaticField(String instrumentId, String key, Object value) {
-        addInstrumentVariable(instrumentId, key, value, staticFields);
+    fun putStaticField(instrumentId: String, key: String, value: Any?) {
+        addInstrumentVariable(instrumentId, key, value, staticFields)
     }
 
-    private static void addInstrumentVariable(String instrumentId, String key, Object value,
-                                              Map<String, Map<String, Object>> variableMap) {
+    private fun addInstrumentVariable(
+        instrumentId: String, key: String, value: Any?,
+        variableMap: MutableMap<String?, MutableMap<String, Any>>
+    ) {
         if (value == null) {
-            return;
+            return
         } else if (ignoredVariables.matcher(key).matches()) {
-            return;
+            return
         }
-
-        variableMap.computeIfAbsent(instrumentId, it -> new HashMap<>()).put(key, value);
+        variableMap.computeIfAbsent(instrumentId) { it: String? -> HashMap() }[key] = value
     }
 
-    @SuppressWarnings("unused")
-    public static void putBreakpoint(String breakpointId, String source, int line, Throwable throwable) {
-        AbstractSpan activeSpan = ContextManager.createLocalSpan(throwable.getStackTrace()[0].toString());
-
-        Map<String, Object> localVars = localVariables.remove(breakpointId);
-        if (localVars != null) {
-            localVars.forEach((key, value) -> activeSpan.tag(
-                    new StringTag("spp.local-variable:" + breakpointId + ":" + key), encodeObject(key, value)));
+    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
+        val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
+        val localVars: Map<String, Any>? = localVariables.remove(breakpointId)
+        localVars?.forEach { (key: String, value: Any) ->
+            activeSpan.tag(
+                StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(key, value)
+            )
         }
-        Map<String, Object> localFields = fields.remove(breakpointId);
-        if (localFields != null) {
-            localFields.forEach((key, value) -> activeSpan.tag(
-                    new StringTag("spp.field:" + breakpointId + ":" + key), encodeObject(key, value)));
+        val localFields: Map<String, Any>? = fields.remove(breakpointId)
+        localFields?.forEach { (key: String, value: Any) ->
+            activeSpan.tag(
+                StringTag("spp.field:$breakpointId:$key"), encodeObject(key, value)
+            )
         }
-        Map<String, Object> localStaticFields = staticFields.remove(breakpointId);
-        if (localStaticFields != null) {
-            localStaticFields.forEach((key, value) -> activeSpan.tag(
-                    new StringTag("spp.static-field:" + breakpointId + ":" + key), encodeObject(key, value)));
+        val localStaticFields: Map<String, Any>? = staticFields.remove(breakpointId)
+        localStaticFields?.forEach { (key: String, value: Any) ->
+            activeSpan.tag(
+                StringTag("spp.static-field:$breakpointId:$key"), encodeObject(key, value)
+            )
         }
-        activeSpan.tag(new StringTag("spp.stack-trace:" + breakpointId),
-                ThrowableTransformer.INSTANCE.convert2String(throwable, 4000));
-        activeSpan.tag(new StringTag("spp.breakpoint:" + breakpointId),
-                ModelSerializer.INSTANCE.toJson(new LiveSourceLocation(source, line)));
-
-        ContextManager.stopSpan(activeSpan);
+        activeSpan.tag(
+            StringTag("spp.stack-trace:$breakpointId"),
+            ThrowableTransformer.INSTANCE.convert2String(throwable, 4000)
+        )
+        activeSpan.tag(
+            StringTag("spp.breakpoint:$breakpointId"),
+            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line))
+        )
+        ContextManager.stopSpan(activeSpan)
     }
 
-    @SuppressWarnings("unused")
-    public static void putLog(String logId, String logFormat, String... logArguments) {
-        Map<String, Object> localVars = localVariables.remove(logId);
-        Map<String, Object> localFields = fields.remove(logId);
-        Map<String, Object> localStaticFields = staticFields.remove(logId);
-
-        LogTags.Builder logTags = LogTags.newBuilder()
-                .addData(KeyStringValuePair.newBuilder()
-                        .setKey("log_id").setValue(logId).build())
-                .addData(KeyStringValuePair.newBuilder()
-                        .setKey("level").setValue("Live").build())
-                .addData(KeyStringValuePair.newBuilder()
-                        .setKey("thread").setValue(Thread.currentThread().getName()).build());
-        if (logArguments.length > 0) {
-            for (int i = 0; i < logArguments.length; i++) {
+    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) {
+        val localVars: Map<String, Any>? = localVariables.remove(logId)
+        val localFields: Map<String, Any>? = fields.remove(logId)
+        val localStaticFields: Map<String, Any>? = staticFields.remove(logId)
+        val logTags = LogTags.newBuilder()
+            .addData(
+                KeyStringValuePair.newBuilder()
+                    .setKey("log_id").setValue(logId).build()
+            )
+            .addData(
+                KeyStringValuePair.newBuilder()
+                    .setKey("level").setValue("Live").build()
+            )
+            .addData(
+                KeyStringValuePair.newBuilder()
+                    .setKey("thread").setValue(Thread.currentThread().name).build()
+            )
+        if (logArguments.size > 0) {
+            for (i in logArguments.indices) {
                 //todo: is it smarter to pass localVariables[arg]?
-                Object argValue = (localVars == null) ? null : localVars.get(logArguments[i]);
+                var argValue = localVars?.get(logArguments[i])
                 if (argValue == null) {
-                    argValue = (localFields == null) ? null : localFields.get(logArguments[i]);
+                    argValue = localFields?.get(logArguments[i])
                     if (argValue == null) {
-                        argValue = (localStaticFields == null) ? null : localStaticFields.get(logArguments[i]);
+                        argValue = localStaticFields?.get(logArguments[i])
                     }
                 }
-                Object value = Optional.ofNullable(argValue).orElse("null");
-                logTags.addData(KeyStringValuePair.newBuilder()
-                        .setKey("argument." + i).setValue(value.toString()).build());
+                val value = Optional.ofNullable(argValue).orElse("null")
+                logTags.addData(
+                    KeyStringValuePair.newBuilder()
+                        .setKey("argument.$i").setValue(value.toString()).build()
+                )
             }
         }
-
-        LogData.Builder builder = LogData.newBuilder()
-                .setTimestamp(System.currentTimeMillis())
-                .setService(Config.Agent.SERVICE_NAME)
-                .setServiceInstance(Config.Agent.INSTANCE_NAME)
-                .setTags(logTags.build())
-                .setBody(LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name())
-                        .setText(TextLog.newBuilder().setText(logFormat).build()).build());
-        LogData logData = -1 == ContextManager.getSpanId() ? builder.build()
-                : builder.setTraceContext(TraceContext.newBuilder()
+        val builder = LogData.newBuilder()
+            .setTimestamp(System.currentTimeMillis())
+            .setService(Config.Agent.SERVICE_NAME)
+            .setServiceInstance(Config.Agent.INSTANCE_NAME)
+            .setTags(logTags.build())
+            .setBody(
+                LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
+                    .setText(TextLog.newBuilder().setText(logFormat).build()).build()
+            )
+        val logData = if (-1 == ContextManager.getSpanId()) builder.build() else builder.setTraceContext(
+            TraceContext.newBuilder()
                 .setTraceId(ContextManager.getGlobalTraceId())
                 .setSpanId(ContextManager.getSpanId())
                 .setTraceSegmentId(ContextManager.getSegmentId())
-                .build()).build();
-        logReport.produce(logData);
+                .build()
+        ).build()
+        logReport.produce(logData)
     }
 
-    @SuppressWarnings("unused")
-    public static void putMeter(String meterId) {
-        LiveMeter liveMeter = (LiveMeter) ProbeMemory.get("spp.live-meter:" + meterId);
-        if (liveMeter == null) return;
-
-        BaseMeter meter = ProbeMemory.computeIfAbsent("spp.base-meter:" + meterId, it -> {
-            switch (liveMeter.getMeterType()) {
-                case COUNTER:
-                    return MeterFactory.counter("counter_" + meterId.replace("-", "_"))
-                            .build();
-                case GAUGE:
-                    return MeterFactory.gauge("gauge_" + meterId.replace("-", "_"),
-                                    () -> Double.parseDouble(liveMeter.getMetricValue().getValue()))
-                            .build();
-                case HISTOGRAM:
-                    return MeterFactory.histogram("histogram_" + meterId.replace("-", "_"))
-                            .steps(Collections.singletonList(0.0d)) //todo: dynamic
-                            .build();
-                default:
-                    throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
+    fun putMeter(meterId: String) {
+        val (_, meterType, metricValue) = ProbeMemory.get("spp.live-meter:$meterId") as LiveMeter ?: return
+        val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") { it: String? ->
+            when (meterType) {
+                MeterType.COUNTER -> return@computeIfAbsent MeterFactory.counter("counter_" + meterId.replace("-", "_"))
+                    .build()
+                MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
+                    "gauge_" + meterId.replace("-", "_")
+                ) { metricValue.value.toDouble() }
+                    .build()
+                MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
+                    "histogram_" + meterId.replace(
+                        "-",
+                        "_"
+                    )
+                )
+                    .steps(listOf(0.0)) //todo: dynamic
+                    .build()
+                else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
             }
-        });
-
-        switch (liveMeter.getMeterType()) {
-            case COUNTER:
-                if (liveMeter.getMetricValue().getValueType() == MetricValueType.NUMBER) {
-                    ((Counter) meter).increment(Long.parseLong(liveMeter.getMetricValue().getValue()));
-                } else {
-                    throw new UnsupportedOperationException("todo"); //todo: this
-                }
-                break;
-            case GAUGE:
-                break;
-            case HISTOGRAM:
-                if (liveMeter.getMetricValue().getValueType() == MetricValueType.NUMBER) {
-                    ((Histogram) meter).addValue(Double.parseDouble(liveMeter.getMetricValue().getValue()));
-                } else {
-                    throw new UnsupportedOperationException("todo"); //todo: this
-                }
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported meter type: " + liveMeter.getMeterType());
+        }
+        when (meterType) {
+            MeterType.COUNTER -> if (metricValue.valueType == MetricValueType.NUMBER) {
+                (meter as Counter).increment(
+                    metricValue.value.toLong().toDouble()
+                )
+            } else {
+                throw UnsupportedOperationException("todo") //todo: this
+            }
+            MeterType.GAUGE -> {}
+            MeterType.HISTOGRAM -> if (metricValue.valueType == MetricValueType.NUMBER) {
+                (meter as Histogram).addValue(metricValue.value.toDouble())
+            } else {
+                throw UnsupportedOperationException("todo") //todo: this
+            }
+            else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
         }
     }
 
-    private static String encodeObject(String varName, Object value) {
-        try {
-            return String.format("{\"@class\":\"%s\",\"@identity\":\"%s\",\"" + varName + "\":%s}",
-                    value.getClass().getName(), Integer.toHexString(System.identityHashCode(value)),
-                    ModelSerializer.INSTANCE.toExtendedJson(value));
-        } catch (Exception ex) {
+    private fun encodeObject(varName: String, value: Any): String? {
+        return try {
+            String.format(
+                "{\"@class\":\"%s\",\"@identity\":\"%s\",\"$varName\":%s}",
+                value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
+                ModelSerializer.INSTANCE.toExtendedJson(value)
+            )
+        } catch (ex: Exception) {
             try {
-                Map<String, Object> map = new HashMap<>();
-                map.put(varName, value.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(value)));
-                map.put("@class", "java.lang.Class");
-                map.put("@identity", Integer.toHexString(System.identityHashCode(value)));
-                map.put("@ex", ex.getMessage());
-                return ModelSerializer.INSTANCE.toJson(map);
-            } catch (Exception ignore) {
+                val map: MutableMap<String, Any?> = HashMap()
+                map[varName] = value.javaClass.name + "@" + Integer.toHexString(System.identityHashCode(value))
+                map["@class"] = "java.lang.Class"
+                map["@identity"] = Integer.toHexString(System.identityHashCode(value))
+                map["@ex"] = ex.message
+                return ModelSerializer.INSTANCE.toJson(map)
+            } catch (ignore: Exception) {
             }
-            return value.toString(); //can't reach here
+            value.toString() //can't reach here
         }
     }
 }

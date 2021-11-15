@@ -1,30 +1,27 @@
-package spp.probe.services.common;
+package spp.probe.services.common
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.Function
 
-public class ProbeMemory {
-
-    private static final Map<String, Object> memory = new ConcurrentHashMap<>();
-
-    public static <T> T computeIfAbsent(String key, Function<String, T> function) {
-        return (T) memory.computeIfAbsent(key, function);
+object ProbeMemory {
+    private val memory: MutableMap<String, Any?> = ConcurrentHashMap()
+    fun <T> computeIfAbsent(key: String, function: Function<String, T?>?): T? {
+        return memory.computeIfAbsent(key, function!!) as T?
     }
 
-    public static Object get(String key) {
-        return memory.get(key);
+    operator fun get(key: String): Any? {
+        return memory[key]
     }
 
-    public static void put(String key, Object value) {
-        memory.put(key, value);
+    fun put(key: String, value: Any?) {
+        memory[key] = value
     }
 
-    public static void remove(String key) {
-        memory.remove(key);
+    fun remove(key: String) {
+        memory.remove(key)
     }
 
-    public static void clear() {
-        memory.clear();
+    fun clear() {
+        memory.clear()
     }
 }

@@ -1,312 +1,314 @@
-package spp.probe.services.instrument;
+package spp.probe.services.instrument
 
-import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer;
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.pool.TypePool;
-import org.springframework.expression.Expression;
-import org.springframework.expression.ParseException;
-import org.springframework.expression.spel.SpelCompilerMode;
-import org.springframework.expression.spel.SpelParserConfiguration;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
-import spp.probe.services.common.ContextMap;
-import spp.probe.services.common.ContextReceiver;
-import spp.probe.services.common.ModelSerializer;
-import spp.probe.services.common.model.ActiveLiveInstrument;
-import spp.probe.services.common.transform.LiveTransformer;
-import spp.protocol.instrument.LiveInstrument;
-import spp.protocol.instrument.LiveSourceLocation;
-import spp.protocol.instrument.breakpoint.LiveBreakpoint;
-import spp.protocol.instrument.log.LiveLog;
-import spp.protocol.instrument.meter.LiveMeter;
-import spp.protocol.probe.error.LiveInstrumentException;
-import spp.protocol.probe.error.LiveInstrumentException.ErrorType;
+import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
+import org.apache.skywalking.apm.dependencies.net.bytebuddy.pool.TypePool
+import org.springframework.expression.ParseException
+import org.springframework.expression.spel.SpelCompilerMode
+import org.springframework.expression.spel.SpelParserConfiguration
+import org.springframework.expression.spel.standard.SpelExpressionParser
+import org.springframework.expression.spel.support.StandardEvaluationContext
+import spp.probe.services.common.ContextReceiver
+import spp.probe.services.common.ModelSerializer
+import spp.probe.services.common.model.ActiveLiveInstrument
+import spp.probe.services.common.transform.LiveTransformer
+import spp.protocol.instrument.LiveInstrument
+import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.breakpoint.LiveBreakpoint
+import spp.protocol.instrument.log.LiveLog
+import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.platform.PlatformAddress
+import spp.protocol.probe.error.LiveInstrumentException
+import java.lang.instrument.ClassFileTransformer
+import java.lang.instrument.Instrumentation
+import java.lang.instrument.UnmodifiableClassException
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.function.BiConsumer
+import java.util.function.Consumer
+import java.util.stream.Collectors
 
-import java.lang.instrument.ClassFileTransformer;
-import java.lang.instrument.Instrumentation;
-import java.lang.instrument.UnmodifiableClassException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
+object LiveInstrumentService {
 
-import static spp.protocol.platform.PlatformAddress.*;
+    private val instruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
+    private val applyingInstruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
+    private val parser = SpelExpressionParser(
+        SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
+    )
+    private var instrumentEventConsumer: BiConsumer<String, String>? = null
+    private var poolMap: Map<ClassLoader, TypePool> = HashMap()
+    private val timer = Timer("LiveInstrumentScheduler", true)
+    private var instrumentation: Instrumentation? = null
 
-public class LiveInstrumentService {
-
-    private static final Map<String, ActiveLiveInstrument> instruments = new ConcurrentHashMap<>();
-    private static final Map<String, ActiveLiveInstrument> applyingInstruments = new ConcurrentHashMap<>();
-    private final static SpelExpressionParser parser = new SpelExpressionParser(
-            new SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService.class.getClassLoader()));
-    private static BiConsumer<String, String> instrumentEventConsumer;
-    private static Map<ClassLoader, TypePool> poolMap = new HashMap<>();
-    private static final Timer timer = new Timer("LiveInstrumentScheduler", true);
-    private static Instrumentation instrumentation;
-
-    static {
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                List<ActiveLiveInstrument> removeInstruments = new ArrayList<>();
-                instruments.values().forEach(it -> {
-                    if (it.getInstrument().getExpiresAt() != null
-                            && System.currentTimeMillis() >= it.getInstrument().getExpiresAt()) {
-                        removeInstruments.add(it);
+    init {
+        timer.schedule(object : TimerTask() {
+            override fun run() {
+                val removeInstruments: MutableList<ActiveLiveInstrument> = ArrayList()
+                instruments.values.forEach(Consumer { it: ActiveLiveInstrument ->
+                    if (it.instrument.expiresAt != null
+                        && System.currentTimeMillis() >= it.instrument.expiresAt!!
+                    ) {
+                        removeInstruments.add(it)
                     }
-                });
-                applyingInstruments.values().forEach(it -> {
-                    if (it.getInstrument().getExpiresAt() != null
-                            && System.currentTimeMillis() >= it.getInstrument().getExpiresAt()) {
-                        removeInstruments.add(it);
+                })
+                applyingInstruments.values.forEach(Consumer { it: ActiveLiveInstrument ->
+                    if (it.instrument.expiresAt != null
+                        && System.currentTimeMillis() >= it.instrument.expiresAt!!
+                    ) {
+                        removeInstruments.add(it)
                     }
-                });
-                removeInstruments.forEach(it -> _removeInstrument(it.getInstrument(), null));
+                })
+                removeInstruments.forEach(Consumer { it: ActiveLiveInstrument ->
+                    _removeInstrument(
+                        it.instrument,
+                        null
+                    )
+                })
             }
-        }, 5000, 5000);
+        }, 5000, 5000)
     }
 
-    public static LiveInstrumentApplier liveInstrumentApplier = (inst, instrument) -> {
-        Class clazz = null;
-        for (ClassLoader classLoader : poolMap.keySet()) {
-            try {
-                clazz = Class.forName(instrument.getInstrument().getLocation().getSource(), true, classLoader);
-            } catch (ClassNotFoundException ignored) {
-            }
-        }
-        if (poolMap.isEmpty()) {
-            try {
-                clazz = Class.forName(instrument.getInstrument().getLocation().getSource());
-            } catch (ClassNotFoundException ignored) {
-            }
-        }
-        if (clazz == null) {
-            if (instrument.getInstrument().getApplyImmediately()) {
-                throw new LiveInstrumentException(ErrorType.CLASS_NOT_FOUND, instrument.getInstrument().getLocation().getSource()
-                ).toEventBusException();
-            } else if (!instrument.isRemoval()) {
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        liveInstrumentApplier.apply(inst, instrument);
-                    }
-                }, 5000);
-            }
-            return;
-        }
-
-        ClassFileTransformer transformer = new LiveTransformer(instrument.getInstrument().getLocation().getSource());
-        try {
-            if (!instrument.isRemoval()) {
-                applyingInstruments.put(instrument.getInstrument().getId(), instrument);
-            }
-            inst.addTransformer(transformer, true);
-            inst.retransformClasses(clazz);
-            instrument.setLive(true);
-            if (!instrument.isRemoval()) {
-                if (instrument.getInstrument() instanceof LiveLog) {
-                    instrumentEventConsumer.accept(LIVE_LOG_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
-                } else if (instrument.getInstrument() instanceof LiveBreakpoint) {
-                    instrumentEventConsumer.accept(LIVE_BREAKPOINT_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
-                } else if (instrument.getInstrument() instanceof LiveMeter) {
-                    instrumentEventConsumer.accept(LIVE_METER_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
+    var liveInstrumentApplier = object : LiveInstrumentApplier {
+        override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
+            var clazz: Class<*>? = null
+            for (classLoader in poolMap.keys) {
+                try {
+                    clazz = Class.forName(instrument.instrument.location.source, true, classLoader)
+                } catch (ignored: ClassNotFoundException) {
                 }
-//                else if (instrument.getInstrument() instanceof LiveSpan) {
+            }
+            if (poolMap.isEmpty()) {
+                try {
+                    clazz = Class.forName(instrument.instrument.location.source)
+                } catch (ignored: ClassNotFoundException) {
+                }
+            }
+            if (clazz == null) {
+                if (instrument.instrument.applyImmediately) {
+                    throw LiveInstrumentException(
+                        LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, instrument.instrument.location.source
+                    ).toEventBusException()
+                } else if (!instrument.isRemoval) {
+                    timer.schedule(object : TimerTask() {
+                        override fun run() {
+                            apply(inst, instrument)
+                        }
+                    }, 5000)
+                }
+                return
+            }
+            val transformer: ClassFileTransformer = LiveTransformer(instrument.instrument.location.source)
+            try {
+                if (!instrument.isRemoval) {
+                    applyingInstruments[instrument.instrument.id] = instrument
+                }
+                inst.addTransformer(transformer, true)
+                inst.retransformClasses(clazz)
+                instrument.isLive = true
+                if (!instrument.isRemoval) {
+                    if (instrument.instrument is LiveLog) {
+                        instrumentEventConsumer!!.accept(
+                            PlatformAddress.LIVE_LOG_APPLIED.address,
+                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                        )
+                    } else if (instrument.instrument is LiveBreakpoint) {
+                        instrumentEventConsumer!!.accept(
+                            PlatformAddress.LIVE_BREAKPOINT_APPLIED.address,
+                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                        )
+                    } else if (instrument.instrument is LiveMeter) {
+                        instrumentEventConsumer!!.accept(
+                            PlatformAddress.LIVE_METER_APPLIED.address,
+                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                        )
+                    }
+                    //                else if (instrument.getInstrument() instanceof LiveSpan) {
 //                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
 //                }
-            }
-        } catch (Throwable ex) {
-            //remove and re-transform
-            _removeInstrument(instrument.getInstrument(), ex);
-
-            applyingInstruments.remove(instrument.getInstrument().getId());
-            inst.addTransformer(transformer, true);
-            try {
-                inst.retransformClasses(clazz);
-            } catch (UnmodifiableClassException e) {
-                throw new RuntimeException(e);
-            }
-        } finally {
-            applyingInstruments.remove(instrument.getInstrument().getId());
-            inst.removeTransformer(transformer);
-        }
-    };
-
-    private LiveInstrumentService() {
-    }
-
-    @SuppressWarnings("unused")
-    public static void setPoolMap(Map poolMap) {
-        LiveInstrumentService.poolMap = poolMap;
-    }
-
-    @SuppressWarnings("unused")
-    public static void setInstrumentEventConsumer(BiConsumer instrumentEventConsumer) {
-        LiveInstrumentService.instrumentEventConsumer = instrumentEventConsumer;
-    }
-
-    public static void setInstrumentApplier(LiveInstrumentApplier liveInstrumentApplier) {
-        LiveInstrumentService.liveInstrumentApplier = liveInstrumentApplier;
-    }
-
-    public static void setInstrumentation(Instrumentation instrumentation) {
-        LiveInstrumentService.instrumentation = instrumentation;
-    }
-
-    public static Map<String, ActiveLiveInstrument> getInstrumentsMap() {
-        return new HashMap<>(instruments);
-    }
-
-    public static void clearAll() {
-        instruments.clear();
-        applyingInstruments.clear();
-    }
-
-    @SuppressWarnings("unused")
-    public static String applyInstrument(LiveInstrument liveInstrument) {
-        ActiveLiveInstrument existingInstrument = applyingInstruments.get(liveInstrument.getId());
-        if (existingInstrument == null) existingInstrument = instruments.get(liveInstrument.getId());
-        if (existingInstrument != null) {
-            return ModelSerializer.INSTANCE.toJson(existingInstrument.getInstrument());
-        } else {
-            ActiveLiveInstrument activeInstrument;
-            if (liveInstrument.getCondition() != null && !liveInstrument.getCondition().isEmpty()) {
+                }
+            } catch (ex: Throwable) {
+                //remove and re-transform
+                _removeInstrument(instrument.instrument, ex)
+                applyingInstruments.remove(instrument.instrument.id)
+                inst.addTransformer(transformer, true)
                 try {
-                    Expression expression = parser.parseExpression(liveInstrument.getCondition());
-                    activeInstrument = new ActiveLiveInstrument(liveInstrument, expression);
-                } catch (ParseException ex) {
-                    throw new LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.getMessage())
-                            .toEventBusException();
+                    inst.retransformClasses(clazz)
+                } catch (e: UnmodifiableClassException) {
+                    throw RuntimeException(e)
                 }
-            } else {
-                activeInstrument = new ActiveLiveInstrument(liveInstrument);
+            } finally {
+                applyingInstruments.remove(instrument.instrument.id)
+                inst.removeTransformer(transformer)
             }
-
-            liveInstrumentApplier.apply(instrumentation, activeInstrument);
-            instruments.put(liveInstrument.getId(), activeInstrument);
-            return ModelSerializer.INSTANCE.toJson(activeInstrument.getInstrument());
         }
     }
 
-    @SuppressWarnings("unused")
-    public static Collection<String> removeInstrument(String source, int line, String instrumentId) {
+    fun setPoolMap(poolMap: Map<*, *>) {
+        LiveInstrumentService.poolMap = poolMap as Map<ClassLoader, TypePool>
+    }
+
+    fun setInstrumentEventConsumer(instrumentEventConsumer: BiConsumer<*, *>) {
+        LiveInstrumentService.instrumentEventConsumer = instrumentEventConsumer as BiConsumer<String, String>
+    }
+
+    fun setInstrumentApplier(liveInstrumentApplier: LiveInstrumentApplier) {
+        LiveInstrumentService.liveInstrumentApplier = liveInstrumentApplier
+    }
+
+    fun setInstrumentation(instrumentation: Instrumentation?) {
+        LiveInstrumentService.instrumentation = instrumentation
+    }
+
+    val instrumentsMap: Map<String?, ActiveLiveInstrument>
+        get() = HashMap(instruments)
+
+    fun clearAll() {
+        instruments.clear()
+        applyingInstruments.clear()
+    }
+
+    fun applyInstrument(liveInstrument: LiveInstrument): String {
+        var existingInstrument = applyingInstruments[liveInstrument.id]
+        if (existingInstrument == null) existingInstrument = instruments[liveInstrument.id]
+        return if (existingInstrument != null) {
+            ModelSerializer.INSTANCE.toJson(existingInstrument.instrument)
+        } else {
+            val activeInstrument: ActiveLiveInstrument
+            activeInstrument = if (liveInstrument.condition != null && !liveInstrument.condition!!.isEmpty()) {
+                try {
+                    val expression = parser.parseExpression(liveInstrument.condition)
+                    ActiveLiveInstrument(liveInstrument, expression)
+                } catch (ex: ParseException) {
+                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
+                        .toEventBusException()
+                }
+            } else {
+                ActiveLiveInstrument(liveInstrument)
+            }
+            liveInstrumentApplier.apply(instrumentation!!, activeInstrument)
+            instruments[liveInstrument.id] = activeInstrument
+            ModelSerializer.INSTANCE.toJson(activeInstrument.instrument)
+        }
+    }
+
+    fun removeInstrument(source: String?, line: Int, instrumentId: String?): Collection<String> {
         if (instrumentId != null) {
-            ActiveLiveInstrument removedInstrument = instruments.remove(instrumentId);
+            val removedInstrument = instruments.remove(instrumentId)
             if (removedInstrument != null) {
-                removedInstrument.setRemoval(true);
-                if (removedInstrument.isLive()) {
-                    liveInstrumentApplier.apply(instrumentation, removedInstrument);
-                    return Collections.singletonList(ModelSerializer.INSTANCE.toJson(removedInstrument.getInstrument()));
+                removedInstrument.isRemoval = true
+                if (removedInstrument.isLive) {
+                    liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                    return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
             }
         } else {
-            List<String> removedInstruments = new ArrayList<>();
-            getInstruments(new LiveSourceLocation(source, line)).forEach(it -> {
-                ActiveLiveInstrument removedInstrument = instruments.remove(it.getInstrument().getId());
-
-                if (removedInstrument != null) {
-                    removedInstrument.setRemoval(true);
-                    if (removedInstrument.isLive()) {
-                        liveInstrumentApplier.apply(instrumentation, removedInstrument);
-                        removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.getInstrument()));
+            val removedInstruments: MutableList<String> = ArrayList()
+            getInstruments(LiveSourceLocation(source!!, line)).forEach(
+                Consumer { it: ActiveLiveInstrument ->
+                    val removedInstrument = instruments.remove(it.instrument.id)
+                    if (removedInstrument != null) {
+                        removedInstrument.isRemoval = true
+                        if (removedInstrument.isLive) {
+                            liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                            removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
+                        }
                     }
-                }
-            });
-            return removedInstruments;
+                })
+            return removedInstruments
         }
-        return Collections.EMPTY_LIST;
+        return emptyList()
     }
 
-    public static void _removeInstrument(LiveInstrument instrument, Throwable ex) {
-        removeInstrument(instrument.getLocation().getSource(), instrument.getLocation().getLine(), instrument.getId());
-
-        Map<String, Object> map = new HashMap<>();
-        if (instrument instanceof LiveBreakpoint) {
-            map.put("breakpoint", ModelSerializer.INSTANCE.toJson(instrument));
-        } else if (instrument instanceof LiveLog) {
-            map.put("log", ModelSerializer.INSTANCE.toJson(instrument));
-        } else if (instrument instanceof LiveMeter) {
-            map.put("meter", ModelSerializer.INSTANCE.toJson(instrument));
+    fun _removeInstrument(instrument: LiveInstrument?, ex: Throwable?) {
+        removeInstrument(instrument!!.location.source, instrument.location.line, instrument.id)
+        val map: MutableMap<String, Any?> = HashMap()
+        if (instrument is LiveBreakpoint) {
+            map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
+        } else if (instrument is LiveLog) {
+            map["log"] = ModelSerializer.INSTANCE.toJson(instrument)
+        } else if (instrument is LiveMeter) {
+            map["meter"] = ModelSerializer.INSTANCE.toJson(instrument)
+        } else {
+            throw IllegalArgumentException(instrument.javaClass.simpleName)
         }
-//        else if (instrument instanceof LiveSpan) {
-//            map.put("span", ModelSerializer.INSTANCE.toJson(instrument));
-//        }
-        else {
-            throw new IllegalArgumentException(instrument.getClass().getSimpleName());
-        }
-        map.put("occurredAt", System.currentTimeMillis());
+        map["occurredAt"] = System.currentTimeMillis()
         if (ex != null) {
-            map.put("cause", ThrowableTransformer.INSTANCE.convert2String(ex, 4000));
+            map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
         }
-
-        if (instrument instanceof LiveBreakpoint) {
-            instrumentEventConsumer.accept(LIVE_BREAKPOINT_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
-        } else if (instrument instanceof LiveLog) {
-            instrumentEventConsumer.accept(LIVE_LOG_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
-        } else if (instrument instanceof LiveMeter) {
-            instrumentEventConsumer.accept(LIVE_METER_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
+        if (instrument is LiveBreakpoint) {
+            instrumentEventConsumer!!.accept(
+                PlatformAddress.LIVE_BREAKPOINT_REMOVED.address,
+                ModelSerializer.INSTANCE.toJson(map)
+            )
+        } else if (instrument is LiveLog) {
+            instrumentEventConsumer!!.accept(
+                PlatformAddress.LIVE_LOG_REMOVED.address,
+                ModelSerializer.INSTANCE.toJson(map)
+            )
+        } else if (instrument is LiveMeter) {
+            instrumentEventConsumer!!.accept(
+                PlatformAddress.LIVE_METER_REMOVED.address,
+                ModelSerializer.INSTANCE.toJson(map)
+            )
         } else {
-            instrumentEventConsumer.accept(LIVE_SPAN_REMOVED.getAddress(), ModelSerializer.INSTANCE.toJson(map));
+            instrumentEventConsumer!!.accept(
+                PlatformAddress.LIVE_SPAN_REMOVED.address,
+                ModelSerializer.INSTANCE.toJson(map)
+            )
         }
     }
 
-    public static List<ActiveLiveInstrument> getInstruments(LiveSourceLocation location) {
-        Set<ActiveLiveInstrument> instruments = LiveInstrumentService.instruments.values().stream()
-                .filter(it -> it.getInstrument().getLocation().equals(location))
-                .collect(Collectors.toSet());
-        instruments.addAll(applyingInstruments.values().stream()
-                .filter(it -> it.getInstrument().getLocation().equals(location))
-                .collect(Collectors.toSet()));
-        return new ArrayList<>(instruments);
+    fun getInstruments(location: LiveSourceLocation): List<ActiveLiveInstrument> {
+        val instruments = instruments.values.stream()
+            .filter { it: ActiveLiveInstrument -> it.instrument.location == location }
+            .collect(Collectors.toSet())
+        instruments.addAll(
+            applyingInstruments.values.stream()
+                .filter { it: ActiveLiveInstrument -> it.instrument.location == location }
+                .collect(Collectors.toSet()))
+        return ArrayList(instruments)
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isInstrumentEnabled(String instrumentId) {
-        boolean applied = instruments.containsKey(instrumentId);
-        if (applied) {
-            return true;
+    fun isInstrumentEnabled(instrumentId: String?): Boolean {
+        val applied = instruments.containsKey(instrumentId)
+        return if (applied) {
+            true
         } else {
-            return applyingInstruments.containsKey(instrumentId);
+            applyingInstruments.containsKey(instrumentId)
         }
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isHit(String instrumentId) {
-        ActiveLiveInstrument instrument = instruments.get(instrumentId);
-        if (instrument == null) {
-            return false;
+    fun isHit(instrumentId: String?): Boolean {
+        val instrument = instruments[instrumentId] ?: return false
+        if (instrument.throttle.isRateLimited()) {
+            ContextReceiver.clear(instrumentId)
+            return false
         }
-
-        if (instrument.getThrottle().isRateLimited()) {
-            ContextReceiver.clear(instrumentId);
-            return false;
-        }
-
-        if (instrument.getExpression() == null) {
-            if (instrument.isFinished()) {
-                _removeInstrument(instrument.getInstrument(), null);
+        if (instrument.expression == null) {
+            if (instrument.isFinished) {
+                _removeInstrument(instrument.instrument, null)
             }
-            return true;
+            return true
         }
-
-        try {
+        return try {
             if (evaluateCondition(instrument)) {
-                if (instrument.isFinished()) {
-                    _removeInstrument(instrument.getInstrument(), null);
+                if (instrument.isFinished) {
+                    _removeInstrument(instrument.instrument, null)
                 }
-                return true;
+                true
             } else {
-                ContextReceiver.clear(instrumentId);
-                return false;
+                ContextReceiver.clear(instrumentId)
+                false
             }
-        } catch (Throwable e) {
-            ContextReceiver.clear(instrumentId);
-            _removeInstrument(instrument.getInstrument(), e);
-            return false;
+        } catch (e: Throwable) {
+            ContextReceiver.clear(instrumentId)
+            _removeInstrument(instrument.instrument, e)
+            false
         }
     }
 
-    private static boolean evaluateCondition(ActiveLiveInstrument liveInstrument) {
-        ContextMap rootObject = ContextReceiver.get(liveInstrument.getInstrument().getId());
-        StandardEvaluationContext context = new StandardEvaluationContext(rootObject);
-        return liveInstrument.getExpression().getValue(context, Boolean.class);
+    private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
+        val rootObject = ContextReceiver.get(liveInstrument.instrument.id)
+        val context = StandardEvaluationContext(rootObject)
+        return liveInstrument.expression!!.getValue(context, Boolean::class.java)
     }
 }
