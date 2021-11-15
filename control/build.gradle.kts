@@ -91,18 +91,12 @@ tasks.register<Copy>("untarSkywalkingAgent") {
     into(File(projectDir.parentFile, "e2e"))
 }
 
-tasks.register<Copy>("updateSkywalkingAgentConfiguration") {
-    dependsOn("untarSkywalkingAgent")
-    from(File(projectDir, "agent.config"))
-    into(File(projectDir.parentFile, "e2e/skywalking-agent/config"))
-}
-
 tasks.register<Zip>("zipSppSkywalkingAgent") {
     if (findProject(":probes:jvm") != null) {
-        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:shadowJar", "updateSkywalkingAgentConfiguration")
+        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:shadowJar")
         mustRunAfter(":probes:jvm:services:shadowJar")
     } else {
-        dependsOn("untarSkywalkingAgent", ":services:shadowJar", "updateSkywalkingAgentConfiguration")
+        dependsOn("untarSkywalkingAgent", ":services:shadowJar")
         mustRunAfter(":services:shadowJar")
     }
 
