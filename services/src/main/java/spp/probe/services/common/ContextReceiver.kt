@@ -44,14 +44,17 @@ object ContextReceiver {
         staticFields.remove(instrumentId)
     }
 
+    @JvmStatic
     fun putLocalVariable(instrumentId: String, key: String, value: Any?) {
         addInstrumentVariable(instrumentId, key, value, localVariables)
     }
 
+    @JvmStatic
     fun putField(instrumentId: String, key: String, value: Any?) {
         addInstrumentVariable(instrumentId, key, value, fields)
     }
 
+    @JvmStatic
     fun putStaticField(instrumentId: String, key: String, value: Any?) {
         addInstrumentVariable(instrumentId, key, value, staticFields)
     }
@@ -68,6 +71,7 @@ object ContextReceiver {
         variableMap.computeIfAbsent(instrumentId) { it: String? -> HashMap() }[key] = value
     }
 
+    @JvmStatic
     fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
         val localVars: Map<String, Any>? = localVariables.remove(breakpointId)
@@ -94,11 +98,12 @@ object ContextReceiver {
         )
         activeSpan.tag(
             StringTag("spp.breakpoint:$breakpointId"),
-            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line))
+            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null))
         )
         ContextManager.stopSpan(activeSpan)
     }
 
+    @JvmStatic
     fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) {
         val localVars: Map<String, Any>? = localVariables.remove(logId)
         val localFields: Map<String, Any>? = fields.remove(logId)
@@ -152,6 +157,7 @@ object ContextReceiver {
         logReport.produce(logData)
     }
 
+    @JvmStatic
     fun putMeter(meterId: String) {
         val (_, meterType, metricValue) = ProbeMemory.get("spp.live-meter:$meterId") as LiveMeter ?: return
         val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") { it: String? ->

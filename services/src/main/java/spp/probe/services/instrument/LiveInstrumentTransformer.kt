@@ -1,20 +1,25 @@
 package spp.probe.services.instrument
 
-import spp.probe.services.common.ProbeMemory
-import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.meter.LiveMeter
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Label
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisitor
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Type
-import spp.probe.services.common.transform.LiveTransformer
-import spp.protocol.instrument.log.LiveLog
-import spp.protocol.instrument.breakpoint.LiveBreakpoint
+import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
+import spp.probe.services.common.transform.LiveTransformer
+import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.breakpoint.LiveBreakpoint
+import spp.protocol.instrument.log.LiveLog
+import spp.protocol.instrument.meter.LiveMeter
 
 class LiveInstrumentTransformer(
-    private val source: String, private val className: String?, methodName: String, desc: String, access: Int,
-    classMetadata: ClassMetadata, mv: MethodVisitor?
+    private val location: LiveSourceLocation,
+    private val className: String?,
+    methodName: String,
+    desc: String,
+    access: Int,
+    classMetadata: ClassMetadata,
+    mv: MethodVisitor?
 ) : MethodVisitor(Opcodes.ASM7, mv) {
     private val methodUniqueName: String
     private val access: Int
@@ -28,30 +33,27 @@ class LiveInstrumentTransformer(
 
     override fun visitLineNumber(line: Int, start: Label) {
         mv.visitLineNumber(line, start)
-        for (instrument in LiveInstrumentService.getInstruments(
-            LiveSourceLocation(
-                source, line
-            )
-        )) {
+        val location = LiveSourceLocation(source = location.source, line = line, null, null, null, null)
+        for (instrument in LiveInstrumentService.getInstruments(location)) {
             val instrumentLabel = Label()
-            isInstrumentEnabled(instrument.instrument.id, instrumentLabel)
+            isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
             if (instrument.instrument is LiveBreakpoint) {
-                captureSnapshot(instrument.instrument.id, line)
-                isHit(instrument.instrument.id, instrumentLabel)
-                putBreakpoint(instrument.instrument.id, source, line)
+                captureSnapshot(instrument.instrument.id!!, line)
+                isHit(instrument.instrument.id!!, instrumentLabel)
+                putBreakpoint(instrument.instrument.id!!, location.source, line)
             } else if (instrument.instrument is LiveLog) {
                 val log = instrument.instrument
-                if (log!!.logArguments.size > 0 || instrument.expression != null) {
-                    captureSnapshot(log.id, line)
+                if (log.logArguments.size > 0 || instrument.expression != null) {
+                    captureSnapshot(log.id!!, line)
                 }
-                isHit(log.id, instrumentLabel)
+                isHit(log.id!!, instrumentLabel)
                 putLog(log)
             } else if (instrument.instrument is LiveMeter) {
                 val meter = instrument.instrument
                 if (instrument.expression != null) {
-                    captureSnapshot(meter!!.id, line)
+                    captureSnapshot(meter.id!!, line)
                 }
-                isHit(meter!!.id, instrumentLabel)
+                isHit(meter.id!!, instrumentLabel)
                 putMeter(meter)
             }
             mv.visitLabel(Label())
@@ -59,7 +61,7 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun isInstrumentEnabled(instrumentId: String?, instrumentLabel: Label) {
+    private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: Label) {
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "isInstrumentEnabled",
@@ -68,13 +70,13 @@ class LiveInstrumentTransformer(
         mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
     }
 
-    private fun captureSnapshot(instrumentId: String?, line: Int) {
+    private fun captureSnapshot(instrumentId: String, line: Int) {
         addLocals(instrumentId, line)
         addStaticFields(instrumentId)
         addFields(instrumentId)
     }
 
-    private fun isHit(instrumentId: String?, instrumentLabel: Label) {
+    private fun isHit(instrumentId: String, instrumentLabel: Label) {
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "isHit",
@@ -98,7 +100,7 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun addStaticFields(instrumentId: String?) {
+    private fun addStaticFields(instrumentId: String) {
         for (field in classMetadata.staticFields) {
             mv.visitLdcInsn(instrumentId)
             mv.visitLdcInsn(field.name)
@@ -111,7 +113,7 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun addFields(instrumentId: String?) {
+    private fun addFields(instrumentId: String) {
         if (access and Opcodes.ACC_STATIC == 0) {
             for (field in classMetadata.fields) {
                 mv.visitLdcInsn(instrumentId)
@@ -127,7 +129,7 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun putBreakpoint(instrumentId: String?, source: String, line: Int) {
+    private fun putBreakpoint(instrumentId: String, source: String, line: Int) {
         mv.visitLdcInsn(instrumentId)
         mv.visitLdcInsn(source)
         mv.visitLdcInsn(line)
@@ -146,7 +148,7 @@ class LiveInstrumentTransformer(
         )
     }
 
-    private fun putLog(log: LiveLog?) {
+    private fun putLog(log: LiveLog) {
         mv.visitLdcInsn(log!!.id)
         mv.visitLdcInsn(log.logFormat)
         mv.visitIntInsn(Opcodes.BIPUSH, log.logArguments.size)
@@ -160,7 +162,7 @@ class LiveInstrumentTransformer(
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "putLog", PUT_LOG_DESC, false)
     }
 
-    private fun putMeter(meter: LiveMeter?) {
+    private fun putMeter(meter: LiveMeter) {
         ProbeMemory.put("spp.live-meter:" + meter!!.id, meter)
         mv.visitLdcInsn(meter.id)
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "putMeter", "(Ljava/lang/String;)V", false)

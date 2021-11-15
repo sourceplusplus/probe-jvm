@@ -18,7 +18,6 @@ import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.error.LiveInstrumentException
-import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
@@ -96,7 +95,7 @@ object LiveInstrumentService {
                 }
                 return
             }
-            val transformer: ClassFileTransformer = LiveTransformer(instrument.instrument.location.source)
+            val transformer = LiveTransformer(instrument.instrument.location)
             try {
                 if (!instrument.isRemoval) {
                     applyingInstruments[instrument.instrument.id] = instrument
@@ -176,10 +175,9 @@ object LiveInstrumentService {
         return if (existingInstrument != null) {
             ModelSerializer.INSTANCE.toJson(existingInstrument.instrument)
         } else {
-            val activeInstrument: ActiveLiveInstrument
-            activeInstrument = if (liveInstrument.condition != null && !liveInstrument.condition!!.isEmpty()) {
+            val activeInstrument = if (liveInstrument.condition?.isNotEmpty() == true) {
                 try {
-                    val expression = parser.parseExpression(liveInstrument.condition)
+                    val expression = parser.parseExpression(liveInstrument.condition!!)
                     ActiveLiveInstrument(liveInstrument, expression)
                 } catch (ex: ParseException) {
                     throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
@@ -207,17 +205,16 @@ object LiveInstrumentService {
             }
         } else {
             val removedInstruments: MutableList<String> = ArrayList()
-            getInstruments(LiveSourceLocation(source!!, line)).forEach(
-                Consumer { it: ActiveLiveInstrument ->
-                    val removedInstrument = instruments.remove(it.instrument.id)
-                    if (removedInstrument != null) {
-                        removedInstrument.isRemoval = true
-                        if (removedInstrument.isLive) {
-                            liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
-                            removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
-                        }
+            getInstruments(LiveSourceLocation(source!!, line, null, null, null, null)).forEach {
+                val removedInstrument = instruments.remove(it.instrument.id)
+                if (removedInstrument != null) {
+                    removedInstrument.isRemoval = true
+                    if (removedInstrument.isLive) {
+                        liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                        removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
-                })
+                }
+            }
             return removedInstruments
         }
         return emptyList()
@@ -226,36 +223,31 @@ object LiveInstrumentService {
     fun _removeInstrument(instrument: LiveInstrument?, ex: Throwable?) {
         removeInstrument(instrument!!.location.source, instrument.location.line, instrument.id)
         val map: MutableMap<String, Any?> = HashMap()
-        if (instrument is LiveBreakpoint) {
-            map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
-        } else if (instrument is LiveLog) {
-            map["log"] = ModelSerializer.INSTANCE.toJson(instrument)
-        } else if (instrument is LiveMeter) {
-            map["meter"] = ModelSerializer.INSTANCE.toJson(instrument)
-        } else {
-            throw IllegalArgumentException(instrument.javaClass.simpleName)
+        when (instrument) {
+            is LiveBreakpoint -> map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
+            is LiveLog -> map["log"] = ModelSerializer.INSTANCE.toJson(instrument)
+            is LiveMeter -> map["meter"] = ModelSerializer.INSTANCE.toJson(instrument)
+            else -> throw IllegalArgumentException(instrument.javaClass.simpleName)
         }
         map["occurredAt"] = System.currentTimeMillis()
         if (ex != null) {
             map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
         }
-        if (instrument is LiveBreakpoint) {
-            instrumentEventConsumer!!.accept(
+
+        when (instrument) {
+            is LiveBreakpoint -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_BREAKPOINT_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
-        } else if (instrument is LiveLog) {
-            instrumentEventConsumer!!.accept(
+            is LiveLog -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_LOG_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
-        } else if (instrument is LiveMeter) {
-            instrumentEventConsumer!!.accept(
+            is LiveMeter -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_METER_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
-        } else {
-            instrumentEventConsumer!!.accept(
+            else -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_SPAN_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
@@ -264,11 +256,11 @@ object LiveInstrumentService {
 
     fun getInstruments(location: LiveSourceLocation): List<ActiveLiveInstrument> {
         val instruments = instruments.values.stream()
-            .filter { it: ActiveLiveInstrument -> it.instrument.location == location }
+            .filter { it.instrument.location == location }
             .collect(Collectors.toSet())
         instruments.addAll(
             applyingInstruments.values.stream()
-                .filter { it: ActiveLiveInstrument -> it.instrument.location == location }
+                .filter { it.instrument.location == location }
                 .collect(Collectors.toSet()))
         return ArrayList(instruments)
     }

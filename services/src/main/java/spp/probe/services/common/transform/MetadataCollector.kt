@@ -1,20 +1,19 @@
 package spp.probe.services.common.transform
 
-import spp.probe.services.common.model.ClassField
-import java.util.HashMap
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.*
+import spp.probe.services.common.model.ClassField
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.model.LocalVariable
 
 class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor(ASM_VERSION) {
+
     override fun visitField(access: Int, name: String, desc: String, signature: String, value: Any): FieldVisitor {
         classMetadata.addField(ClassField(access, name, desc))
         return super.visitField(access, name, desc, signature, value)
     }
 
     override fun visitMethod(
-        access: Int, methodName: String, desc: String, signature: String,
-        exceptions: Array<String>
+        access: Int, methodName: String, desc: String, signature: String?, exceptions: Array<out String>?
     ): MethodVisitor {
         val superMV = super.visitMethod(access, methodName, desc, signature, exceptions)
         val methodUniqueName = methodName + desc
@@ -25,7 +24,7 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
             }
 
             override fun visitLocalVariable(
-                name: String, desc: String, signature: String,
+                name: String, desc: String, signature: String?,
                 start: Label, end: Label, index: Int
             ) {
                 super.visitLocalVariable(name, desc, signature, start, end, index)
