@@ -55,8 +55,8 @@ object SourceProbe {
     val isAgentInitialized: Boolean
         get() = instrumentation != null
 
-    @Throws(Exception::class)
-    fun premain(args: String?, inst: Instrumentation?) {
+    @JvmStatic
+    fun premain(args: String?, inst: Instrumentation) {
         if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated")
 
         //todo: pipe data if in debug mode

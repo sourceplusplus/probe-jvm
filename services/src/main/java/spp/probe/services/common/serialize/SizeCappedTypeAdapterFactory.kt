@@ -25,7 +25,7 @@ class SizeCappedTypeAdapterFactory : TypeAdapterFactory {
                     jsonWriter.name("@class")
                     jsonWriter.value("LargeObject")
                     jsonWriter.name("@size")
-                    jsonWriter.value(java.lang.Long.toString(objSize))
+                    jsonWriter.value(objSize.toString())
                     jsonWriter.name("@identity")
                     jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
                     jsonWriter.endObject()
@@ -39,14 +39,17 @@ class SizeCappedTypeAdapterFactory : TypeAdapterFactory {
     }
 
     companion object {
-        var instrumentation: Instrumentation? = null
-        var maxMemorySize: Long = -1
-//        fun setInstrumentation(instrumentation: Instrumentation?) {
-//            Companion.instrumentation = instrumentation
-//        }
+        private var instrumentation: Instrumentation? = null
+        private var maxMemorySize: Long = -1
 
-//        fun setMaxMemorySize(maxMemorySize: Long) {
-//            Companion.maxMemorySize = maxMemorySize
-//        }
+        @JvmStatic
+        fun setInstrumentation(instrumentation: Instrumentation?) {
+            Companion.instrumentation = instrumentation
+        }
+
+        @JvmStatic
+        fun setMaxMemorySize(maxMemorySize: Long) {
+            Companion.maxMemorySize = maxMemorySize
+        }
     }
 }

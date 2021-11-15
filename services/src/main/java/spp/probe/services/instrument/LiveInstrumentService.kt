@@ -142,10 +142,12 @@ object LiveInstrumentService {
         }
     }
 
+    @JvmStatic
     fun setPoolMap(poolMap: Map<*, *>) {
         LiveInstrumentService.poolMap = poolMap as Map<ClassLoader, TypePool>
     }
 
+    @JvmStatic
     fun setInstrumentEventConsumer(instrumentEventConsumer: BiConsumer<*, *>) {
         LiveInstrumentService.instrumentEventConsumer = instrumentEventConsumer as BiConsumer<String, String>
     }
@@ -154,6 +156,7 @@ object LiveInstrumentService {
         LiveInstrumentService.liveInstrumentApplier = liveInstrumentApplier
     }
 
+    @JvmStatic
     fun setInstrumentation(instrumentation: Instrumentation?) {
         LiveInstrumentService.instrumentation = instrumentation
     }

@@ -10,7 +10,6 @@ import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
@@ -25,7 +24,7 @@ class ProbeInstrumentTest {
 
         init {
             LiveInstrumentService.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-            LiveInstrumentService.setInstrumentApplier { _: Instrumentation?, _: ActiveLiveInstrument? -> }
+            LiveInstrumentService.setInstrumentApplier { _, _ -> }
             LiveInstrumentService.setInstrumentEventConsumer { _, _ -> }
         }
     }
@@ -51,7 +50,7 @@ class ProbeInstrumentTest {
         assertEquals(location, bp.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
-            bp.expression.expressionString
+            bp.expression!!.expressionString
         )
     }
 
@@ -78,7 +77,7 @@ class ProbeInstrumentTest {
         assertEquals(location, bp.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
-            bp.expression.expressionString
+            bp.expression!!.expressionString
         )
     }
 
@@ -121,7 +120,7 @@ class ProbeInstrumentTest {
         assertEquals(location, log.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
-            log.expression.expressionString
+            log.expression!!.expressionString
         )
     }
 
@@ -152,7 +151,7 @@ class ProbeInstrumentTest {
         assertEquals(location, log.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
-            log.expression.expressionString
+            log.expression!!.expressionString
         )
     }
 
