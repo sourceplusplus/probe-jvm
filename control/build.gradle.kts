@@ -32,6 +32,9 @@ dependencies {
         isTransitive = false
     }
 
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
+
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
     testImplementation("io.vertx:vertx-web-client:$vertxVersion")
@@ -88,18 +91,12 @@ tasks.register<Copy>("untarSkywalkingAgent") {
     into(File(projectDir.parentFile, "e2e"))
 }
 
-tasks.register<Copy>("updateSkywalkingAgentConfiguration") {
-    dependsOn("untarSkywalkingAgent")
-    from(File(projectDir, "agent.config"))
-    into(File(projectDir.parentFile, "e2e/skywalking-agent/config"))
-}
-
 tasks.register<Zip>("zipSppSkywalkingAgent") {
     if (findProject(":probes:jvm") != null) {
-        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:shadowJar", "updateSkywalkingAgentConfiguration")
+        dependsOn("untarSkywalkingAgent", ":probes:jvm:services:shadowJar")
         mustRunAfter(":probes:jvm:services:shadowJar")
     } else {
-        dependsOn("untarSkywalkingAgent", ":services:shadowJar", "updateSkywalkingAgentConfiguration")
+        dependsOn("untarSkywalkingAgent", ":services:shadowJar")
         mustRunAfter(":services:shadowJar")
     }
 
@@ -147,6 +144,5 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("org.yaml", "spp.probe.common.org.yaml")
     relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
-    relocate("spp.protocol", "spp.probe.common.spp.protocol")
 }
 tasks.getByName("jar").dependsOn("shadowJar")

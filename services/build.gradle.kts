@@ -1,6 +1,5 @@
 plugins {
     id("com.github.johnrengelman.shadow")
-    id("java")
     id("org.jetbrains.kotlin.jvm")
 }
 
@@ -25,11 +24,14 @@ dependencies {
     }
     compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
     implementation("com.google.code.gson:gson:$gsonVersion")
-    implementation("org.springframework:spring-expression:5.3.12")
+    implementation("org.springframework:spring-expression:5.3.13")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
 }
 
 tasks {
