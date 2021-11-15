@@ -9,6 +9,7 @@ import java.util.stream.Collectors
 import kotlin.system.exitProcess
 
 object ProbeConfiguration {
+
     private var rawProperties: Map<String, Map<String, Any>>? = null
     private var localProperties: JsonObject? = null
 
@@ -39,7 +40,7 @@ object ProbeConfiguration {
             }
             localProperties = JsonObject.mapFrom(rawProperties)
         } catch (e: Exception) {
-            System.err.println("Failed to read properties file: " + localFile)
+            System.err.println("Failed to read properties file: $localFile")
             e.printStackTrace()
             exitProcess(-1)
         }
@@ -55,32 +56,32 @@ object ProbeConfiguration {
     }
 
     @JvmStatic
-    fun setString(property: String?, value: String?) {
+    fun setString(property: String, value: String?) {
         localProperties!!.getJsonObject("spp").put(property, value)
     }
 
-    fun getInteger(property: String?): Int {
+    fun getInteger(property: String): Int {
         return localProperties!!.getJsonObject("spp").getInteger(property)
     }
 
-    fun setInteger(property: String?, value: Int) {
+    fun setInteger(property: String, value: Int) {
         localProperties!!.getJsonObject("spp").put(property, value)
     }
 
     val skywalkingSettings: List<Array<String>>
         get() {
             val settings = toProperties(rawProperties).stream()
-                .filter { it: Array<String> -> it[0].startsWith("skywalking.") }
+                .filter { it[0].startsWith("skywalking.") }
                 .collect(Collectors.toList())
-            if (settings.stream().noneMatch { it: Array<String> -> it[0] == "skywalking.agent.service_name" } ||
-                settings.stream().noneMatch { it: Array<String> -> it[0] == "skywalking.collector.backend_service" }) {
+            if (settings.stream().noneMatch { it[0] == "skywalking.agent.service_name" } ||
+                settings.stream().noneMatch { it[0] == "skywalking.collector.backend_service" }) {
                 throw RuntimeException("Missing Apache SkyWalking setup configuration")
             }
             return settings
         }
     val sppSettings: List<Array<String>>
         get() = toProperties(rawProperties).stream()
-            .filter { it: Array<String> -> it[0].startsWith("spp.") }
+            .filter { it[0].startsWith("spp.") }
             .collect(Collectors.toList())
     val isNotQuite: Boolean
         get() {

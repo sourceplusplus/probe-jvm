@@ -7,6 +7,10 @@ import spp.probe.services.common.model.LocalVariable
 
 class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor(ASM_VERSION) {
 
+    companion object {
+        private const val ASM_VERSION = Opcodes.ASM7
+    }
+
     override fun visitField(access: Int, name: String, desc: String, signature: String, value: Any): FieldVisitor {
         classMetadata.addField(ClassField(access, name, desc))
         return super.visitField(access, name, desc, signature, value)
@@ -41,9 +45,5 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
                 } else Int.MAX_VALUE
             }
         }
-    }
-
-    companion object {
-        private const val ASM_VERSION = Opcodes.ASM7
     }
 }

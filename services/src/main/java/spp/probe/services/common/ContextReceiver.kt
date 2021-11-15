@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 
 object ContextReceiver {
+
     private val ignoredVariables = Pattern.compile(
         "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
     )

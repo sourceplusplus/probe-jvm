@@ -1,20 +1,13 @@
 package spp.probe.services.common.model
 
-import java.util.HashMap
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes
 import java.io.Serializable
-import java.util.ArrayList
 
 class ClassMetadata : Serializable {
-    val fields: MutableList<ClassField>
-    val staticFields: MutableList<ClassField>
-    val variables: MutableMap<String?, MutableList<LocalVariable>>
 
-    init {
-        fields = ArrayList()
-        staticFields = ArrayList()
-        variables = HashMap()
-    }
+    val fields: MutableList<ClassField> = mutableListOf()
+    val staticFields: MutableList<ClassField> = mutableListOf()
+    val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
 
     fun addField(field: ClassField) {
         if (isStaticField(field)) {
@@ -24,8 +17,8 @@ class ClassMetadata : Serializable {
         }
     }
 
-    fun addVariable(methodId: String?, variable: LocalVariable) {
-        variables.computeIfAbsent(methodId) { k: String? -> ArrayList() }
+    fun addVariable(methodId: String, variable: LocalVariable) {
+        variables.computeIfAbsent(methodId) { ArrayList() }
         variables[methodId]!!.add(variable)
     }
 

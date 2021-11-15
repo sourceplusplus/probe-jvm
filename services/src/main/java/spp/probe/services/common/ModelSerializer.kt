@@ -7,19 +7,25 @@ import com.google.gson.TypeAdapterFactory
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory
-import kotlin.Throws
-import java.io.IOException
-import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
 import spp.probe.services.common.serialize.RuntimeClassIdentityTypeAdapterFactory
-import java.util.HashSet
+import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
+import spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory
+import java.io.IOException
 import java.io.OutputStream
 
 enum class ModelSerializer {
     INSTANCE;
 
-    private val gson = GsonBuilder().disableHtmlEscaping().create()
-    val extendedGson = GsonBuilder()
+    companion object {
+        private val ignoredTypes: MutableSet<String> = HashSet()
+
+        init {
+            ignoredTypes.add("org.apache.skywalking.apm.plugin.spring.mvc.commons.EnhanceRequireObjectCache")
+        }
+    }
+
+    private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
+    val extendedGson: Gson = GsonBuilder()
         .registerTypeAdapterFactory(SizeCappedTypeAdapterFactory())
         .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
@@ -50,8 +56,8 @@ enum class ModelSerializer {
                 } else null
             }
         })
-        .registerTypeAdapterFactory(RuntimeClassIdentityTypeAdapterFactory.Companion.of<Any>(Any::class.java))
-        .registerTypeAdapterFactory(RuntimeClassNameTypeAdapterFactory.Companion.of<Any>(Any::class.java))
+        .registerTypeAdapterFactory(RuntimeClassIdentityTypeAdapterFactory.of(Any::class.java))
+        .registerTypeAdapterFactory(RuntimeClassNameTypeAdapterFactory.of(Any::class.java))
         .disableHtmlEscaping().create()
 
     fun toJson(src: Any?): String {
@@ -60,13 +66,5 @@ enum class ModelSerializer {
 
     fun toExtendedJson(src: Any?): String {
         return extendedGson.toJson(src)
-    }
-
-    companion object {
-        private val ignoredTypes: MutableSet<String> = HashSet()
-
-        init {
-            ignoredTypes.add("org.apache.skywalking.apm.plugin.spring.mvc.commons.EnhanceRequireObjectCache")
-        }
     }
 }

@@ -1,26 +1,14 @@
 package spp.probe
 
-import kotlin.Throws
-import java.net.URLClassLoader
 import java.io.IOException
-import java.nio.file.Paths
 import java.net.URL
+import java.net.URLClassLoader
+import java.nio.file.Paths
 
-class ClassLoader  /*
-     * Required when this classloader is used as the system classloader
-     */
-    (parent: java.lang.ClassLoader?) : URLClassLoader(arrayOfNulls(0), parent) {
-    fun add(url: URL?) {
-        addURL(url)
-    }
-
-    /*
-     *  Required for Java Agents when this classloader is used as the system classloader
-     */
-    @Throws(IOException::class)
-    private fun appendToClassPathForInstrumentation(jarFile: String) {
-        add(Paths.get(jarFile).toRealPath().toUri().toURL())
-    }
+/*
+ * Required when this classloader is used as the system classloader
+ */
+class ClassLoader(parent: java.lang.ClassLoader?) : URLClassLoader(arrayOfNulls(0), parent) {
 
     companion object {
         init {
@@ -37,5 +25,17 @@ class ClassLoader  /*
             } while (cl != null)
             return null
         }
+    }
+
+    fun add(url: URL?) {
+        addURL(url)
+    }
+
+    /*
+     *  Required for Java Agents when this classloader is used as the system classloader
+     */
+    @Throws(IOException::class)
+    private fun appendToClassPathForInstrumentation(jarFile: String) {
+        add(Paths.get(jarFile).toRealPath().toUri().toURL())
     }
 }

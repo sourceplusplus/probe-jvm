@@ -4,7 +4,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Function
 
 object ProbeMemory {
+
     private val memory: MutableMap<String, Any?> = ConcurrentHashMap()
+
     fun <T> computeIfAbsent(key: String, function: Function<String, T?>?): T? {
         return memory.computeIfAbsent(key, function!!) as T?
     }

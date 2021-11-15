@@ -14,6 +14,7 @@ class LiveClassVisitor(
 ) : ClassVisitor(Opcodes.ASM7, cv) {
 
     private var className: String? = null
+
     override fun visit(
         version: Int, access: Int, name: String, signature: String?, superName: String, interfaces: Array<out String>?
     ) {

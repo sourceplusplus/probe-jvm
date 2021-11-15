@@ -35,10 +35,9 @@ import java.util.zip.ZipInputStream
 object SourceProbe {
 
     private val BUILD = ResourceBundle.getBundle("build")
-    var PROBE_DIRECTORY = File(
-        if (System.getProperty("os.name").lowercase(Locale.getDefault())
-                .startsWith("mac")
-        ) "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
+    private var PROBE_DIRECTORY = File(
+        if (System.getProperty("os.name").lowercase(Locale.getDefault()).startsWith("mac"))
+            "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
     )
     var instrumentation: Instrumentation? = null
 
@@ -93,7 +92,6 @@ object SourceProbe {
     }
 
     @JvmStatic
-    @Throws(Exception::class)
     fun disconnectFromPlatform() {
         connected.set(false)
         tcpSocket!!.close()
@@ -106,8 +104,7 @@ object SourceProbe {
     @Synchronized
     fun connectToPlatform() {
         if (connected.get()) return
-        val options: NetClientOptions
-        options = if (System.getenv("SPP_DISABLE_TLS") == "true"
+        val options = if (System.getenv("SPP_DISABLE_TLS") == "true"
             || ProbeConfiguration.getString("platform_certificate") == null
         ) {
             NetClientOptions()
@@ -115,8 +112,9 @@ object SourceProbe {
                 .setSsl(false)
         } else {
             val myCaAsABuffer = Buffer.buffer(
-                "-----BEGIN CERTIFICATE-----"
-                        + ProbeConfiguration.getString("platform_certificate") + "-----END CERTIFICATE-----"
+                "-----BEGIN CERTIFICATE-----" +
+                        ProbeConfiguration.getString("platform_certificate") +
+                        "-----END CERTIFICATE-----"
             )
             NetClientOptions()
                 .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
@@ -138,11 +136,11 @@ object SourceProbe {
                 connected.set(true)
             }
             if (ProbeConfiguration.isNotQuite) println("Connected to Source++ Platform")
-            socket.result().exceptionHandler { it: Throwable? ->
+            socket.result().exceptionHandler {
                 connected.set(false)
                 connectToPlatform()
             }
-            socket.result().closeHandler { it: Void? ->
+            socket.result().closeHandler {
                 connected.set(false)
                 connectToPlatform()
             }
@@ -155,7 +153,7 @@ object SourceProbe {
                         vertx!!.eventBus().request<Any?>(
                             "local." + frame.getString("address"),
                             frame.getJsonObject("body")
-                        ).onComplete { it: AsyncResult<Message<Any?>> ->
+                        ).onComplete {
                             if (it.succeeded()) {
                                 FrameHelper.sendFrame(
                                     BridgeEventType.SEND.name.lowercase(Locale.getDefault()),
@@ -205,7 +203,7 @@ object SourceProbe {
             val replyAddress = UUID.randomUUID().toString()
             val pc = ProbeConnection(PROBE_ID, System.currentTimeMillis(), meta)
             val consumer = vertx!!.eventBus().localConsumer<Boolean>("local.$replyAddress")
-            consumer.handler { resp: Message<Boolean>? ->
+            consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
 
                 //register remotes
@@ -256,7 +254,6 @@ object SourceProbe {
         }
     }
 
-    @Throws(Exception::class)
     private fun addAgentToClassLoader() {
         val skywalkingAgentFile = File(PROBE_DIRECTORY, "skywalking-agent.jar")
         val contextClassLoader = Thread.currentThread().contextClassLoader
@@ -275,7 +272,6 @@ object SourceProbe {
         Config.Logging.LEVEL = LogLevel.valueOf(ProbeConfiguration.skyWalkingLoggingLevel)
     }
 
-    @Throws(IOException::class)
     private fun unzipAgent(skywalkingVersion: String) {
         if (System.getenv("SPP_DELETE_PROBE_DIRECTORY_ON_BOOT") != "false") {
             deleteRecursively(PROBE_DIRECTORY)
