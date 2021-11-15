@@ -19,7 +19,6 @@ version = probeVersion
 subprojects {
     repositories {
         mavenCentral()
-        jcenter()
         maven(url = "https://kotlin.bintray.com/kotlinx/")
         maven(url = "https://jitpack.io")
     }

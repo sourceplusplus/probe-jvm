@@ -30,6 +30,9 @@ dependencies {
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
 }
 
 tasks {
@@ -58,10 +61,7 @@ tasks {
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
     }
-
-    build {
-        dependsOn("shadowJar")
-    }
+    getByName("jar").dependsOn("shadowJar")
 
     test {
         failFast = true

@@ -5,15 +5,15 @@ import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisito
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes;
 import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Type;
 import spp.probe.services.common.ProbeMemory;
+import spp.probe.services.common.model.ActiveLiveInstrument;
 import spp.probe.services.common.model.ClassField;
 import spp.probe.services.common.model.ClassMetadata;
 import spp.probe.services.common.model.LocalVariable;
-import spp.probe.services.common.model.Location;
 import spp.probe.services.common.transform.LiveTransformer;
-import spp.probe.services.instrument.model.LiveBreakpoint;
-import spp.probe.services.instrument.model.LiveInstrument;
-import spp.probe.services.instrument.model.LiveLog;
-import spp.probe.services.instrument.model.LiveMeter;
+import spp.protocol.instrument.LiveSourceLocation;
+import spp.protocol.instrument.breakpoint.LiveBreakpoint;
+import spp.protocol.instrument.log.LiveLog;
+import spp.protocol.instrument.meter.LiveMeter;
 
 import static org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes.*;
 
@@ -43,24 +43,24 @@ public class LiveInstrumentTransformer extends MethodVisitor {
     @Override
     public void visitLineNumber(int line, Label start) {
         mv.visitLineNumber(line, start);
-        for (LiveInstrument instrument : LiveInstrumentService.getInstruments(new Location(source, line))) {
+        for (ActiveLiveInstrument instrument : LiveInstrumentService.getInstruments(new LiveSourceLocation(source, line))) {
             Label instrumentLabel = new Label();
-            isInstrumentEnabled(instrument.getId(), instrumentLabel);
+            isInstrumentEnabled(instrument.getInstrument().getId(), instrumentLabel);
 
-            if (instrument instanceof LiveBreakpoint) {
-                captureSnapshot(instrument.getId(), line);
-                isHit(instrument.getId(), instrumentLabel);
-                putBreakpoint(instrument.getId(), source, line);
-            } else if (instrument instanceof LiveLog) {
-                LiveLog log = (LiveLog) instrument;
-                if (log.getLogArguments().length > 0 || log.getExpression() != null) {
+            if (instrument.getInstrument() instanceof LiveBreakpoint) {
+                captureSnapshot(instrument.getInstrument().getId(), line);
+                isHit(instrument.getInstrument().getId(), instrumentLabel);
+                putBreakpoint(instrument.getInstrument().getId(), source, line);
+            } else if (instrument.getInstrument() instanceof LiveLog) {
+                LiveLog log = (LiveLog) instrument.getInstrument();
+                if (log.getLogArguments().size() > 0 || instrument.getExpression() != null) {
                     captureSnapshot(log.getId(), line);
                 }
                 isHit(log.getId(), instrumentLabel);
                 putLog(log);
-            } else if (instrument instanceof LiveMeter) {
-                LiveMeter meter = (LiveMeter) instrument;
-                if (meter.getExpression() != null) {
+            } else if (instrument.getInstrument() instanceof LiveMeter) {
+                LiveMeter meter = (LiveMeter) instrument.getInstrument();
+                if (instrument.getExpression() != null) {
                     captureSnapshot(meter.getId(), line);
                 }
                 isHit(meter.getId(), instrumentLabel);
@@ -152,12 +152,12 @@ public class LiveInstrumentTransformer extends MethodVisitor {
         mv.visitLdcInsn(log.getId());
         mv.visitLdcInsn(log.getLogFormat());
 
-        mv.visitIntInsn(Opcodes.BIPUSH, log.getLogArguments().length);
+        mv.visitIntInsn(Opcodes.BIPUSH, log.getLogArguments().size());
         mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
-        for (int i = 0; i < log.getLogArguments().length; i++) {
+        for (int i = 0; i < log.getLogArguments().size(); i++) {
             mv.visitInsn(Opcodes.DUP);
             mv.visitIntInsn(Opcodes.BIPUSH, i);
-            mv.visitLdcInsn(log.getLogArguments()[i]);
+            mv.visitLdcInsn(log.getLogArguments().get(i));
             mv.visitInsn(Opcodes.AASTORE);
         }
 
