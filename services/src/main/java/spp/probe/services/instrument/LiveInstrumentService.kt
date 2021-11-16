@@ -1,7 +1,7 @@
 package spp.probe.services.instrument
 
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.pool.TypePool
+import net.bytebuddy.pool.TypePool
 import org.springframework.expression.ParseException
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration

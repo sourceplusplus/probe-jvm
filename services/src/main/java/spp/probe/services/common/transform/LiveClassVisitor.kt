@@ -1,8 +1,8 @@
 package spp.probe.services.common.transform
 
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.ClassVisitor
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisitor
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes
+import net.bytebuddy.jar.asm.ClassVisitor
+import net.bytebuddy.jar.asm.MethodVisitor
+import net.bytebuddy.jar.asm.Opcodes
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.instrument.LiveInstrumentTransformer
 import spp.protocol.instrument.LiveSourceLocation

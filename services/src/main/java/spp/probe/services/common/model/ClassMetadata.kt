@@ -1,6 +1,6 @@
 package spp.probe.services.common.model
 
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes
+import net.bytebuddy.jar.asm.Opcodes
 import java.io.Serializable
 
 class ClassMetadata : Serializable {

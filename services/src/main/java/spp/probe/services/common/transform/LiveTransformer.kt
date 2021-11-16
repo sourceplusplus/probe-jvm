@@ -1,6 +1,6 @@
 package spp.probe.services.common.transform
 
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.*
+import net.bytebuddy.jar.asm.*
 import spp.probe.services.common.model.ClassMetadata
 import spp.protocol.instrument.LiveSourceLocation
 import java.lang.instrument.ClassFileTransformer

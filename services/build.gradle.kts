@@ -23,6 +23,8 @@ dependencies {
         isTransitive = false
     }
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
+    compileOnly("net.bytebuddy:byte-buddy:1.11.18")
+
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("org.springframework:spring-expression:5.3.13")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
@@ -59,6 +61,7 @@ tasks {
         relocate("com.google.gson", "spp.probe.services.dependencies.com.google.gson")
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
+        relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
     }
     getByName("jar").dependsOn("shadowJar")
 

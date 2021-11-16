@@ -1,9 +1,9 @@
 package spp.probe.services.instrument
 
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Label
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.MethodVisitor
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Opcodes
-import org.apache.skywalking.apm.dependencies.net.bytebuddy.jar.asm.Type
+import net.bytebuddy.jar.asm.Label
+import net.bytebuddy.jar.asm.MethodVisitor
+import net.bytebuddy.jar.asm.Opcodes
+import net.bytebuddy.jar.asm.Type
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
