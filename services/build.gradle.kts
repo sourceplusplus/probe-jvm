@@ -22,7 +22,7 @@ dependencies {
     implementation("com.github.sourceplusplus.protocol:protocol:$protocolVersion") {
         isTransitive = false
     }
-    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
+    compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("org.springframework:spring-expression:5.3.13")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")

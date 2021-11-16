@@ -24,7 +24,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    compileOnly(files("$projectDir/../.ext/skywalking-agent-$skywalkingAgentVersion.jar"))
+    compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
