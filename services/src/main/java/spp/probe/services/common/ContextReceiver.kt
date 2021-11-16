@@ -6,6 +6,7 @@ import org.apache.skywalking.apm.agent.core.context.ContextManager
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.meter.Counter
+import org.apache.skywalking.apm.agent.core.meter.CounterMode
 import org.apache.skywalking.apm.agent.core.meter.Histogram
 import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
@@ -165,17 +166,14 @@ object ContextReceiver {
             when (meterType) {
                 MeterType.COUNTER -> return@computeIfAbsent MeterFactory.counter(
                     "counter_" + meterId.replace("-", "_")
-                )
+                ).mode(CounterMode.RATE)
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
                 ) { metricValue.value.toDouble() }
                     .build()
                 MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
-                    "histogram_" + meterId.replace(
-                        "-",
-                        "_"
-                    )
+                    "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
                     .build()
@@ -184,9 +182,7 @@ object ContextReceiver {
         }
         when (meterType) {
             MeterType.COUNTER -> if (metricValue.valueType == MetricValueType.NUMBER) {
-                (meter as Counter).increment(
-                    metricValue.value.toLong().toDouble()
-                )
+                (meter as Counter).increment(metricValue.value.toLong().toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
