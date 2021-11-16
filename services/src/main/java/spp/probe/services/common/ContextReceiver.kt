@@ -164,7 +164,7 @@ object ContextReceiver {
         val (_, meterType, metricValue) = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
         val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             when (meterType) {
-                MeterType.COUNTER -> return@computeIfAbsent MeterFactory.counter(
+                MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
                     "counter_" + meterId.replace("-", "_")
                 ).mode(CounterMode.RATE)
                     .build()
@@ -181,7 +181,7 @@ object ContextReceiver {
             }
         }
         when (meterType) {
-            MeterType.COUNTER -> if (metricValue.valueType == MetricValueType.NUMBER) {
+            MeterType.COUNT -> if (metricValue.valueType == MetricValueType.NUMBER) {
                 (meter as Counter).increment(metricValue.value.toLong().toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
