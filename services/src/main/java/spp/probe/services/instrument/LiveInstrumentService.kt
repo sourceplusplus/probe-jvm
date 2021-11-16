@@ -278,7 +278,7 @@ object LiveInstrumentService {
     @JvmStatic
     fun isHit(instrumentId: String): Boolean {
         val instrument = instruments[instrumentId] ?: return false
-        if (instrument.throttle.isRateLimited()) {
+        if (instrument.throttle?.isRateLimited() == true) {
             ContextReceiver.clear(instrumentId)
             return false
         }

@@ -8,7 +8,13 @@ class ActiveLiveInstrument @JvmOverloads constructor(
     val instrument: LiveInstrument,
     val expression: Expression? = null
 ) {
-    val throttle: HitThrottle = HitThrottle(instrument.throttle.limit, instrument.throttle.step)
+    val throttle: HitThrottle? = instrument.throttle.let {
+        if (it != null) {
+            HitThrottle(it.limit, it.step)
+        } else {
+            null
+        }
+    }
     var isRemoval = false
     var isLive = false
 
@@ -16,6 +22,6 @@ class ActiveLiveInstrument @JvmOverloads constructor(
         get() = if (instrument.expiresAt != null && System.currentTimeMillis() >= instrument.expiresAt!!) {
             true
         } else {
-            instrument.hitLimit != -1 && throttle.totalHitCount >= instrument.hitLimit
+            instrument.hitLimit != -1 && (throttle != null && throttle.totalHitCount >= instrument.hitLimit)
         }
 }

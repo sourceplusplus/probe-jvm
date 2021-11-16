@@ -165,7 +165,7 @@ object ContextReceiver {
         val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             when (meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
-                    "counter_" + meterId.replace("-", "_")
+                    "count_" + meterId.replace("-", "_")
                 ).mode(CounterMode.RATE)
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
