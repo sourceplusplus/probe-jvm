@@ -54,6 +54,41 @@ object SourceProbe {
         get() = instrumentation != null
 
     @JvmStatic
+    fun bootAsPlugin(inst: Instrumentation) {
+        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated")
+
+        //todo: pipe data if in debug mode
+        System.setProperty("vertx.logger-delegate-factory-class-name", NopLogDelegateFactory::class.java.canonicalName)
+        InternalLoggerFactory.setDefaultFactory(object : InternalLoggerFactory() {
+            private val nopInternalLogger = NopInternalLogger()
+            override fun newInstance(name: String): InternalLogger {
+                return nopInternalLogger
+            }
+        })
+        instrumentation = inst
+        vertx = Vertx.vertx()
+
+        configureAgent()
+        connectToPlatform()
+        try {
+            val agentClassLoader = Class.forName(
+                "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
+            ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
+            val sizeCappedClass = Class.forName(
+                "spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory", true, agentClassLoader
+            )
+            sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
+                .invoke(null, instrumentation)
+            sizeCappedClass.getMethod("setMaxMemorySize", Long::class.javaPrimitiveType)
+                .invoke(null, 1024L * 1024L) //1MB
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw RuntimeException(e)
+        }
+        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
+    }
+
+    @JvmStatic
     fun premain(args: String?, inst: Instrumentation) {
         if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated")
 
@@ -67,6 +102,7 @@ object SourceProbe {
         })
         instrumentation = inst
         vertx = Vertx.vertx()
+
         unzipAgent(BUILD.getString("apache_skywalking_version"))
         addAgentToClassLoader()
         configureAgent()

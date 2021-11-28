@@ -16,23 +16,39 @@ object ProbeConfiguration {
     init {
         var localFile = File("spp-probe.yml")
         try {
-            //working directory
+            //working directory?
             val mapper = ObjectMapper(YAMLFactory())
             if (localFile.exists()) {
                 rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
                         as Map<String, Map<String, Any>>?
             }
-            //ran through intellij
-            localFile = File(
-                File(
-                    ProbeConfiguration::class.java.protectionDomain.codeSource.location.toURI()
-                ).parent, "spp-probe.yml"
-            )
-            if (localFile.exists()) {
-                rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
-                        as Map<String, Map<String, Any>>?
+            if (ProbeConfiguration::class.java.protectionDomain.codeSource.location == null) {
+                //ran through SkyWalking
+                localFile = File(
+                    File(
+                        Class.forName(
+                            "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
+                        ).protectionDomain.codeSource.location.file
+                    ).parentFile, "plugins" + File.separatorChar + "spp-probe.yml"
+                )
+                if (localFile.exists()) {
+                    rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
+                            as Map<String, Map<String, Any>>?
+                }
+            } else {
+                //ran through intellij?
+                localFile = File(
+                    File(
+                        ProbeConfiguration::class.java.protectionDomain.codeSource.location.toURI()
+                    ).parent, "spp-probe.yml"
+                )
+                if (localFile.exists()) {
+                    rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
+                            as Map<String, Map<String, Any>>?
+                }
             }
-            //inside jar
+
+            //inside jar?
             if (rawProperties == null) {
                 rawProperties = mapper.readValue(
                     ProbeConfiguration::class.java.getResourceAsStream("/spp-probe.yml"), MutableMap::class.java
