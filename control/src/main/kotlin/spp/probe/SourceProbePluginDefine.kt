@@ -17,54 +17,65 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class SourceProbePluginDefine : ClassInstanceMethodsEnhancePluginDefine() {
 
+    companion object {
+        private val probeStarted = AtomicBoolean()
+        private val cache = HashMap<String, ClassMatch>()
+    }
+
     override fun enhanceClass(): ClassMatch {
-        val defaultClass = Class.forName(
-            "org.apache.skywalking.apm.dependencies.net.bytebuddy.agent.builder.AgentBuilder\$Default"
-        )
-        val dispatcherField = defaultClass.getDeclaredField("DISPATCHER")
-        makeAccessible(dispatcherField)
-        val realDispatcher = dispatcherField.get(null)
-        dispatcherField.set(null, null)
-
-        val dispatcherClass = Class.forName(
-            "org.apache.skywalking.apm.dependencies.net.bytebuddy.agent.builder.AgentBuilder\$Default\$Dispatcher"
-        )
-        val addTransformerMethod = dispatcherClass.getDeclaredMethod(
-            "addTransformer",
-            Instrumentation::class.java, ClassFileTransformer::class.java, Boolean::class.java
-        )
-        val setNativeMethodPrefixMethod = dispatcherClass.getDeclaredMethod(
-            "setNativeMethodPrefix",
-            Instrumentation::class.java, ClassFileTransformer::class.java, String::class.java
-        )
-        val isNativeMethodPrefixSupportedMethod = dispatcherClass.getDeclaredMethod(
-            "isNativeMethodPrefixSupported", Instrumentation::class.java
-        )
-
-        val probeStarted = AtomicBoolean()
-        val proxyDispatcher = Proxy.newProxyInstance(
-            dispatcherClass.classLoader,
-            arrayOf(dispatcherClass)
-        ) { _, method, args ->
-            return@newProxyInstance when (method.name) {
-                "addTransformer" -> {
-                    if (probeStarted.compareAndSet(false, true)) {
-                        SourceProbe.bootAsPlugin(args?.get(0) as Instrumentation)
-                    }
-                    addTransformerMethod.invoke(realDispatcher, args[0], args[1], args[2])
-                }
-                "setNativeMethodPrefix" -> {
-                    setNativeMethodPrefixMethod.invoke(realDispatcher, args[0], args[1], args[2])
-                }
-                "isNativeMethodPrefixSupported" -> {
-                    isNativeMethodPrefixSupportedMethod.invoke(realDispatcher, args[0])
-                }
-                else -> throw IllegalStateException("Unknown method: ${method.name}")
-            }
+        if (SourceProbe.isAgentInitialized) {
+            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            return NameMatch.byName("") //ignore
         }
-        dispatcherField.set(null, proxyDispatcher)
 
-        return NameMatch.byName("") //ignore
+        return cache.computeIfAbsent("cache") {
+            val defaultClass = Class.forName(
+                "org.apache.skywalking.apm.dependencies.net.bytebuddy.agent.builder.AgentBuilder\$Default"
+            )
+            val dispatcherField = defaultClass.getDeclaredField("DISPATCHER")
+            makeAccessible(dispatcherField)
+            val realDispatcher = dispatcherField.get(null)
+            dispatcherField.set(null, null)
+
+            val dispatcherClass = Class.forName(
+                "org.apache.skywalking.apm.dependencies.net.bytebuddy.agent.builder.AgentBuilder\$Default\$Dispatcher"
+            )
+            val addTransformerMethod = dispatcherClass.getDeclaredMethod(
+                "addTransformer",
+                Instrumentation::class.java, ClassFileTransformer::class.java, Boolean::class.java
+            )
+            val setNativeMethodPrefixMethod = dispatcherClass.getDeclaredMethod(
+                "setNativeMethodPrefix",
+                Instrumentation::class.java, ClassFileTransformer::class.java, String::class.java
+            )
+            val isNativeMethodPrefixSupportedMethod = dispatcherClass.getDeclaredMethod(
+                "isNativeMethodPrefixSupported", Instrumentation::class.java
+            )
+
+            val proxyDispatcher = Proxy.newProxyInstance(
+                dispatcherClass.classLoader,
+                arrayOf(dispatcherClass)
+            ) { _, method, args ->
+                return@newProxyInstance when (method.name) {
+                    "addTransformer" -> {
+                        if (probeStarted.compareAndSet(false, true)) {
+                            SourceProbe.bootAsPlugin(args?.get(0) as Instrumentation)
+                        }
+                        addTransformerMethod.invoke(realDispatcher, args[0], args[1], args[2])
+                    }
+                    "setNativeMethodPrefix" -> {
+                        setNativeMethodPrefixMethod.invoke(realDispatcher, args[0], args[1], args[2])
+                    }
+                    "isNativeMethodPrefixSupported" -> {
+                        isNativeMethodPrefixSupportedMethod.invoke(realDispatcher, args[0])
+                    }
+                    else -> throw IllegalStateException("Unknown method: ${method.name}")
+                }
+            }
+            dispatcherField.set(null, proxyDispatcher)
+
+            return@computeIfAbsent NameMatch.byName("") //ignore
+        }
     }
 
     @Throws(Exception::class)

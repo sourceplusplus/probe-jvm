@@ -55,7 +55,11 @@ object SourceProbe {
 
     @JvmStatic
     fun bootAsPlugin(inst: Instrumentation) {
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated")
+        if (isAgentInitialized) {
+            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            return
+        }
+        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via plugin")
 
         //todo: pipe data if in debug mode
         System.setProperty("vertx.logger-delegate-factory-class-name", NopLogDelegateFactory::class.java.canonicalName)
@@ -90,7 +94,11 @@ object SourceProbe {
 
     @JvmStatic
     fun premain(args: String?, inst: Instrumentation) {
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated")
+        if (isAgentInitialized) {
+            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            return
+        }
+        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via agent")
 
         //todo: pipe data if in debug mode
         System.setProperty("vertx.logger-delegate-factory-class-name", NopLogDelegateFactory::class.java.canonicalName)
