@@ -35,6 +35,18 @@ object ProbeConfiguration {
                     rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
                             as Map<String, Map<String, Any>>?
                 }
+
+                localFile = File(
+                    File(
+                        Class.forName(
+                            "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
+                        ).protectionDomain.codeSource.location.file
+                    ).parentFile, "config" + File.separatorChar + "spp-probe.yml"
+                )
+                if (localFile.exists()) {
+                    rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
+                            as Map<String, Map<String, Any>>?
+                }
             } else {
                 //ran through intellij?
                 localFile = File(
