@@ -72,7 +72,7 @@ object SourceProbe {
         instrumentation = inst
         vertx = Vertx.vertx()
 
-        configureAgent()
+        configureAgent(false)
         connectToPlatform()
         try {
             val agentClassLoader = Class.forName(
@@ -113,7 +113,7 @@ object SourceProbe {
 
         unzipAgent(BUILD.getString("apache_skywalking_version"))
         addAgentToClassLoader()
-        configureAgent()
+        configureAgent(true)
         invokeAgent()
         connectToPlatform()
         try {
@@ -147,23 +147,21 @@ object SourceProbe {
     @Synchronized
     fun connectToPlatform() {
         if (connected.get()) return
-        val options = if (System.getenv("SPP_DISABLE_TLS") == "true"
-            || ProbeConfiguration.getString("platform_certificate") == null
-        ) {
-            NetClientOptions()
-                .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
-                .setSsl(false)
-        } else {
-            val myCaAsABuffer = Buffer.buffer(
-                "-----BEGIN CERTIFICATE-----" +
-                        ProbeConfiguration.getString("platform_certificate") +
-                        "-----END CERTIFICATE-----"
-            )
-            NetClientOptions()
-                .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
-                .setSsl(true)
-                .setPemTrustOptions(PemTrustOptions().addCertValue(myCaAsABuffer))
-        }
+        val options = NetClientOptions()
+            .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
+            .setSsl(System.getenv("SPP_DISABLE_TLS") != "true")
+            .setTrustAll(!ProbeConfiguration.spp.getBoolean("verify_host", true))
+            .apply {
+                if (ProbeConfiguration.getString("platform_certification") != null) {
+                    val myCaAsABuffer = Buffer.buffer(
+                        "-----BEGIN CERTIFICATE-----" +
+                                ProbeConfiguration.getString("platform_certificate") +
+                                "-----END CERTIFICATE-----"
+                    )
+                    pemTrustOptions = PemTrustOptions().addCertValue(myCaAsABuffer)
+                }
+            }
+
         val client = vertx!!.createNetClient(options)
         client.connect(
             ProbeConfiguration.getInteger("platform_port"),
@@ -288,8 +286,8 @@ object SourceProbe {
         }
     }
 
-    private fun configureAgent() {
-        ProbeConfiguration.skywalkingSettings.forEach { System.setProperty(it[0], it[1]) }
+    private fun configureAgent(configureSkyWalking: Boolean) {
+        if (configureSkyWalking) ProbeConfiguration.skywalkingSettings.forEach { System.setProperty(it[0], it[1]) }
         ProbeConfiguration.sppSettings.forEach { System.setProperty(it[0], it[1]) }
 
         //add probe id to instance properties
