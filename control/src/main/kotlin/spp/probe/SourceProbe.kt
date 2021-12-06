@@ -152,7 +152,7 @@ object SourceProbe {
             .setSsl(System.getenv("SPP_DISABLE_TLS") != "true")
             .setTrustAll(!ProbeConfiguration.spp.getBoolean("verify_host", true))
             .apply {
-                if (ProbeConfiguration.getString("platform_certification") != null) {
+                if (ProbeConfiguration.getString("platform_certificate") != null) {
                     val myCaAsABuffer = Buffer.buffer(
                         "-----BEGIN CERTIFICATE-----" +
                                 ProbeConfiguration.getString("platform_certificate") +
