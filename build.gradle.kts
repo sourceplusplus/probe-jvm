@@ -54,7 +54,7 @@ tasks {
     register("assembleUp") {
         dependsOn("updateDockerFiles", "composeUp")
     }
-    getByName("composeUp").shouldRunAfter("updateDockerFiles")
+    getByName("composeUp").mustRunAfter("updateDockerFiles")
 }
 
 dockerCompose {
