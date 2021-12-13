@@ -17,7 +17,7 @@ This project provides JVM support to the [Source++](https://github.com/sourceplu
 1. Boot application with `-javaagent:spp-probe-*.jar` parameter
     - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.2.1.jar -jar MyApp.jar`
 
-## Apache SkyWalking Installation
+## Apache SkyWalking Plugin
 
 1. Add `spp-probe-*.jar` and `spp-skywalking-services-*.jar` to `skywalking-agent/plugins` directory
     - E.g. [spp-probe-0.2.1.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.2.1/spp-probe-0.2.1.jar) & [spp-skywalking-services-0.2.1.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.2.1/spp-skywalking-services-0.2.1.jar)
