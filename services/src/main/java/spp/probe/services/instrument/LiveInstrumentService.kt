@@ -1,7 +1,7 @@
 package spp.probe.services.instrument
 
-import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import net.bytebuddy.pool.TypePool
+import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.springframework.expression.ParseException
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
@@ -42,21 +42,21 @@ object LiveInstrumentService {
         timer.schedule(object : TimerTask() {
             override fun run() {
                 val removeInstruments: MutableList<ActiveLiveInstrument> = ArrayList()
-                instruments.values.forEach(Consumer { it: ActiveLiveInstrument ->
+                instruments.values.forEach(Consumer {
                     if (it.instrument.expiresAt != null
                         && System.currentTimeMillis() >= it.instrument.expiresAt!!
                     ) {
                         removeInstruments.add(it)
                     }
                 })
-                applyingInstruments.values.forEach(Consumer { it: ActiveLiveInstrument ->
+                applyingInstruments.values.forEach(Consumer {
                     if (it.instrument.expiresAt != null
                         && System.currentTimeMillis() >= it.instrument.expiresAt!!
                     ) {
                         removeInstruments.add(it)
                     }
                 })
-                removeInstruments.forEach(Consumer { it: ActiveLiveInstrument ->
+                removeInstruments.forEach(Consumer {
                     _removeInstrument(
                         it.instrument,
                         null
