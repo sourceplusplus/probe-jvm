@@ -33,7 +33,7 @@ dependencies {
     }
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
