@@ -12,7 +12,6 @@ import spp.probe.services.common.ModelSerializer
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
 import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
@@ -205,7 +204,7 @@ object LiveInstrumentService {
             }
         } else {
             val removedInstruments: MutableList<String> = ArrayList()
-            getInstruments(LiveSourceLocation(source!!, line, null, null, null, null)).forEach {
+            getInstruments(source!!, line).forEach {
                 val removedInstrument = instruments.remove(it.instrument.id)
                 if (removedInstrument != null) {
                     removedInstrument.isRemoval = true
@@ -254,13 +253,13 @@ object LiveInstrumentService {
         }
     }
 
-    fun getInstruments(location: LiveSourceLocation): List<ActiveLiveInstrument> {
+    fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {
         val instruments = instruments.values.stream()
-            .filter { it.instrument.location == location }
+            .filter { it.instrument.location.source == source && it.instrument.location.line == line }
             .collect(Collectors.toSet())
         instruments.addAll(
             applyingInstruments.values.stream()
-                .filter { it.instrument.location == location }
+                .filter { it.instrument.location.source == source && it.instrument.location.line == line }
                 .collect(Collectors.toSet()))
         return ArrayList(instruments)
     }

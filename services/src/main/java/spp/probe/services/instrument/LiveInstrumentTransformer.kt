@@ -42,8 +42,7 @@ class LiveInstrumentTransformer(
 
     override fun visitLineNumber(line: Int, start: Label) {
         mv.visitLineNumber(line, start)
-        val location = LiveSourceLocation(source = location.source, line = line, null, null, null, null)
-        for (instrument in LiveInstrumentService.getInstruments(location)) {
+        for (instrument in LiveInstrumentService.getInstruments(location.source, line)) {
             val instrumentLabel = Label()
             isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
             if (instrument.instrument is LiveBreakpoint) {
