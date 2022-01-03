@@ -72,6 +72,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 String::class.java, String::class.java, Array<String>::class.java
             )
             putMeter = contextClass.getMethod("putMeter", String::class.java)
+            openLocalSpan = contextClass.getMethod("openLocalSpan", String::class.java)
+            closeLocalSpan = contextClass.getMethod("closeLocalSpan", String::class.java)
         } catch (e: Throwable) {
             e.printStackTrace()
             throw RuntimeException(e)
@@ -227,6 +229,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
         private var putBreakpoint: Method? = null
         private var putLog: Method? = null
         private var putMeter: Method? = null
+        private var openLocalSpan: Method? = null
+        private var closeLocalSpan: Method? = null
         private var isInstrumentEnabled: Method? = null
         private var putLocalVariable: Method? = null
         private var putField: Method? = null
@@ -275,6 +279,24 @@ class LiveInstrumentRemote : AbstractVerticle() {
         fun putMeter(meterId: String) {
             try {
                 putMeter!!.invoke(null, meterId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JvmStatic
+        fun openLocalSpan(spanId: String) {
+            try {
+                openLocalSpan!!.invoke(null, spanId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JvmStatic
+        fun closeLocalSpan(spanId: String) {
+            try {
+                closeLocalSpan!!.invoke(null, spanId)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

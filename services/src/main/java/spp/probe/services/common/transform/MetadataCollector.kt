@@ -38,6 +38,17 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
                 )
             }
 
+            override fun visitMethodInsn(
+                opcode: Int,
+                owner: String?,
+                name: String?,
+                descriptor: String?,
+                isInterface: Boolean
+            ) {
+                super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+                classMetadata.addMethodCall(methodUniqueName, owner)
+            }
+
             private fun labelLine(label: Label): Int {
                 val labelId = label.toString()
                 return if (labelLineMapping.containsKey(labelId)) {

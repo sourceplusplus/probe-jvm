@@ -94,7 +94,8 @@ object LiveInstrumentService {
                 }
                 return
             }
-            val transformer = LiveTransformer(instrument.instrument.location)
+
+            val transformer = LiveTransformer(instrument.instrument)
             try {
                 if (!instrument.isRemoval) {
                     applyingInstruments[instrument.instrument.id] = instrument

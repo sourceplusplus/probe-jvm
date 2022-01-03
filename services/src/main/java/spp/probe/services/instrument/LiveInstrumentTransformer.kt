@@ -7,32 +7,39 @@ import net.bytebuddy.jar.asm.Type
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
-import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.instrument.span.LiveSpan
 
 class LiveInstrumentTransformer(
-    private val location: LiveSourceLocation,
-    private val className: String?,
+    private val liveInstrument: LiveInstrument,
+    private val className: String,
     methodName: String,
     desc: String,
     access: Int,
     classMetadata: ClassMetadata,
-    mv: MethodVisitor?
+    mv: MethodVisitor
 ) : MethodVisitor(Opcodes.ASM7, mv) {
 
     companion object {
         private val THROWABLE_INTERNAL_NAME = Type.getInternalName(Throwable::class.java)
-        private const val REMOTE_CLASS_LOCATION = "spp/probe/control/LiveInstrumentRemote"
+        const val REMOTE_CLASS_LOCATION = "spp/probe/control/LiveInstrumentRemote"
         private const val REMOTE_CHECK_DESC = "(Ljava/lang/String;)Z"
         private const val REMOTE_SAVE_VAR_DESC = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V"
         private const val PUT_LOG_DESC = "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V"
+
+        fun isXRETURN(opcode: Int): Boolean {
+            return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN
+        }
     }
 
     private val methodUniqueName: String
     private val access: Int
     private val classMetadata: ClassMetadata
+    private var m_currentBeginLabel: Label? = null
+    private var m_inOriginalCode = true
 
     init {
         methodUniqueName = methodName + desc
@@ -42,27 +49,31 @@ class LiveInstrumentTransformer(
 
     override fun visitLineNumber(line: Int, start: Label) {
         mv.visitLineNumber(line, start)
-        for (instrument in LiveInstrumentService.getInstruments(location.source, line)) {
+        for (instrument in LiveInstrumentService.getInstruments(liveInstrument.location.source, line)) {
             val instrumentLabel = Label()
             isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
-            if (instrument.instrument is LiveBreakpoint) {
-                captureSnapshot(instrument.instrument.id!!, line)
-                isHit(instrument.instrument.id!!, instrumentLabel)
-                putBreakpoint(instrument.instrument.id!!, location.source, line)
-            } else if (instrument.instrument is LiveLog) {
-                val log = instrument.instrument
-                if (log.logArguments.isNotEmpty() || instrument.expression != null) {
-                    captureSnapshot(log.id!!, line)
+            when (instrument.instrument) {
+                is LiveBreakpoint -> {
+                    captureSnapshot(instrument.instrument.id!!, line)
+                    isHit(instrument.instrument.id!!, instrumentLabel)
+                    putBreakpoint(instrument.instrument.id!!, liveInstrument.location.source, line)
                 }
-                isHit(log.id!!, instrumentLabel)
-                putLog(log)
-            } else if (instrument.instrument is LiveMeter) {
-                val meter = instrument.instrument
-                if (instrument.expression != null) {
-                    captureSnapshot(meter.id!!, line)
+                is LiveLog -> {
+                    val log = instrument.instrument
+                    if (log.logArguments.isNotEmpty() || instrument.expression != null) {
+                        captureSnapshot(log.id!!, line)
+                    }
+                    isHit(log.id!!, instrumentLabel)
+                    putLog(log)
                 }
-                isHit(meter.id!!, instrumentLabel)
-                putMeter(meter)
+                is LiveMeter -> {
+                    val meter = instrument.instrument
+                    if (instrument.expression != null) {
+                        captureSnapshot(meter.id!!, line)
+                    }
+                    isHit(meter.id!!, instrumentLabel)
+                    putMeter(meter)
+                }
             }
             mv.visitLabel(Label())
             mv.visitLabel(instrumentLabel)
@@ -94,7 +105,12 @@ class LiveInstrumentTransformer(
     }
 
     private fun addLocals(instrumentId: String?, line: Int) {
-        for (local in classMetadata.variables[methodUniqueName]!!) {
+        val locals = classMetadata.variables[methodUniqueName].orEmpty()
+        if (locals.isEmpty()) {
+            //todo: warn
+        }
+
+        for (local in locals) {
             if (line >= local.start && line < local.end) {
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(local.name)
@@ -178,5 +194,82 @@ class LiveInstrumentTransformer(
 
     override fun visitMaxs(maxStack: Int, maxLocals: Int) {
         mv.visitMaxs(maxStack.coerceAtLeast(4), maxLocals)
+    }
+
+    override fun visitCode() {
+        if (liveInstrument is LiveSpan) {
+            try {
+                m_inOriginalCode = false
+                execVisitBeforeFirstTryCatchBlock()
+                beginTryBlock()
+            } finally {
+                m_inOriginalCode = true
+            }
+        } else {
+            super.visitCode()
+        }
+    }
+
+    override fun visitInsn(opcode: Int) {
+        if (liveInstrument is LiveSpan) {
+            /*
+             * Do not include ATHROW (see class comment)!
+            */
+            if (m_inOriginalCode && isXRETURN(opcode)) {
+                try {
+                    m_inOriginalCode = false
+                    completeTryFinallyBlock()
+
+                    // visit the return or throw instruction
+                    visitInsn(opcode)
+
+                    // begin the next try-block (it will not be added until it has been completed)
+                    beginTryBlock()
+                } finally {
+                    m_inOriginalCode = true
+                }
+            } else {
+                super.visitInsn(opcode)
+            }
+        } else {
+            super.visitInsn(opcode)
+        }
+    }
+
+    private fun beginTryBlock() {
+        m_currentBeginLabel = Label()
+        visitLabel(m_currentBeginLabel)
+        //execVisitTryBlockBegin()
+    }
+
+    private fun completeTryFinallyBlock() {
+        val endLabel = Label()
+        visitTryCatchBlock(m_currentBeginLabel, endLabel, endLabel, null)
+        val l2 = Label()
+        visitJumpInsn(Opcodes.GOTO, l2)
+        visitLabel(endLabel)
+        visitVarInsn(Opcodes.ASTORE, 1)
+        execVisitFinallyBlock()
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitInsn(Opcodes.ATHROW)
+        visitLabel(l2)
+        execVisitFinallyBlock()
+    }
+
+    private fun execVisitBeforeFirstTryCatchBlock() {
+        ProbeMemory.put("spp.live-span:" + liveInstrument.id, liveInstrument)
+        visitLdcInsn(liveInstrument.id)
+        visitMethodInsn(
+            Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
+            "openLocalSpan", "(Ljava/lang/String;)V", false
+        )
+    }
+
+    private fun execVisitFinallyBlock() {
+        visitLdcInsn(liveInstrument.id)
+        visitMethodInsn(
+            Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
+            "closeLocalSpan", "(Ljava/lang/String;)V", false
+        )
     }
 }

@@ -4,6 +4,7 @@ import org.apache.skywalking.apm.agent.core.boot.ServiceManager
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.context.ContextManager
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag
+import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.meter.Counter
 import org.apache.skywalking.apm.agent.core.meter.CounterMode
@@ -12,6 +13,7 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
+import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.meter.MeterType
@@ -194,6 +196,21 @@ object ContextReceiver {
             }
             else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
         }
+    }
+
+    @JvmStatic
+    fun openLocalSpan(spanId: String) {
+        val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveInstrument? ?: return
+        val activeSpan = ContextManager.createLocalSpan(liveSpan.location.source)
+        ProbeMemory.put("spp.active-span:$spanId", activeSpan)
+    }
+
+    @JvmStatic
+    fun closeLocalSpan(spanId: String) {
+        val activeSpan = ProbeMemory["spp.active-span:$spanId"] as AbstractSpan? ?: return
+        ContextManager.stopSpan(activeSpan)
+        ProbeMemory.remove("spp.active-span:$spanId")
+        ProbeMemory.remove("spp.live-span:$spanId")
     }
 
     private fun encodeObject(varName: String, value: Any): String? {
