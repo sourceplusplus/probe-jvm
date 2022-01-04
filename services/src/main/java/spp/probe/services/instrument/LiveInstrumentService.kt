@@ -15,6 +15,7 @@ import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.instrument.span.LiveSpan
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.error.LiveInstrumentException
 import java.lang.instrument.Instrumentation
@@ -104,25 +105,32 @@ object LiveInstrumentService {
                 inst.retransformClasses(clazz)
                 instrument.isLive = true
                 if (!instrument.isRemoval) {
-                    if (instrument.instrument is LiveLog) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_LOG_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
-                    } else if (instrument.instrument is LiveBreakpoint) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_BREAKPOINT_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
-                    } else if (instrument.instrument is LiveMeter) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_METER_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
+                    when (instrument.instrument) {
+                        is LiveLog -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_LOG_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveBreakpoint -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_BREAKPOINT_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveMeter -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_METER_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveSpan -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_SPAN_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
                     }
-                    //                else if (instrument.getInstrument() instanceof LiveSpan) {
-//                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
-//                }
                 }
             } catch (ex: Throwable) {
                 //remove and re-transform
@@ -227,6 +235,7 @@ object LiveInstrumentService {
             is LiveBreakpoint -> map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
             is LiveLog -> map["log"] = ModelSerializer.INSTANCE.toJson(instrument)
             is LiveMeter -> map["meter"] = ModelSerializer.INSTANCE.toJson(instrument)
+            is LiveSpan -> map["span"] = ModelSerializer.INSTANCE.toJson(instrument)
             else -> throw IllegalArgumentException(instrument.javaClass.simpleName)
         }
         map["occurredAt"] = System.currentTimeMillis()
@@ -247,7 +256,7 @@ object LiveInstrumentService {
                 PlatformAddress.LIVE_METER_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
-            else -> instrumentEventConsumer!!.accept(
+            is LiveSpan -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_SPAN_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
