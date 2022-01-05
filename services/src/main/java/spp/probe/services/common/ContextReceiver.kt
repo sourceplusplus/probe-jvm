@@ -12,11 +12,11 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
-import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
+import spp.protocol.instrument.span.LiveSpan
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
@@ -199,8 +199,8 @@ object ContextReceiver {
 
     @JvmStatic
     fun openLocalSpan(spanId: String) {
-        val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveInstrument? ?: return
-        val activeSpan = ContextManager.createLocalSpan(liveSpan.location.source) //todo: more specific
+        val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveSpan? ?: return
+        val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
     }
 
