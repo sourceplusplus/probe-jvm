@@ -9,6 +9,7 @@ class ClassMetadata : Serializable {
     val staticFields: MutableList<ClassField> = mutableListOf()
     val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
     val enhancedMethods: MutableList<String> = mutableListOf()
+    val onlyThrowsMethods: MutableList<String> = mutableListOf()
 
     fun addField(field: ClassField) {
         if (isStaticField(field)) {
@@ -33,12 +34,8 @@ class ClassMetadata : Serializable {
                 "fields=" + fields +
                 ", staticFields=" + staticFields +
                 ", variables=" + variables +
+                ", enhancedMethods=" + enhancedMethods +
+                ", onlyThrowsMethods=" + onlyThrowsMethods +
                 '}'
-    }
-
-    fun addMethodCall(methodUniqueName: String, owner: String?) {
-        if (owner?.equals("org/apache/skywalking/apm/agent/core/plugin/interceptor/enhance/InstMethodsInter") == true) {
-            enhancedMethods.add(methodUniqueName)
-        }
     }
 }

@@ -74,7 +74,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
             )
             putMeter = contextClass.getMethod("putMeter", String::class.java)
             openLocalSpan = contextClass.getMethod("openLocalSpan", String::class.java)
-            closeLocalSpan = contextClass.getMethod("closeLocalSpan", String::class.java)
+            closeLocalSpan = contextClass.getMethod("closeLocalSpan")
         } catch (e: Throwable) {
             e.printStackTrace()
             throw RuntimeException(e)
@@ -335,9 +335,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
         }
 
         @JvmStatic
-        fun closeLocalSpan(spanId: String) {
+        fun closeLocalSpan() {
             try {
-                closeLocalSpan!!.invoke(null, spanId)
+                closeLocalSpan!!.invoke(null)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

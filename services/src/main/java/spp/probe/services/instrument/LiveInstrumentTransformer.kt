@@ -197,7 +197,7 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitCode() {
-        if (liveInstrument is LiveSpan) {
+        if (liveInstrument is LiveSpan && !classMetadata.onlyThrowsMethods.contains(methodUniqueName)) {
             try {
                 m_inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
@@ -266,10 +266,9 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitFinallyBlock() {
-        visitLdcInsn(liveInstrument.id)
         visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
-            "closeLocalSpan", "(Ljava/lang/String;)V", false
+            "closeLocalSpan", "()V", false
         )
     }
 }
