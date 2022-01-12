@@ -158,7 +158,7 @@ object ContextReceiver {
             when (liveMeter.meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
                     "count_" + meterId.replace("-", "_")
-                ).mode(CounterMode.valueOf(liveMeter.metricConfig.getOrDefault("mode", "INCREMENT") as String))
+                ).mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
