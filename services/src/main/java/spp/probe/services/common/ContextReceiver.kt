@@ -25,11 +25,9 @@ object ContextReceiver {
     private val localVariables: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
-    private val logReport = ServiceManager.INSTANCE.findService(
-        LogReportServiceClient::class.java
-    )
+    private val logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient::class.java)
 
-    operator fun get(instrumentId: String?): ContextMap {
+    operator fun get(instrumentId: String): ContextMap {
         val contextMap = ContextMap()
         contextMap.fields = fields[instrumentId]
         contextMap.localVariables = localVariables[instrumentId]
@@ -37,7 +35,7 @@ object ContextReceiver {
         return contextMap
     }
 
-    fun clear(instrumentId: String?) {
+    fun clear(instrumentId: String) {
         fields.remove(instrumentId)
         localVariables.remove(instrumentId)
         staticFields.remove(instrumentId)

@@ -315,7 +315,7 @@ object LiveInstrumentService {
     }
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
-        val rootObject = ContextReceiver.get(liveInstrument.instrument.id)
+        val rootObject = ContextReceiver[liveInstrument.instrument.id!!]
         val context = StandardEvaluationContext(rootObject)
         return liveInstrument.expression!!.getValue(context, Boolean::class.java)
     }
