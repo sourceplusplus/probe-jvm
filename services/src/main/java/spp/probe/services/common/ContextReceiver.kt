@@ -153,38 +153,38 @@ object ContextReceiver {
 
     @JvmStatic
     fun putMeter(meterId: String) {
-        val (_, meterType, metricValue) = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
-        val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
-            when (meterType) {
+        val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
+        val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
+            when (liveMeter.meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
                     "count_" + meterId.replace("-", "_")
-                ).mode(CounterMode.RATE)
+                ).mode(CounterMode.valueOf(liveMeter.metricConfig.getOrDefault("mode", "INCREMENT") as String))
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
-                ) { metricValue.value.toDouble() }
+                ) { liveMeter.metricValue.value.toDouble() }
                     .build()
                 MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
                     .build()
-                else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
+                else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
             }
         }
-        when (meterType) {
-            MeterType.COUNT -> if (metricValue.valueType == MetricValueType.NUMBER) {
-                (meter as Counter).increment(metricValue.value.toLong().toDouble())
+        when (liveMeter.meterType) {
+            MeterType.COUNT -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Counter).increment(liveMeter.metricValue.value.toLong().toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
             MeterType.GAUGE -> {}
-            MeterType.HISTOGRAM -> if (metricValue.valueType == MetricValueType.NUMBER) {
-                (meter as Histogram).addValue(metricValue.value.toDouble())
+            MeterType.HISTOGRAM -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Histogram).addValue(liveMeter.metricValue.value.toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
-            else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
+            else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
         }
     }
 
