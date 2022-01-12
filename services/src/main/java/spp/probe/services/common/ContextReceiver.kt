@@ -19,13 +19,9 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.instrument.span.LiveSpan
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.regex.Pattern
 
 object ContextReceiver {
 
-    private val ignoredVariables = Pattern.compile(
-        "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
-    )
     private val localVariables: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
@@ -66,12 +62,9 @@ object ContextReceiver {
         instrumentId: String, key: String, value: Any?,
         variableMap: MutableMap<String?, MutableMap<String, Any>>
     ) {
-        if (value == null) {
-            return
-        } else if (ignoredVariables.matcher(key).matches()) {
-            return
+        if (value != null) {
+            variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
         }
-        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
     }
 
     @JvmStatic

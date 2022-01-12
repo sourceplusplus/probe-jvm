@@ -105,12 +105,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun addLocals(instrumentId: String?, line: Int) {
-        val locals = classMetadata.variables[methodUniqueName].orEmpty()
-        if (locals.isEmpty()) {
-            //todo: warn
-        }
-
-        for (local in locals) {
+        for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
             if (line >= local.start && line < local.end) {
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(local.name)
