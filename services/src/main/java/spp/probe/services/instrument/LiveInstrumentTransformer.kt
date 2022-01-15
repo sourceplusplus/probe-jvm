@@ -278,7 +278,6 @@ class LiveInstrumentTransformer(
     private fun beginTryBlock() {
         m_currentBeginLabel = Label()
         visitLabel(m_currentBeginLabel)
-        //execVisitTryBlockBegin()
     }
 
     private fun completeTryFinallyBlock() {
