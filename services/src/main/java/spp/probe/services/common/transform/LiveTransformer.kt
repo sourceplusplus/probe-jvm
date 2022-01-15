@@ -2,22 +2,16 @@ package spp.probe.services.common.transform
 
 import net.bytebuddy.jar.asm.*
 import spp.probe.services.common.model.ClassMetadata
-import spp.protocol.instrument.LiveInstrument
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
-class LiveTransformer(private val instrument: LiveInstrument) : ClassFileTransformer {
+class LiveTransformer(private val className: String) : ClassFileTransformer {
 
     override fun transform(
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
     ): ByteArray? {
-        val locationClassName = if (instrument.location.source.contains("(")) {
-            instrument.location.source.substringBefore("(").substringBeforeLast(".")
-        } else {
-            instrument.location.source
-        }
-        if (className.replace('/', '.') != locationClassName) {
+        if (className.replace('/', '.') != this.className) {
             return null
         }
 
