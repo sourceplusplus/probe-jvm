@@ -26,13 +26,13 @@ dependencies {
     compileOnly("net.bytebuddy:byte-buddy:1.12.6")
 
     implementation("com.google.code.gson:gson:$gsonVersion")
-    implementation("org.springframework:spring-expression:5.3.14")
+    implementation("org.springframework:spring-expression:5.3.15")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
 }
 
