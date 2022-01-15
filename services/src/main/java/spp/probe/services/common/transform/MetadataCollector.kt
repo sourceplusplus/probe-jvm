@@ -4,7 +4,6 @@ import net.bytebuddy.jar.asm.*
 import spp.probe.services.common.model.ClassField
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.model.LocalVariable
-import spp.probe.services.instrument.LiveInstrumentTransformer
 
 class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor(ASM_VERSION) {
 
@@ -24,7 +23,6 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
         val methodUniqueName = methodName + desc
         return object : MethodVisitor(ASM_VERSION, superMV) {
             private val labelLineMapping: MutableMap<String, Int> = HashMap()
-            private var hasNonThrownReturn: Boolean = false
 
             override fun visitLineNumber(line: Int, start: Label) {
                 labelLineMapping[start.toString()] = line
@@ -39,28 +37,6 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
                     methodUniqueName,
                     LocalVariable(name, desc, labelLine(start), labelLine(end), index)
                 )
-            }
-
-            override fun visitMethodInsn(
-                opcode: Int,
-                owner: String?,
-                name: String?,
-                descriptor: String?,
-                isInterface: Boolean
-            ) {
-                super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
-
-                if (owner?.equals("org/apache/skywalking/apm/agent/core/plugin/interceptor/enhance/InstMethodsInter") == true) {
-                    classMetadata.enhancedMethods.add(methodUniqueName)
-                }
-            }
-
-            override fun visitInsn(opcode: Int) {
-                super.visitInsn(opcode)
-
-                if (LiveInstrumentTransformer.isXRETURN(opcode)) {
-                    hasNonThrownReturn = true
-                }
             }
 
             private fun labelLine(label: Label): Int {
