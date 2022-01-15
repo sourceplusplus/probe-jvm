@@ -12,7 +12,12 @@ class LiveTransformer(private val instrument: LiveInstrument) : ClassFileTransfo
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
     ): ByteArray? {
-        if (className.replace('/', '.') != instrument.location.source) {
+        val locationClassName = if (instrument.location.source.contains("(")) {
+            instrument.location.source.substringBefore("(").substringBeforeLast(".")
+        } else {
+            instrument.location.source
+        }
+        if (className.replace('/', '.') != locationClassName) {
             return null
         }
 
@@ -20,7 +25,7 @@ class LiveTransformer(private val instrument: LiveInstrument) : ClassFileTransfo
         val classMetadata = ClassMetadata()
         classReader.accept(MetadataCollector(classMetadata), ClassReader.SKIP_FRAMES)
         val classWriter = ClassWriter(computeFlag(classReader))
-        val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, instrument, classMetadata)
+        val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, classMetadata)
         classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
         return classWriter.toByteArray()
     }

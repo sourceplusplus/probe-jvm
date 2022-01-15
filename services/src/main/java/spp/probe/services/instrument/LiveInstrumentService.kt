@@ -68,24 +68,28 @@ object LiveInstrumentService {
 
     var liveInstrumentApplier = object : LiveInstrumentApplier {
         override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
+            val className = if (instrument.instrument.location.source.contains("(")) {
+                instrument.instrument.location.source.substringBefore("(").substringBeforeLast(".")
+            } else {
+                instrument.instrument.location.source
+            }
             var clazz: Class<*>? = null
             for (classLoader in poolMap.keys) {
                 try {
-                    clazz = Class.forName(instrument.instrument.location.source, true, classLoader)
+                    clazz = Class.forName(className, true, classLoader)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (poolMap.isEmpty()) {
                 try {
-                    clazz = Class.forName(instrument.instrument.location.source)
+                    clazz = Class.forName(className)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (clazz == null) {
                 if (instrument.instrument.applyImmediately) {
-                    throw LiveInstrumentException(
-                        LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, instrument.instrument.location.source
-                    ).toEventBusException()
+                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
+                        .toEventBusException()
                 } else if (!instrument.isRemoval) {
                     timer.schedule(object : TimerTask() {
                         override fun run() {
@@ -261,6 +265,17 @@ object LiveInstrumentService {
                 ModelSerializer.INSTANCE.toJson(map)
             )
         }
+    }
+
+    fun getInstruments(source: String): List<ActiveLiveInstrument> {
+        val instruments = instruments.values.stream()
+            .filter { it.instrument.location.source == source }
+            .collect(Collectors.toSet())
+        instruments.addAll(
+            applyingInstruments.values.stream()
+                .filter { it.instrument.location.source == source}
+                .collect(Collectors.toSet()))
+        return ArrayList(instruments)
     }
 
     fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {

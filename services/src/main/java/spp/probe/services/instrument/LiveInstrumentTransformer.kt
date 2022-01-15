@@ -7,14 +7,12 @@ import net.bytebuddy.jar.asm.Type
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
-import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.span.LiveSpan
 
 class LiveInstrumentTransformer(
-    private val liveInstrument: LiveInstrument,
     private val className: String,
     methodName: String,
     desc: String,
@@ -40,23 +38,59 @@ class LiveInstrumentTransformer(
     private val classMetadata: ClassMetadata
     private var m_currentBeginLabel: Label? = null
     private var m_inOriginalCode = true
+    private var liveInstrument: LiveSpan? = null
 
     init {
         methodUniqueName = methodName + desc
         this.access = access
         this.classMetadata = classMetadata
+
+        var qualifiedMethodDesc = if (methodName == "<init>" || methodName == "<clinit>") {
+            "$methodName("
+        } else {
+            ".$methodName("
+        }
+        val methodArgs = desc.substringAfter("(").substringBefore(")").split(";")
+            .filter { it.isNotEmpty() }
+        val argsItr = methodArgs.iterator()
+        while (argsItr.hasNext()) {
+            val arg = argsItr.next()
+            qualifiedMethodDesc += if (arg.startsWith("L")) {
+                arg.substring(1).replace("/", ".")
+            } else if (arg.startsWith("[")) {
+                arg.substring(1)
+            } else if (arg.equals("J")) {
+                "long"
+            } else {
+                TODO()
+            }
+
+            if (argsItr.hasNext()) {
+                qualifiedMethodDesc += ","
+            }
+        }
+        qualifiedMethodDesc += ")"
+
+        val activeSpans = LiveInstrumentService.getInstruments(
+            "${className.replace("/", ".")}$qualifiedMethodDesc"
+        )
+        if (activeSpans.size == 1) {
+            liveInstrument = activeSpans[0].instrument as LiveSpan
+        } else if (activeSpans.size > 1) {
+            TODO()
+        }
     }
 
     override fun visitLineNumber(line: Int, start: Label) {
         mv.visitLineNumber(line, start)
-        for (instrument in LiveInstrumentService.getInstruments(liveInstrument.location.source, line)) {
+        for (instrument in LiveInstrumentService.getInstruments(className.replace("/", "."), line)) {
             val instrumentLabel = Label()
             isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
             when (instrument.instrument) {
                 is LiveBreakpoint -> {
                     captureSnapshot(instrument.instrument.id!!, line)
                     isHit(instrument.instrument.id!!, instrumentLabel)
-                    putBreakpoint(instrument.instrument.id!!, liveInstrument.location.source, line)
+                    putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
                 }
                 is LiveLog -> {
                     val log = instrument.instrument
@@ -221,7 +255,7 @@ class LiveInstrumentTransformer(
                     m_inOriginalCode = true
                 }
             } else if (m_inOriginalCode && opcode == Opcodes.ATHROW) {
-                visitLdcInsn(liveInstrument.id)
+                visitLdcInsn(liveInstrument!!.id)
                 visitMethodInsn(
                     Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "closeLocalSpanAndThrowException",
                     "(Ljava/lang/Throwable;Ljava/lang/String;)Ljava/lang/Throwable;", false
@@ -262,8 +296,8 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        ProbeMemory.put("spp.live-span:" + liveInstrument.id, liveInstrument)
-        visitLdcInsn(liveInstrument.id)
+        ProbeMemory.put("spp.live-span:" + liveInstrument!!.id, liveInstrument)
+        visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
             "openLocalSpan", "(Ljava/lang/String;)V", false
@@ -271,7 +305,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitFinallyBlock() {
-        visitLdcInsn(liveInstrument.id)
+        visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
             "closeLocalSpan", "(Ljava/lang/String;)V", false

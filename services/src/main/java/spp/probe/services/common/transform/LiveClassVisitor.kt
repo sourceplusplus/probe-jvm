@@ -5,12 +5,9 @@ import net.bytebuddy.jar.asm.MethodVisitor
 import net.bytebuddy.jar.asm.Opcodes
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.instrument.LiveInstrumentTransformer
-import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.LiveInstrumentType
 
 class LiveClassVisitor(
     cv: ClassVisitor,
-    private val instrument: LiveInstrument,
     private val classMetadata: ClassMetadata
 ) : ClassVisitor(Opcodes.ASM7, cv) {
 
@@ -26,47 +23,8 @@ class LiveClassVisitor(
     override fun visitMethod(
         access: Int, name: String, desc: String, signature: String?, exceptions: Array<out String>?
     ): MethodVisitor {
-        return when (instrument.type) {
-            LiveInstrumentType.SPAN -> {
-                when {
-                    name == "getSkyWalkingDynamicField" -> {
-                        //ignore SkyWalking methods
-                        return super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    name == "setSkyWalkingDynamicField" -> {
-                        //ignore SkyWalking methods
-                        return super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    name == "<clinit>" -> {
-                        //ignore static constructor
-                        return super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    name == "<init>" -> {
-                        //ignore constructor
-                        super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    name.contains("\$original\$") -> {
-                        //ignore original methods
-                        super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    classMetadata.enhancedMethods.contains(name + desc) -> {
-                        //ignore enhanced methods
-                        super.visitMethod(access, name, desc, signature, exceptions)
-                    }
-                    else -> {
-                        LiveInstrumentTransformer(
-                            instrument, className, name, desc, access, classMetadata,
-                            super.visitMethod(access, name, desc, signature, exceptions)
-                        )
-                    }
-                }
-            }
-            else -> {
-                LiveInstrumentTransformer(
-                    instrument, className, name, desc, access, classMetadata,
-                    super.visitMethod(access, name, desc, signature, exceptions)
-                )
-            }
-        }
+        return LiveInstrumentTransformer(
+            className, name, desc, access, classMetadata, super.visitMethod(access, name, desc, signature, exceptions)
+        )
     }
 }
