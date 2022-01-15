@@ -104,7 +104,7 @@ class LiveInstrumentTransformer(
         mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
     }
 
-    private fun addLocals(instrumentId: String?, line: Int) {
+    private fun addLocals(instrumentId: String, line: Int) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
             if (line >= local.start && line < local.end) {
                 mv.visitLdcInsn(instrumentId)
@@ -192,7 +192,7 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitCode() {
-        if (liveInstrument is LiveSpan && !classMetadata.onlyThrowsMethods.contains(methodUniqueName)) {
+        if (liveInstrument is LiveSpan) {
             try {
                 m_inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
@@ -207,19 +207,29 @@ class LiveInstrumentTransformer(
 
     override fun visitInsn(opcode: Int) {
         if (liveInstrument is LiveSpan) {
-            /*
-             * Do not include ATHROW (see class comment)!
-            */
             if (m_inOriginalCode && isXRETURN(opcode)) {
                 try {
                     m_inOriginalCode = false
                     completeTryFinallyBlock()
 
-                    // visit the return or throw instruction
+                    // visit the return instruction
                     visitInsn(opcode)
 
                     // begin the next try-block (it will not be added until it has been completed)
                     beginTryBlock()
+                } finally {
+                    m_inOriginalCode = true
+                }
+            } else if (m_inOriginalCode && opcode == Opcodes.ATHROW) {
+                visitLdcInsn(liveInstrument.id)
+                visitMethodInsn(
+                    Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "closeLocalSpanAndThrowException",
+                    "(Ljava/lang/Throwable;Ljava/lang/String;)Ljava/lang/Throwable;", false
+                )
+
+                try {
+                    m_inOriginalCode = false
+                    visitInsn(opcode)
                 } finally {
                     m_inOriginalCode = true
                 }
@@ -261,9 +271,10 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitFinallyBlock() {
+        visitLdcInsn(liveInstrument.id)
         visitMethodInsn(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
-            "closeLocalSpan", "()V", false
+            "closeLocalSpan", "(Ljava/lang/String;)V", false
         )
     }
 }

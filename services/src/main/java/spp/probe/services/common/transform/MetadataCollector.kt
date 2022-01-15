@@ -26,14 +26,6 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
             private val labelLineMapping: MutableMap<String, Int> = HashMap()
             private var hasNonThrownReturn: Boolean = false
 
-            override fun visitEnd() {
-                super.visitEnd()
-
-                if (!hasNonThrownReturn) {
-                    classMetadata.onlyThrowsMethods.add(methodUniqueName)
-                }
-            }
-
             override fun visitLineNumber(line: Int, start: Label) {
                 labelLineMapping[start.toString()] = line
             }

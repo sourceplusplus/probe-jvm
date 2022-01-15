@@ -4,6 +4,7 @@ import org.apache.skywalking.apm.agent.core.boot.ServiceManager
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.context.ContextManager
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag
+import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.meter.Counter
 import org.apache.skywalking.apm.agent.core.meter.CounterMode
@@ -193,11 +194,14 @@ object ContextReceiver {
         val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveSpan? ?: return
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
+        ProbeMemory.put("spp.active-span:$spanId", activeSpan)
     }
 
     @JvmStatic
-    fun closeLocalSpan() {
-        ContextManager.stopSpan()
+    fun closeLocalSpan(spanId: String, throwable: Throwable? = null) {
+        val activeSpan = ProbeMemory.remove("spp.active-span:$spanId") as AbstractSpan? ?: return
+        throwable?.let { activeSpan.log(it) }
+        ContextManager.stopSpan(activeSpan)
     }
 
     private fun encodeObject(varName: String, value: Any): String? {

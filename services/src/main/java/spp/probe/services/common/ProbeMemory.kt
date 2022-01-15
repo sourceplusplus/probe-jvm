@@ -19,8 +19,8 @@ object ProbeMemory {
         memory[key] = value
     }
 
-    fun remove(key: String) {
-        memory.remove(key)
+    fun remove(key: String): Any? {
+        return memory.remove(key)
     }
 
     fun clear() {

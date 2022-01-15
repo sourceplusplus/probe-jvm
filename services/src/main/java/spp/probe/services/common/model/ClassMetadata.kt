@@ -16,7 +16,6 @@ class ClassMetadata : Serializable {
     val staticFields: MutableList<ClassField> = mutableListOf()
     val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
     val enhancedMethods: MutableList<String> = mutableListOf()
-    val onlyThrowsMethods: MutableList<String> = mutableListOf()
 
     fun addField(field: ClassField) {
         if (ignoredVariables.matcher(field.name).matches()) {
@@ -46,7 +45,6 @@ class ClassMetadata : Serializable {
                 ", staticFields=" + staticFields +
                 ", variables=" + variables +
                 ", enhancedMethods=" + enhancedMethods +
-                ", onlyThrowsMethods=" + onlyThrowsMethods +
                 '}'
     }
 }
