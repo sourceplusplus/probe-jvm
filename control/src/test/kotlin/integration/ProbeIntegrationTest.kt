@@ -256,7 +256,7 @@ class ProbeIntegrationTest {
                             for (i in 0 until probes.size()) {
                                 val probe = probes.getJsonObject(i)
                                 if (probe.getString("probeId") == PROBE_ID) {
-                                    if (probe.getJsonArray("remotes").size() == 3) {
+                                    if (probe.getJsonArray("remotes").size() == 4) {
                                         log.info("Probe is ready")
                                         vertx!!.cancelTimer(id)
                                         client.close()
