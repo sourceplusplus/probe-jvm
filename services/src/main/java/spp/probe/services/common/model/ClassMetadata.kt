@@ -15,7 +15,6 @@ class ClassMetadata : Serializable {
     val fields: MutableList<ClassField> = mutableListOf()
     val staticFields: MutableList<ClassField> = mutableListOf()
     val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
-    val enhancedMethods: MutableList<String> = mutableListOf()
 
     fun addField(field: ClassField) {
         if (ignoredVariables.matcher(field.name).matches()) {
@@ -32,7 +31,6 @@ class ClassMetadata : Serializable {
     fun addVariable(methodId: String, variable: LocalVariable) {
         variables.computeIfAbsent(methodId) { ArrayList() }
         variables[methodId]!!.add(variable)
-        //todo: ignore skywalking variables
     }
 
     private fun isStaticField(field: ClassField): Boolean {
@@ -44,7 +42,6 @@ class ClassMetadata : Serializable {
                 "fields=" + fields +
                 ", staticFields=" + staticFields +
                 ", variables=" + variables +
-                ", enhancedMethods=" + enhancedMethods +
                 '}'
     }
 }
