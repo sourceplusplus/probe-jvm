@@ -23,7 +23,7 @@ dependencies {
         isTransitive = false
     }
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    compileOnly("net.bytebuddy:byte-buddy:1.12.6")
+    compileOnly("net.bytebuddy:byte-buddy:1.12.7")
 
     implementation("com.google.code.gson:gson:$gsonVersion")
     implementation("org.springframework:spring-expression:5.3.15")
