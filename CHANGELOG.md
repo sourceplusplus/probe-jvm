@@ -1,3 +1,6 @@
+# 0.3.0
+- Implemented basic live spans
+
 # 0.2.1
 - Added ability to load probe as SkyWalking plugin
 
