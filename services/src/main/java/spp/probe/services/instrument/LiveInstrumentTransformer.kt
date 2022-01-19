@@ -45,35 +45,33 @@ class LiveInstrumentTransformer(
         this.access = access
         this.classMetadata = classMetadata
 
-        var qualifiedMethodDesc = if (methodName == "<init>" || methodName == "<clinit>") {
-            "$methodName("
-        } else {
-            ".$methodName("
-        }
-        val methodArgs = desc.substringAfter("(").substringBefore(")").split(";")
-            .filter { it.isNotEmpty() }
-        val argsItr = methodArgs.iterator()
-        while (argsItr.hasNext()) {
-            val arg = argsItr.next()
-            qualifiedMethodDesc += if (arg.startsWith("L")) {
-                arg.substring(1).replace("/", ".")
-            } else if (arg.startsWith("[")) {
-                arg.substring(1)
-            } else if (arg.equals("J")) {
-                "long"
+        val qualifiedArgs = mutableListOf<String>()
+        val descArgs = StringBuilder(desc.substringAfter("(").substringBefore(")"))
+        while (descArgs.isNotEmpty()) {
+            val primitive = getQualifiedPrimitive(descArgs[0])
+            if (primitive != null) {
+                qualifiedArgs.add(primitive)
+                descArgs.deleteCharAt(0)
+            } else if (descArgs[0] == 'L') {
+                val end = descArgs.indexOf(";")
+                qualifiedArgs.add(descArgs.substring(1, end).replace('/', '.'))
+                descArgs.delete(0, end + 1)
+            } else if (descArgs[0] == '[') {
+                if (descArgs[1] == 'L') {
+                    val end = descArgs.indexOf(";")
+                    qualifiedArgs.add(descArgs.substring(2, end).replace('/', '.') + "[]")
+                    descArgs.delete(0, end + 1)
+                } else {
+                    qualifiedArgs.add(getQualifiedPrimitive(descArgs[1])!! + "[]")
+                    descArgs.delete(0, 2)
+                }
             } else {
-                TODO()
-            }
-
-            if (argsItr.hasNext()) {
-                qualifiedMethodDesc += ","
+                throw IllegalArgumentException("Invalid descriptor: $desc")
             }
         }
-        qualifiedMethodDesc += ")"
 
-        val activeSpans = LiveInstrumentService.getInstruments(
-            "${className.replace("/", ".")}$qualifiedMethodDesc"
-        )
+        val qualifiedMethodName = "${className.replace("/", ".")}.$methodName(${qualifiedArgs.joinToString(",")})"
+        val activeSpans = LiveInstrumentService.getInstruments(qualifiedMethodName)
         if (activeSpans.size == 1) {
             liveInstrument = activeSpans[0].instrument as LiveSpan
         } else if (activeSpans.size > 1) {
@@ -309,5 +307,19 @@ class LiveInstrumentTransformer(
             Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
             "closeLocalSpan", "(Ljava/lang/String;)V", false
         )
+    }
+
+    private fun getQualifiedPrimitive(char: Char): String? {
+        return when (char) {
+            'Z' -> "boolean"
+            'B' -> "byte"
+            'C' -> "char"
+            'S' -> "short"
+            'I' -> "int"
+            'F' -> "float"
+            'J' -> "long"
+            'D' -> "double"
+            else -> null
+        }
     }
 }
