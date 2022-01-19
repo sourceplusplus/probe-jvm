@@ -36,8 +36,8 @@ class LiveInstrumentTransformer(
     private val methodUniqueName: String
     private val access: Int
     private val classMetadata: ClassMetadata
-    private var m_currentBeginLabel: Label? = null
-    private var m_inOriginalCode = true
+    private var currentBeginLabel: Label? = null
+    private var inOriginalCode = true
     private var liveInstrument: LiveSpan? = null
 
     init {
@@ -226,11 +226,11 @@ class LiveInstrumentTransformer(
     override fun visitCode() {
         if (liveInstrument is LiveSpan) {
             try {
-                m_inOriginalCode = false
+                inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
                 beginTryBlock()
             } finally {
-                m_inOriginalCode = true
+                inOriginalCode = true
             }
         } else {
             super.visitCode()
@@ -239,9 +239,9 @@ class LiveInstrumentTransformer(
 
     override fun visitInsn(opcode: Int) {
         if (liveInstrument is LiveSpan) {
-            if (m_inOriginalCode && isXRETURN(opcode)) {
+            if (inOriginalCode && isXRETURN(opcode)) {
                 try {
-                    m_inOriginalCode = false
+                    inOriginalCode = false
                     completeTryFinallyBlock()
 
                     // visit the return instruction
@@ -250,9 +250,9 @@ class LiveInstrumentTransformer(
                     // begin the next try-block (it will not be added until it has been completed)
                     beginTryBlock()
                 } finally {
-                    m_inOriginalCode = true
+                    inOriginalCode = true
                 }
-            } else if (m_inOriginalCode && opcode == Opcodes.ATHROW) {
+            } else if (inOriginalCode && opcode == Opcodes.ATHROW) {
                 visitLdcInsn(liveInstrument!!.id)
                 visitMethodInsn(
                     Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION, "closeLocalSpanAndThrowException",
@@ -260,10 +260,10 @@ class LiveInstrumentTransformer(
                 )
 
                 try {
-                    m_inOriginalCode = false
+                    inOriginalCode = false
                     visitInsn(opcode)
                 } finally {
-                    m_inOriginalCode = true
+                    inOriginalCode = true
                 }
             } else {
                 super.visitInsn(opcode)
@@ -274,13 +274,13 @@ class LiveInstrumentTransformer(
     }
 
     private fun beginTryBlock() {
-        m_currentBeginLabel = Label()
-        visitLabel(m_currentBeginLabel)
+        currentBeginLabel = Label()
+        visitLabel(currentBeginLabel)
     }
 
     private fun completeTryFinallyBlock() {
         val endLabel = Label()
-        visitTryCatchBlock(m_currentBeginLabel, endLabel, endLabel, null)
+        visitTryCatchBlock(currentBeginLabel, endLabel, endLabel, null)
         val l2 = Label()
         visitJumpInsn(Opcodes.GOTO, l2)
         visitLabel(endLabel)
