@@ -12,6 +12,7 @@ import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.instrument.span.LiveSpan
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.ProbeAddress
 import spp.protocol.probe.command.LiveInstrumentCommand
@@ -72,6 +73,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 String::class.java, String::class.java, Array<String>::class.java
             )
             putMeter = contextClass.getMethod("putMeter", String::class.java)
+            openLocalSpan = contextClass.getMethod("openLocalSpan", String::class.java)
+            closeLocalSpan = contextClass.getMethod("closeLocalSpan", String::class.java, Throwable::class.java)
         } catch (e: Throwable) {
             e.printStackTrace()
             throw RuntimeException(e)
@@ -181,6 +184,41 @@ class LiveInstrumentRemote : AbstractVerticle() {
                     )
                 }
             }
+        vertx.eventBus()
+            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + SourceProbe.PROBE_ID)
+            .handler {
+                try {
+                    val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
+                    when (command.commandType) {
+                        CommandType.ADD_LIVE_INSTRUMENT -> addSpan(command)
+                        CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
+                    }
+                } catch (ex: InvocationTargetException) {
+                    val map: MutableMap<String, Any> = HashMap()
+                    map["command"] = it.body().toString()
+                    map["occurredAt"] = System.currentTimeMillis()
+                    if (ex.cause != null) {
+                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
+                    } else {
+                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
+                    }
+                    FrameHelper.sendFrame(
+                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
+                        PlatformAddress.LIVE_SPAN_REMOVED.address,
+                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
+                    )
+                } catch (ex: Throwable) {
+                    val map: MutableMap<String, Any> = HashMap()
+                    map["command"] = it.body().toString()
+                    map["occurredAt"] = System.currentTimeMillis()
+                    map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
+                    FrameHelper.sendFrame(
+                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
+                        PlatformAddress.LIVE_SPAN_REMOVED.address,
+                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
+                    )
+                }
+            }
     }
 
     private fun addBreakpoint(command: LiveInstrumentCommand) {
@@ -196,6 +234,11 @@ class LiveInstrumentRemote : AbstractVerticle() {
     private fun addMeter(command: LiveInstrumentCommand) {
         val meterData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(meterData, LiveMeter::class.java))
+    }
+
+    private fun addSpan(command: LiveInstrumentCommand) {
+        val spanData = command.context.liveInstruments[0]
+        applyInstrument!!.invoke(null, Json.decodeValue(spanData, LiveSpan::class.java))
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
@@ -227,6 +270,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
         private var putBreakpoint: Method? = null
         private var putLog: Method? = null
         private var putMeter: Method? = null
+        private var openLocalSpan: Method? = null
+        private var closeLocalSpan: Method? = null
         private var isInstrumentEnabled: Method? = null
         private var putLocalVariable: Method? = null
         private var putField: Method? = null
@@ -278,6 +323,34 @@ class LiveInstrumentRemote : AbstractVerticle() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+
+        @JvmStatic
+        fun openLocalSpan(spanId: String) {
+            try {
+                openLocalSpan!!.invoke(null, spanId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JvmStatic
+        fun closeLocalSpan(spanId: String) {
+            try {
+                closeLocalSpan!!.invoke(null, spanId, null)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        @JvmStatic
+        fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable {
+            try {
+                closeLocalSpan!!.invoke(null, spanId, throwable)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            throw throwable
         }
 
         @JvmStatic

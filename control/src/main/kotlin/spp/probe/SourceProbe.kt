@@ -266,6 +266,12 @@ object SourceProbe {
                     JsonObject(),
                     tcpSocket
                 )
+                FrameHelper.sendFrame(
+                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
+                    ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + PROBE_ID,
+                    JsonObject(),
+                    tcpSocket
+                )
                 consumer.unregister()
             }
             FrameHelper.sendFrame(

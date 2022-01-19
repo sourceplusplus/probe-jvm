@@ -2,17 +2,16 @@ package spp.probe.services.common.transform
 
 import net.bytebuddy.jar.asm.*
 import spp.probe.services.common.model.ClassMetadata
-import spp.protocol.instrument.LiveSourceLocation
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
-class LiveTransformer(private val location: LiveSourceLocation) : ClassFileTransformer {
+class LiveTransformer(private val className: String) : ClassFileTransformer {
 
     override fun transform(
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
     ): ByteArray? {
-        if (className.replace('/', '.') != location.source) {
+        if (className.replace('/', '.') != this.className) {
             return null
         }
 
@@ -20,7 +19,7 @@ class LiveTransformer(private val location: LiveSourceLocation) : ClassFileTrans
         val classMetadata = ClassMetadata()
         classReader.accept(MetadataCollector(classMetadata), ClassReader.SKIP_FRAMES)
         val classWriter = ClassWriter(computeFlag(classReader))
-        val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, location, classMetadata)
+        val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, classMetadata)
         classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
         return classWriter.toByteArray()
     }

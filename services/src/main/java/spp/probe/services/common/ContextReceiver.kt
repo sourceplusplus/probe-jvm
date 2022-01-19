@@ -4,6 +4,7 @@ import org.apache.skywalking.apm.agent.core.boot.ServiceManager
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.context.ContextManager
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag
+import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.meter.Counter
 import org.apache.skywalking.apm.agent.core.meter.CounterMode
@@ -16,23 +17,18 @@ import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
+import spp.protocol.instrument.span.LiveSpan
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.regex.Pattern
 
 object ContextReceiver {
 
-    private val ignoredVariables = Pattern.compile(
-        "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
-    )
     private val localVariables: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
-    private val logReport = ServiceManager.INSTANCE.findService(
-        LogReportServiceClient::class.java
-    )
+    private val logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient::class.java)
 
-    operator fun get(instrumentId: String?): ContextMap {
+    operator fun get(instrumentId: String): ContextMap {
         val contextMap = ContextMap()
         contextMap.fields = fields[instrumentId]
         contextMap.localVariables = localVariables[instrumentId]
@@ -40,7 +36,7 @@ object ContextReceiver {
         return contextMap
     }
 
-    fun clear(instrumentId: String?) {
+    fun clear(instrumentId: String) {
         fields.remove(instrumentId)
         localVariables.remove(instrumentId)
         staticFields.remove(instrumentId)
@@ -65,12 +61,9 @@ object ContextReceiver {
         instrumentId: String, key: String, value: Any?,
         variableMap: MutableMap<String?, MutableMap<String, Any>>
     ) {
-        if (value == null) {
-            return
-        } else if (ignoredVariables.matcher(key).matches()) {
-            return
+        if (value != null) {
+            variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
         }
-        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
     }
 
     @JvmStatic
@@ -161,39 +154,54 @@ object ContextReceiver {
 
     @JvmStatic
     fun putMeter(meterId: String) {
-        val (_, meterType, metricValue) = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
-        val meter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
-            when (meterType) {
+        val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
+        val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
+            when (liveMeter.meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
                     "count_" + meterId.replace("-", "_")
-                ).mode(CounterMode.RATE)
+                ).mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
                     .build()
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
-                ) { metricValue.value.toDouble() }
+                ) { liveMeter.metricValue.value.toDouble() }
                     .build()
                 MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
                     .build()
-                else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
+                else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
             }
         }
-        when (meterType) {
-            MeterType.COUNT -> if (metricValue.valueType == MetricValueType.NUMBER) {
-                (meter as Counter).increment(metricValue.value.toLong().toDouble())
+        when (liveMeter.meterType) {
+            MeterType.COUNT -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Counter).increment(liveMeter.metricValue.value.toLong().toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
             MeterType.GAUGE -> {}
-            MeterType.HISTOGRAM -> if (metricValue.valueType == MetricValueType.NUMBER) {
-                (meter as Histogram).addValue(metricValue.value.toDouble())
+            MeterType.HISTOGRAM -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Histogram).addValue(liveMeter.metricValue.value.toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
-            else -> throw UnsupportedOperationException("Unsupported meter type: $meterType")
+            else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
         }
+    }
+
+    @JvmStatic
+    fun openLocalSpan(spanId: String) {
+        val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveSpan? ?: return
+        val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
+        activeSpan.tag(StringTag("spanId"), spanId)
+        ProbeMemory.put("spp.active-span:$spanId", activeSpan)
+    }
+
+    @JvmStatic
+    fun closeLocalSpan(spanId: String, throwable: Throwable? = null) {
+        val activeSpan = ProbeMemory.remove("spp.active-span:$spanId") as AbstractSpan? ?: return
+        throwable?.let { activeSpan.log(it) }
+        ContextManager.stopSpan(activeSpan)
     }
 
     private fun encodeObject(varName: String, value: Any): String? {

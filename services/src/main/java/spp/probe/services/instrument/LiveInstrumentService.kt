@@ -15,6 +15,7 @@ import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
+import spp.protocol.instrument.span.LiveSpan
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.error.LiveInstrumentException
 import java.lang.instrument.Instrumentation
@@ -67,24 +68,28 @@ object LiveInstrumentService {
 
     var liveInstrumentApplier = object : LiveInstrumentApplier {
         override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
+            val className = if (instrument.instrument.location.source.contains("(")) {
+                instrument.instrument.location.source.substringBefore("(").substringBeforeLast(".")
+            } else {
+                instrument.instrument.location.source
+            }
             var clazz: Class<*>? = null
             for (classLoader in poolMap.keys) {
                 try {
-                    clazz = Class.forName(instrument.instrument.location.source, true, classLoader)
+                    clazz = Class.forName(className, true, classLoader)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (poolMap.isEmpty()) {
                 try {
-                    clazz = Class.forName(instrument.instrument.location.source)
+                    clazz = Class.forName(className)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (clazz == null) {
                 if (instrument.instrument.applyImmediately) {
-                    throw LiveInstrumentException(
-                        LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, instrument.instrument.location.source
-                    ).toEventBusException()
+                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
+                        .toEventBusException()
                 } else if (!instrument.isRemoval) {
                     timer.schedule(object : TimerTask() {
                         override fun run() {
@@ -94,7 +99,8 @@ object LiveInstrumentService {
                 }
                 return
             }
-            val transformer = LiveTransformer(instrument.instrument.location)
+
+            val transformer = LiveTransformer(className)
             try {
                 if (!instrument.isRemoval) {
                     applyingInstruments[instrument.instrument.id] = instrument
@@ -103,25 +109,32 @@ object LiveInstrumentService {
                 inst.retransformClasses(clazz)
                 instrument.isLive = true
                 if (!instrument.isRemoval) {
-                    if (instrument.instrument is LiveLog) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_LOG_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
-                    } else if (instrument.instrument is LiveBreakpoint) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_BREAKPOINT_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
-                    } else if (instrument.instrument is LiveMeter) {
-                        instrumentEventConsumer!!.accept(
-                            PlatformAddress.LIVE_METER_APPLIED.address,
-                            ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                        )
+                    when (instrument.instrument) {
+                        is LiveLog -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_LOG_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveBreakpoint -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_BREAKPOINT_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveMeter -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_METER_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
+                        is LiveSpan -> {
+                            instrumentEventConsumer!!.accept(
+                                PlatformAddress.LIVE_SPAN_APPLIED.address,
+                                ModelSerializer.INSTANCE.toJson(instrument.instrument)
+                            )
+                        }
                     }
-                    //                else if (instrument.getInstrument() instanceof LiveSpan) {
-//                    instrumentEventConsumer.accept(LIVE_SPAN_APPLIED.getAddress(), ModelSerializer.INSTANCE.toJson(instrument.getInstrument()));
-//                }
                 }
             } catch (ex: Throwable) {
                 //remove and re-transform
@@ -226,6 +239,7 @@ object LiveInstrumentService {
             is LiveBreakpoint -> map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
             is LiveLog -> map["log"] = ModelSerializer.INSTANCE.toJson(instrument)
             is LiveMeter -> map["meter"] = ModelSerializer.INSTANCE.toJson(instrument)
+            is LiveSpan -> map["span"] = ModelSerializer.INSTANCE.toJson(instrument)
             else -> throw IllegalArgumentException(instrument.javaClass.simpleName)
         }
         map["occurredAt"] = System.currentTimeMillis()
@@ -246,11 +260,22 @@ object LiveInstrumentService {
                 PlatformAddress.LIVE_METER_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
-            else -> instrumentEventConsumer!!.accept(
+            is LiveSpan -> instrumentEventConsumer!!.accept(
                 PlatformAddress.LIVE_SPAN_REMOVED.address,
                 ModelSerializer.INSTANCE.toJson(map)
             )
         }
+    }
+
+    fun getInstruments(source: String): List<ActiveLiveInstrument> {
+        val instruments = instruments.values.stream()
+            .filter { it.instrument.location.source == source }
+            .collect(Collectors.toSet())
+        instruments.addAll(
+            applyingInstruments.values.stream()
+                .filter { it.instrument.location.source == source}
+                .collect(Collectors.toSet()))
+        return ArrayList(instruments)
     }
 
     fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {
@@ -305,7 +330,7 @@ object LiveInstrumentService {
     }
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
-        val rootObject = ContextReceiver.get(liveInstrument.instrument.id)
+        val rootObject = ContextReceiver[liveInstrument.instrument.id!!]
         val context = StandardEvaluationContext(rootObject)
         return liveInstrument.expression!!.getValue(context, Boolean::class.java)
     }

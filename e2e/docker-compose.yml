@@ -13,9 +13,6 @@ services:
     links:
       - spp-platform
       - skywalking-oap
-    environment:
-      - SPP_PLATFORM_HOST=spp-platform
-      - SPP_SKYWALKING_HOST=skywalking-oap
   spp-platform:
     container_name: spp-platform
     build:

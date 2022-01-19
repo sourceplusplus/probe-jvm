@@ -2,14 +2,25 @@ package spp.probe.services.common.model
 
 import net.bytebuddy.jar.asm.Opcodes
 import java.io.Serializable
+import java.util.regex.Pattern
 
 class ClassMetadata : Serializable {
+
+    companion object {
+        private val ignoredVariables = Pattern.compile(
+            "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
+        )
+    }
 
     val fields: MutableList<ClassField> = mutableListOf()
     val staticFields: MutableList<ClassField> = mutableListOf()
     val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
 
     fun addField(field: ClassField) {
+        if (ignoredVariables.matcher(field.name).matches()) {
+            return
+        }
+
         if (isStaticField(field)) {
             staticFields.add(field)
         } else {

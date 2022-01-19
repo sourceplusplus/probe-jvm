@@ -23,6 +23,7 @@ class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor
         val methodUniqueName = methodName + desc
         return object : MethodVisitor(ASM_VERSION, superMV) {
             private val labelLineMapping: MutableMap<String, Int> = HashMap()
+
             override fun visitLineNumber(line: Int, start: Label) {
                 labelLineMapping[start.toString()] = line
             }
