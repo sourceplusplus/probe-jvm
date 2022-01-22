@@ -11,13 +11,13 @@ import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ModelSerializer
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
+import spp.probe.services.error.LiveInstrumentException
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.span.LiveSpan
 import spp.protocol.platform.PlatformAddress
-import spp.protocol.probe.error.LiveInstrumentException
 import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
