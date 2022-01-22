@@ -214,7 +214,7 @@ object SourceProbe {
                     } else {
                         vertx!!.eventBus().publish(
                             "local." + frame.getString("address"),
-                            frame.getJsonObject("body")
+                            frame.getValue("body")
                         )
                     }
                 } else {
