@@ -8,13 +8,13 @@ plugins {
 }
 
 val probeGroup: String by project
-val probeJvmVersion: String by project
+val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 
 group = probeGroup
-version = probeJvmVersion
+version = projectVersion
 
 subprojects {
     repositories {
@@ -47,7 +47,7 @@ tasks {
             dependsOn(":control:build")
         }
 
-        from("control/build/libs/spp-probe-$version.jar")
+        from("control/build/libs/spp-probe-$projectVersion.jar")
         into(File(projectDir, "e2e"))
     }
 
