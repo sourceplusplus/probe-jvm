@@ -8,13 +8,13 @@ plugins {
 }
 
 val probeGroup: String by project
-val probeVersion: String by project
+val probeJvmVersion: String by project
 val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 
 group = probeGroup
-version = probeVersion
+version = probeJvmVersion
 
 subprojects {
     repositories {

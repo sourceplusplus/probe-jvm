@@ -4,14 +4,14 @@ plugins {
 }
 
 val probeGroup: String by project
-val probeVersion: String by project
+val probeJvmVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
 val protocolVersion: String by project
 
 group = probeGroup
-version = probeVersion
+version = probeJvmVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
