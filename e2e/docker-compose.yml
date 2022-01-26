@@ -14,20 +14,21 @@ services:
       - spp-platform
       - skywalking-oap
   spp-platform:
+    image: sourceplusplus/spp-platform:latest
     container_name: spp-platform
-    build:
-      context: .
-      dockerfile: Dockerfile-spp-platform
     hostname: spp-platform
     ports:
       - "5445:5445"
       - "5450:5450"
       - "5455:5455"
+    volumes:
+      - ./config/logback.xml:/opt/sourceplusplus/config/logback.xml
+      - ./config/spp-platform.crt:/opt/sourceplusplus/config/spp-platform.crt
+      - ./config/spp-platform.key:/opt/sourceplusplus/config/spp-platform.key
+      - ./config/spp-platform.yml:/opt/sourceplusplus/config/spp-platform.yml
   skywalking-oap:
+    image: sourceplusplus/spp-oap-server:latest
     container_name: skywalking-oap
-    build:
-      context: .
-      dockerfile: Dockerfile-spp-oap-server
     hostname: skywalking-oap
     ports:
       - "11800:11800"
@@ -42,3 +43,6 @@ services:
       - SW_RECEIVER_GRPC_SSL_ENABLED=true
       - SW_RECEIVER_GRPC_SSL_KEY_PATH=/skywalking/spp-platform.key
       - SW_RECEIVER_GRPC_SSL_CERT_CHAIN_PATH=/skywalking/spp-platform.crt
+    volumes:
+      - ./config/spp-platform.crt:/skywalking/spp-platform.crt
+      - ./config/spp-platform.key:/skywalking/spp-platform.key
