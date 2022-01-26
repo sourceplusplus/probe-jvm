@@ -68,7 +68,8 @@ jobs:
           spp-cli -a change-me add-breakpoint -c 1==2 VariableTests 26
           sleep 10s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."applied") == "true" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "0" ]] && echo $resp || (echo $resp && exit 1)
           spp-cli -a change-me clear-instruments
 
@@ -77,7 +78,8 @@ jobs:
           spp-cli -a change-me add-log -c 1==2 -l a VariableTests 26 Hello {}
           sleep 10s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."applied") == "true" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "0" ]] && echo $resp || (echo $resp && exit 1)
           spp-cli -a change-me clear-instruments
 
@@ -88,9 +90,11 @@ jobs:
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."applied") == "true" ]] && echo $resp || (echo $resp && exit 1)
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."hitLimit") == "2" ]] && echo $resp || (echo $resp && exit 1)
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "0" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "1" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $resp == "[]" ]] && echo $resp || (echo $resp && exit 1)
 
       - name: Live log (hit limit = 2)
@@ -100,9 +104,11 @@ jobs:
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."applied") == "true" ]] && echo $resp || (echo $resp && exit 1)
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."hitLimit") == "2" ]] && echo $resp || (echo $resp && exit 1)
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "0" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $(echo $resp | jq -r .[0]."meta"."hit_count") == "1" ]] && echo $resp || (echo $resp && exit 1)
-          curl ${{ env.E2E_APP_HOST }}:4000 && sleep 35s
+          curl ${{ env.E2E_APP_HOST }}:4000
+          sleep 35s
           resp=$(spp-cli -a change-me get-instruments) && [[ $resp == "[]" ]] && echo $resp || (echo $resp && exit 1)
 
       - run: ./gradlew composeLogs
