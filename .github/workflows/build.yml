@@ -121,7 +121,7 @@ jobs:
         continue-on-error: true
       - run: |
           sleep 35s
-          resp=$(spp-cli -a change-me get-instruments) && [[ $resp == "[]" ]] && echo $resp || (echo $resp && exit 1)
+          resp=$(spp-cli -a change-me get-instruments) && [[ $resp == "[ ]" ]] && echo $resp || (echo $resp && exit 1)
 
       - run: ./gradlew composeLogs
         if: ${{ always() }}
