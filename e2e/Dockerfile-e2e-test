@@ -8,8 +8,10 @@ ADD ./spp-probe-*.jar /tmp/spp-probe/spp-probe.jar
 
 ENV SPP_DELETE_PROBE_DIRECTORY_ON_BOOT=false
 
+ADD ./Main.java /
 ADD ./VariableTests.java /
+ADD ./SpanTests.java /
 
-RUN javac -g VariableTests.java
+RUN javac -g Main.java VariableTests.java SpanTests.java
 
-CMD [ "java", "-javaagent:/tmp/spp-probe/spp-probe.jar", "VariableTests" ]
+CMD [ "java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5105", "-javaagent:/tmp/spp-probe/spp-probe.jar", "Main" ]

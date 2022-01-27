@@ -5,7 +5,7 @@ import java.lang.Thread;
 
 public class VariableTests {
 
-    public static void main(String[] args) throws Exception {
+    public static void run() throws Exception {
         ServerSocket serverSocket = new ServerSocket(4000);
         while (true) {
             Socket socket = serverSocket.accept();

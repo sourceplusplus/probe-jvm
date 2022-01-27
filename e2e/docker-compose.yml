@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile-e2e-test
     ports:
       - "4000:4000"
+      - "4001:4001"
+      - "5105:5105"
     depends_on:
       - spp-platform
       - skywalking-oap
