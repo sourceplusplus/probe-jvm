@@ -96,10 +96,14 @@ abstract class ProbeTest {
             val e2eAppHost = if (System.getenv("E2E_APP_HOST") != null)
                 System.getenv("E2E_APP_HOST") else "localhost"
 
-            assertEquals(
-                200,
-                WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
-            )
+            try {
+                assertEquals(
+                    200,
+                    WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
