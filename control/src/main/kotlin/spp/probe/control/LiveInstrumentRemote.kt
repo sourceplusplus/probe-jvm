@@ -105,16 +105,16 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         } catch (ex: InvocationTargetException) {
             if (ex.cause != null) {
-                publishError(it, ex.cause!!, clazz)
+                publishCommandError(it, ex.cause!!, clazz)
             } else {
-                publishError(it, ex.targetException, clazz)
+                publishCommandError(it, ex.targetException, clazz)
             }
         } catch (ex: Throwable) {
-            publishError(it, ex, clazz)
+            publishCommandError(it, ex, clazz)
         }
     }
 
-    private fun publishError(it: Message<JsonObject>, ex: Throwable, clazz: KClass<out LiveInstrument>) {
+    private fun publishCommandError(it: Message<JsonObject>, ex: Throwable, clazz: KClass<out LiveInstrument>) {
         val map: MutableMap<String, Any> = HashMap()
         map["command"] = it.body().toString()
         map["occurredAt"] = System.currentTimeMillis()
