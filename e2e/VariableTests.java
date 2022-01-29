@@ -12,6 +12,7 @@ public class VariableTests {
             new Thread(() -> {
                 doTest();
                 try {
+                    socket.getOutputStream().write("HTTP/1.1 200 OK\r\n\r\n".getBytes());
                     socket.close();
                 } catch (Exception e) {
                     e.printStackTrace();
