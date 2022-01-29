@@ -152,15 +152,3 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
 }
 tasks.getByName("jar").dependsOn("shadowJar")
-
-tasks {
-    test {
-        testLogging {
-            events("passed", "skipped", "failed")
-            setExceptionFormat("full")
-
-            outputs.upToDateWhen { false }
-            showStandardStreams = true
-        }
-    }
-}
