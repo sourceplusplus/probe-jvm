@@ -9,4 +9,5 @@
     </appender>
 
     <logger name="spp" level="TRACE"/>
+    <logger name="integration" level="TRACE"/>
 </configuration>

@@ -23,6 +23,7 @@ import spp.protocol.ProtocolMarshaller
 import spp.protocol.SourceMarkerServices
 import spp.protocol.extend.TCPServiceFrameParser
 import spp.protocol.service.live.LiveInstrumentService
+import java.io.IOException
 import java.util.*
 
 @ExtendWith(VertxExtension::class)
@@ -115,12 +116,8 @@ abstract class ProbeIntegrationTest {
             try {
                 val statusCode = WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
                 log.trace("Status code: $statusCode")
-                assertEquals(
-                    200,
-                    statusCode
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
+                assertEquals(200, statusCode)
+            } catch (_: IOException) {
             }
         }
     }
