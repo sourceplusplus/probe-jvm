@@ -226,7 +226,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
     private fun addInstrument(clazz: KClass<out LiveInstrument>, command: LiveInstrumentCommand) {
         if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
         val instrumentData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(instrumentData, clazz::class.java))
+        applyInstrument!!.invoke(null, Json.decodeValue(instrumentData, clazz.java))
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {

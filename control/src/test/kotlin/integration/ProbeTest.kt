@@ -1,13 +1,13 @@
 package integration
 
 import io.vertx.core.Vertx
-import io.vertx.core.http.HttpMethod
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
+import io.vertx.ext.web.client.WebClient
 import io.vertx.junit5.VertxExtension
 import io.vertx.kotlin.coroutines.await
 import io.vertx.serviceproxy.ServiceProxyBuilder
@@ -93,10 +93,12 @@ abstract class ProbeTest {
         }
 
         suspend fun callVariableTests() {
+            val e2eAppHost = if (System.getenv("E2E_APP_HOST") != null)
+                System.getenv("E2E_APP_HOST") else "localhost"
+
             assertEquals(
                 200,
-                vertx.createHttpClient().request(HttpMethod.GET, 4000, "localhost", "/").await()
-                    .connect().await().statusCode()
+                WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
             )
         }
     }

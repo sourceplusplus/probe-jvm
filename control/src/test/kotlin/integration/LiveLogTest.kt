@@ -8,7 +8,6 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.SourceMarkerServices.Provide
 import spp.protocol.instrument.LiveInstrument
@@ -21,7 +20,6 @@ import java.util.concurrent.TimeUnit
 
 class LiveLogTest : ProbeTest() {
 
-    @Disabled
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
