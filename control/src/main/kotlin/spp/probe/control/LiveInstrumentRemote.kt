@@ -23,6 +23,7 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.*
 import java.util.function.BiConsumer
+import kotlin.reflect.KClass
 
 class LiveInstrumentRemote : AbstractVerticle() {
 
@@ -86,7 +87,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addBreakpoint(command)
+                        CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(LiveBreakpoint::class, command)
                         CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
                     }
                 } catch (ex: InvocationTargetException) {
@@ -121,7 +122,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addLog(command)
+                        CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(LiveLog::class, command)
                         CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
                     }
                 } catch (ex: InvocationTargetException) {
@@ -156,7 +157,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addMeter(command)
+                        CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(LiveMeter::class, command)
                         CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
                     }
                 } catch (ex: InvocationTargetException) {
@@ -191,7 +192,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 try {
                     val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
                     when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addSpan(command)
+                        CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(LiveSpan::class, command)
                         CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
                     }
                 } catch (ex: InvocationTargetException) {
@@ -222,28 +223,10 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
     }
 
-    private fun addBreakpoint(command: LiveInstrumentCommand) {
-        if (ProbeConfiguration.isNotQuite) println("Adding breakpoint: $command")
-        val breakpointData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(breakpointData, LiveBreakpoint::class.java))
-    }
-
-    private fun addLog(command: LiveInstrumentCommand) {
-        if (ProbeConfiguration.isNotQuite) println("Adding log: $command")
-        val logData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(logData, LiveLog::class.java))
-    }
-
-    private fun addMeter(command: LiveInstrumentCommand) {
-        if (ProbeConfiguration.isNotQuite) println("Adding meter: $command")
-        val meterData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(meterData, LiveMeter::class.java))
-    }
-
-    private fun addSpan(command: LiveInstrumentCommand) {
-        if (ProbeConfiguration.isNotQuite) println("Adding span: $command")
-        val spanData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(spanData, LiveSpan::class.java))
+    private fun addInstrument(clazz: KClass<out LiveInstrument>, command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
+        val instrumentData = command.context.liveInstruments[0]
+        applyInstrument!!.invoke(null, Json.decodeValue(instrumentData, clazz::class.java))
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
