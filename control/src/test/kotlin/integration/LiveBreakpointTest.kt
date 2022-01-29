@@ -43,14 +43,13 @@ class LiveBreakpointTest : ProbeTest() {
         instrumentService.addLiveInstrument(
             LiveBreakpoint(
                 location = LiveSourceLocation("VariableTests", 35),
-                applyImmediately = true,
-                hitLimit = -1
+                applyImmediately = true
             ), promise
         )
         assertNotNull(promise.future().await())
 
         callVariableTests()
-        if (testContext.awaitCompletion(120, TimeUnit.SECONDS)) {
+        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw RuntimeException(testContext.causeOfFailure())
             }
