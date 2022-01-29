@@ -95,11 +95,14 @@ abstract class ProbeTest {
         suspend fun callVariableTests() {
             val e2eAppHost = if (System.getenv("E2E_APP_HOST") != null)
                 System.getenv("E2E_APP_HOST") else "localhost"
+            println("E2E_APP_HOST: $e2eAppHost")
 
             try {
+                val statusCode = WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
+                println("Status code: $statusCode")
                 assertEquals(
                     200,
-                    WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
+                    statusCode
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
