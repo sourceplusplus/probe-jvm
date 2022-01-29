@@ -26,6 +26,8 @@ class LiveBreakpointTest : ProbeTest() {
         val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
             val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
+            println(event)
+
             if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                 val item = Json.decodeValue(event.data, LiveBreakpointHit::class.java)
                 testContext.verify {
@@ -47,7 +49,7 @@ class LiveBreakpointTest : ProbeTest() {
         assertNotNull(promise.future().await())
 
         callVariableTests()
-        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
+        if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw RuntimeException(testContext.causeOfFailure())
             }

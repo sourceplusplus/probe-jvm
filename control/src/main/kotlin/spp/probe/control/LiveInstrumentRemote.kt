@@ -7,6 +7,7 @@ import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
+import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
@@ -222,21 +223,25 @@ class LiveInstrumentRemote : AbstractVerticle() {
     }
 
     private fun addBreakpoint(command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding breakpoint: $command")
         val breakpointData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(breakpointData, LiveBreakpoint::class.java))
     }
 
     private fun addLog(command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding log: $command")
         val logData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(logData, LiveLog::class.java))
     }
 
     private fun addMeter(command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding meter: $command")
         val meterData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(meterData, LiveMeter::class.java))
     }
 
     private fun addSpan(command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding span: $command")
         val spanData = command.context.liveInstruments[0]
         applyInstrument!!.invoke(null, Json.decodeValue(spanData, LiveSpan::class.java))
     }
@@ -281,6 +286,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         @JvmStatic
         fun isInstrumentEnabled(instrumentId: String): Boolean {
             return try {
+                if (ProbeConfiguration.isNotQuite) println("isInstrumentEnabled: $instrumentId")
                 isInstrumentEnabled!!.invoke(null, instrumentId) as Boolean
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -291,6 +297,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         @JvmStatic
         fun isHit(breakpointId: String): Boolean {
             return try {
+                if (ProbeConfiguration.isNotQuite) println("isHit: $breakpointId")
                 isHit!!.invoke(null, breakpointId) as Boolean
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -301,6 +308,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         @JvmStatic
         fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable?) {
             try {
+                if (ProbeConfiguration.isNotQuite) println("putBreakpoint: $breakpointId, $source, $line")
                 putBreakpoint!!.invoke(null, breakpointId, source, line, ex)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -310,6 +318,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         @JvmStatic
         fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
             try {
+                if (ProbeConfiguration.isNotQuite) println("putLog: $logId, $logFormat, ${logArguments.contentToString()}")
                 putLog!!.invoke(null, logId, logFormat, logArguments)
             } catch (e: Exception) {
                 e.printStackTrace()
