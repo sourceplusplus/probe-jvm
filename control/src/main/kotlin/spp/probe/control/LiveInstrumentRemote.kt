@@ -1,12 +1,14 @@
 package spp.probe.control
 
 import io.vertx.core.AbstractVerticle
+import io.vertx.core.eventbus.Message
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
+import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
@@ -22,6 +24,7 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.*
 import java.util.function.BiConsumer
+import kotlin.reflect.KClass
 
 class LiveInstrumentRemote : AbstractVerticle() {
 
@@ -81,164 +84,58 @@ class LiveInstrumentRemote : AbstractVerticle() {
         }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_BREAKPOINT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler {
-                try {
-                    val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
-                    when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addBreakpoint(command)
-                        CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
-                    }
-                } catch (ex: InvocationTargetException) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    if (ex.cause != null) {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
-                    } else {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
-                    }
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_BREAKPOINT_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                } catch (ex: Throwable) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_BREAKPOINT_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                }
-            }
+            .handler { handleInstrumentationRequest(LiveBreakpoint::class, it) }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_LOG_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler {
-                try {
-                    val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
-                    when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addLog(command)
-                        CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
-                    }
-                } catch (ex: InvocationTargetException) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    if (ex.cause != null) {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
-                    } else {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
-                    }
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_LOG_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                } catch (ex: Throwable) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_LOG_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                }
-            }
+            .handler { handleInstrumentationRequest(LiveLog::class, it) }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_METER_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler {
-                try {
-                    val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
-                    when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addMeter(command)
-                        CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
-                    }
-                } catch (ex: InvocationTargetException) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    if (ex.cause != null) {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
-                    } else {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
-                    }
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_METER_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                } catch (ex: Throwable) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_METER_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                }
-            }
+            .handler { handleInstrumentationRequest(LiveMeter::class, it) }
         vertx.eventBus()
             .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler {
-                try {
-                    val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
-                    when (command.commandType) {
-                        CommandType.ADD_LIVE_INSTRUMENT -> addSpan(command)
-                        CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
-                    }
-                } catch (ex: InvocationTargetException) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    if (ex.cause != null) {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
-                    } else {
-                        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
-                    }
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_SPAN_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                } catch (ex: Throwable) {
-                    val map: MutableMap<String, Any> = HashMap()
-                    map["command"] = it.body().toString()
-                    map["occurredAt"] = System.currentTimeMillis()
-                    map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
-                    FrameHelper.sendFrame(
-                        BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
-                        PlatformAddress.LIVE_SPAN_REMOVED.address,
-                        JsonObject.mapFrom(map), SourceProbe.tcpSocket
-                    )
-                }
+            .handler { handleInstrumentationRequest(LiveSpan::class, it) }
+    }
+
+    private fun handleInstrumentationRequest(clazz: KClass<out LiveInstrument>, it: Message<JsonObject>) {
+        try {
+            val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
+            when (command.commandType) {
+                CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(clazz, command)
+                CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
             }
+        } catch (ex: InvocationTargetException) {
+            if (ex.cause != null) {
+                publishCommandError(it, ex.cause!!, clazz)
+            } else {
+                publishCommandError(it, ex.targetException, clazz)
+            }
+        } catch (ex: Throwable) {
+            publishCommandError(it, ex, clazz)
+        }
     }
 
-    private fun addBreakpoint(command: LiveInstrumentCommand) {
-        val breakpointData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(breakpointData, LiveBreakpoint::class.java))
+    private fun publishCommandError(it: Message<JsonObject>, ex: Throwable, clazz: KClass<out LiveInstrument>) {
+        val map: MutableMap<String, Any> = HashMap()
+        map["command"] = it.body().toString()
+        map["occurredAt"] = System.currentTimeMillis()
+        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
+
+        val address = when (clazz) {
+            LiveBreakpoint::class -> PlatformAddress.LIVE_BREAKPOINT_REMOVED.address
+            LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
+            LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
+            LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
+            else -> throw IllegalArgumentException("Unknown instrument: $clazz")
+        }
+        FrameHelper.sendFrame(
+            BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
+        )
     }
 
-    private fun addLog(command: LiveInstrumentCommand) {
-        val logData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(logData, LiveLog::class.java))
-    }
-
-    private fun addMeter(command: LiveInstrumentCommand) {
-        val meterData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(meterData, LiveMeter::class.java))
-    }
-
-    private fun addSpan(command: LiveInstrumentCommand) {
-        val spanData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(spanData, LiveSpan::class.java))
+    private fun addInstrument(clazz: KClass<out LiveInstrument>, command: LiveInstrumentCommand) {
+        if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
+        val instrumentData = command.context.liveInstruments[0]
+        applyInstrument!!.invoke(null, Json.decodeValue(instrumentData, clazz.java))
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
@@ -259,14 +156,15 @@ class LiveInstrumentRemote : AbstractVerticle() {
     }
 
     companion object {
-        private val EVENT_CONSUMER = BiConsumer { address: String?, json: String? ->
+        private val EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
+            if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
             FrameHelper.sendFrame(
                 BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
                 address,
                 JsonObject(json),
                 SourceProbe.tcpSocket
             )
-        }
+        })
         private var putBreakpoint: Method? = null
         private var putLog: Method? = null
         private var putMeter: Method? = null

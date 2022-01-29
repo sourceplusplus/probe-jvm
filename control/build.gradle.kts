@@ -38,6 +38,13 @@ dependencies {
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
     testImplementation("io.vertx:vertx-web-client:$vertxVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackVersion")
+    testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
+    testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
+    testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion")
+    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 }
 
 tasks.getByName<Test>("test") {
@@ -45,8 +52,6 @@ tasks.getByName<Test>("test") {
     useJUnitPlatform()
     if (System.getProperty("test.profile") != "integration") {
         exclude("integration/**")
-    } else {
-        jvmArgs = listOf("-javaagent:../e2e/spp-probe-${project.version}.jar")
     }
 
     testLogging {
