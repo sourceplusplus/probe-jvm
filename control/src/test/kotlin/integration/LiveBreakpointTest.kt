@@ -43,7 +43,8 @@ class LiveBreakpointTest : ProbeTest() {
         instrumentService.addLiveInstrument(
             LiveBreakpoint(
                 location = LiveSourceLocation("VariableTests", 35),
-                applyImmediately = true
+                applyImmediately = true,
+                hitLimit = -1
             ), promise
         )
         assertNotNull(promise.future().await())
