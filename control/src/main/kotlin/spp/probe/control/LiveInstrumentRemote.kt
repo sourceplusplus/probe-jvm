@@ -118,7 +118,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
                 LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
                 LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
-                else -> throw IllegalArgumentException("Unknown class $clazz")
+                else -> throw IllegalArgumentException("Unknown instrument: $clazz")
             }
             FrameHelper.sendFrame(
                 BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
@@ -134,7 +134,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
                 LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
                 LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
-                else -> throw IllegalArgumentException("Unknown class $clazz")
+                else -> throw IllegalArgumentException("Unknown instrument: $clazz")
             }
             FrameHelper.sendFrame(
                 BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
