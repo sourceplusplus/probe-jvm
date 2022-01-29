@@ -50,7 +50,7 @@ class LiveLogTest : ProbeIntegrationTest() {
         assertNotNull(promise.future().await())
 
         callVariableTests()
-        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
+        if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw RuntimeException(testContext.causeOfFailure())
             }
