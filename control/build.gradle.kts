@@ -52,8 +52,6 @@ tasks.getByName<Test>("test") {
     useJUnitPlatform()
     if (System.getProperty("test.profile") != "integration") {
         exclude("integration/**")
-    } else {
-        //jvmArgs = listOf("-javaagent:../e2e/spp-probe-${project.version}.jar")
     }
 
     testLogging {
