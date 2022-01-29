@@ -110,11 +110,18 @@ abstract class ProbeIntegrationTest {
         suspend fun callVariableTests() {
             val e2eAppHost = if (System.getenv("E2E_APP_HOST") != null)
                 System.getenv("E2E_APP_HOST") else "localhost"
+            log.trace("E2E_APP_HOST: $e2eAppHost")
 
-            assertEquals(
-                200,
-                WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
-            )
+            try {
+                val statusCode = WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
+                log.trace("Status code: $statusCode")
+                assertEquals(
+                    200,
+                    statusCode
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }
