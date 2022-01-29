@@ -18,7 +18,7 @@ import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.breakpoint.event.LiveBreakpointHit
 import java.util.concurrent.TimeUnit
 
-class LiveBreakpointTest : ProbeTest() {
+class LiveBreakpointTest : ProbeIntegrationTest() {
 
     @Test
     fun testPrimitives() = runBlocking {
@@ -26,7 +26,7 @@ class LiveBreakpointTest : ProbeTest() {
         val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
             val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
-            println(event)
+            log.trace("Received event: $event")
 
             if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                 val item = Json.decodeValue(event.data, LiveBreakpointHit::class.java)

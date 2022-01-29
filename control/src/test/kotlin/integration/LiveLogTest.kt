@@ -18,7 +18,7 @@ import spp.protocol.instrument.log.LiveLog
 import spp.protocol.instrument.log.event.LiveLogHit
 import java.util.concurrent.TimeUnit
 
-class LiveLogTest : ProbeTest() {
+class LiveLogTest : ProbeIntegrationTest() {
 
     @Test
     fun testPrimitives() = runBlocking {
@@ -26,7 +26,7 @@ class LiveLogTest : ProbeTest() {
         val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
             val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
-            println(event)
+            log.trace("Received event: $event")
 
             if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
                 val item = Json.decodeValue(event.data, LiveLogHit::class.java)
