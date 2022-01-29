@@ -104,42 +104,32 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
             }
         } catch (ex: InvocationTargetException) {
-            val map: MutableMap<String, Any> = HashMap()
-            map["command"] = it.body().toString()
-            map["occurredAt"] = System.currentTimeMillis()
             if (ex.cause != null) {
-                map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.cause, 4000)
+                publishError(it, ex.cause!!, clazz)
             } else {
-                map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex.targetException, 4000)
+                publishError(it, ex.targetException, clazz)
             }
-
-            val address = when (clazz) {
-                LiveBreakpoint::class -> PlatformAddress.LIVE_BREAKPOINT_REMOVED.address
-                LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
-                LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
-                LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
-                else -> throw IllegalArgumentException("Unknown instrument: $clazz")
-            }
-            FrameHelper.sendFrame(
-                BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
-            )
         } catch (ex: Throwable) {
-            val map: MutableMap<String, Any> = HashMap()
-            map["command"] = it.body().toString()
-            map["occurredAt"] = System.currentTimeMillis()
-            map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
-
-            val address = when (clazz) {
-                LiveBreakpoint::class -> PlatformAddress.LIVE_BREAKPOINT_REMOVED.address
-                LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
-                LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
-                LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
-                else -> throw IllegalArgumentException("Unknown instrument: $clazz")
-            }
-            FrameHelper.sendFrame(
-                BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
-            )
+            publishError(it, ex, clazz)
         }
+    }
+
+    private fun publishError(it: Message<JsonObject>, ex: Throwable, clazz: KClass<out LiveInstrument>) {
+        val map: MutableMap<String, Any> = HashMap()
+        map["command"] = it.body().toString()
+        map["occurredAt"] = System.currentTimeMillis()
+        map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
+
+        val address = when (clazz) {
+            LiveBreakpoint::class -> PlatformAddress.LIVE_BREAKPOINT_REMOVED.address
+            LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
+            LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
+            LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
+            else -> throw IllegalArgumentException("Unknown instrument: $clazz")
+        }
+        FrameHelper.sendFrame(
+            BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
+        )
     }
 
     private fun addInstrument(clazz: KClass<out LiveInstrument>, command: LiveInstrumentCommand) {
