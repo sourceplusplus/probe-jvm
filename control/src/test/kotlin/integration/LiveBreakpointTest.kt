@@ -25,12 +25,12 @@ class LiveBreakpointTest : ProbeIntegrationTest() {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
-            val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
-            log.trace("Received event: $event")
+            testContext.verify {
+                val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
+                log.trace("Received event: $event")
 
-            if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                val item = Json.decodeValue(event.data, LiveBreakpointHit::class.java)
-                testContext.verify {
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = Json.decodeValue(event.data, LiveBreakpointHit::class.java)
                     val vars = item.stackTrace.first().variables
                     assertEquals(9, vars.size)
                 }

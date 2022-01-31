@@ -25,12 +25,12 @@ class LiveLogTest : ProbeIntegrationTest() {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
-            val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
-            log.trace("Received event: $event")
+            testContext.verify {
+                val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
+                log.trace("Received event: $event")
 
-            if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                val item = Json.decodeValue(event.data, LiveLogHit::class.java)
-                testContext.verify {
+                if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
+                    val item = Json.decodeValue(event.data, LiveLogHit::class.java)
                     assertEquals("1 a a", item.logResult.logs.first().getFormattedMessage())
                 }
                 consumer.unregister()

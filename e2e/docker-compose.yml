@@ -23,11 +23,12 @@ services:
       - "5445:5445"
       - "5450:5450"
       - "5455:5455"
+    environment:
+      - SPP_LOGGING_LEVEL=trace
+      - SPP_OAP_HOST=skywalking-oap
     volumes:
-      - ./config/logback.xml:/opt/sourceplusplus/config/logback.xml
       - ./config/spp-platform.crt:/opt/sourceplusplus/config/spp-platform.crt
       - ./config/spp-platform.key:/opt/sourceplusplus/config/spp-platform.key
-      - ./config/spp-platform.yml:/opt/sourceplusplus/config/spp-platform.yml
   skywalking-oap:
     image: sourceplusplus/spp-oap-server:latest
     container_name: skywalking-oap
