@@ -24,6 +24,7 @@ services:
       - "5450:5450"
       - "5455:5455"
     environment:
+      - SPP_LOGGING_LEVEL=trace
       - SPP_OAP_HOST=skywalking-oap
     volumes:
       - ./config/spp-platform.crt:/opt/sourceplusplus/config/spp-platform.crt
