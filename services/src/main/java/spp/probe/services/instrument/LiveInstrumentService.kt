@@ -223,7 +223,6 @@ object LiveInstrumentService {
                 removedInstrument.isRemoval = true
                 if (removedInstrument.isLive) {
                     liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
-                    removedInstrument.instrument.id?.let { ContextReceiver.clear(it) }
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
             }
@@ -235,7 +234,6 @@ object LiveInstrumentService {
                     removedInstrument.isRemoval = true
                     if (removedInstrument.isLive) {
                         liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
-                        removedInstrument.instrument.id?.let { ContextReceiver.clear(it) }
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
                 }
