@@ -23,7 +23,6 @@ import java.lang.instrument.UnmodifiableClassException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.BiConsumer
-import java.util.function.Consumer
 import java.util.stream.Collectors
 
 object LiveInstrumentService {
@@ -42,26 +41,21 @@ object LiveInstrumentService {
         timer.schedule(object : TimerTask() {
             override fun run() {
                 val removeInstruments: MutableList<ActiveLiveInstrument> = ArrayList()
-                instruments.values.forEach(Consumer {
+                instruments.values.forEach {
                     if (it.instrument.expiresAt != null
                         && System.currentTimeMillis() >= it.instrument.expiresAt!!
                     ) {
                         removeInstruments.add(it)
                     }
-                })
-                applyingInstruments.values.forEach(Consumer {
+                }
+                applyingInstruments.values.forEach {
                     if (it.instrument.expiresAt != null
                         && System.currentTimeMillis() >= it.instrument.expiresAt!!
                     ) {
                         removeInstruments.add(it)
                     }
-                })
-                removeInstruments.forEach(Consumer {
-                    _removeInstrument(
-                        it.instrument,
-                        null
-                    )
-                })
+                }
+                removeInstruments.forEach { _removeInstrument(it.instrument, null) }
             }
         }, 5000, 5000)
     }
@@ -212,6 +206,7 @@ object LiveInstrumentService {
                 removedInstrument.isRemoval = true
                 if (removedInstrument.isLive) {
                     liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                    removedInstrument.instrument.id?.let { ContextReceiver.clear(it) }
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
             }
@@ -223,6 +218,7 @@ object LiveInstrumentService {
                     removedInstrument.isRemoval = true
                     if (removedInstrument.isLive) {
                         liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                        removedInstrument.instrument.id?.let { ContextReceiver.clear(it) }
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
                 }
@@ -232,8 +228,8 @@ object LiveInstrumentService {
         return emptyList()
     }
 
-    fun _removeInstrument(instrument: LiveInstrument?, ex: Throwable?) {
-        removeInstrument(instrument!!.location.source, instrument.location.line, instrument.id)
+    fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+        removeInstrument(instrument.location.source, instrument.location.line, instrument.id)
         val map: MutableMap<String, Any?> = HashMap()
         when (instrument) {
             is LiveBreakpoint -> map["breakpoint"] = ModelSerializer.INSTANCE.toJson(instrument)
@@ -273,7 +269,7 @@ object LiveInstrumentService {
             .collect(Collectors.toSet())
         instruments.addAll(
             applyingInstruments.values.stream()
-                .filter { it.instrument.location.source == source}
+                .filter { it.instrument.location.source == source }
                 .collect(Collectors.toSet()))
         return ArrayList(instruments)
     }
