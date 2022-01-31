@@ -2,6 +2,7 @@ import java.io.FileOutputStream
 import java.net.URL
 
 plugins {
+    id("com.diffplug.spotless") apply false
     id("io.gitlab.arturbosch.detekt")
     id("com.avast.gradle.docker-compose")
     id("org.jetbrains.kotlin.jvm") apply false
@@ -20,6 +21,13 @@ subprojects {
     repositories {
         mavenCentral()
         maven(url = "https://jitpack.io")
+    }
+
+    apply(plugin = "com.diffplug.spotless")
+    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        kotlin {
+            licenseHeaderFile(file("../LICENSE-HEADER.txt"))
+        }
     }
 }
 
