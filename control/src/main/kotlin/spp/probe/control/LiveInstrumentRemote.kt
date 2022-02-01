@@ -19,7 +19,6 @@ package spp.probe.control
 
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.eventbus.Message
-import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
@@ -27,6 +26,7 @@ import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
+import spp.protocol.ProtocolMarshaller
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.instrument.breakpoint.LiveBreakpoint
 import spp.protocol.instrument.log.LiveLog
@@ -34,8 +34,8 @@ import spp.protocol.instrument.meter.LiveMeter
 import spp.protocol.instrument.span.LiveSpan
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.ProbeAddress
+import spp.protocol.probe.command.CommandType
 import spp.protocol.probe.command.LiveInstrumentCommand
-import spp.protocol.probe.command.LiveInstrumentCommand.CommandType
 import java.lang.instrument.Instrumentation
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
@@ -115,9 +115,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
 
     private fun handleInstrumentationRequest(clazz: KClass<out LiveInstrument>, it: Message<JsonObject>) {
         try {
-            val command = Json.decodeValue(it.body().toString(), LiveInstrumentCommand::class.java)
+            val command = ProtocolMarshaller.deserializeLiveInstrumentCommand(it.body())
             when (command.commandType) {
-                CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(clazz, command)
+                CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(command)
                 CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
             }
         } catch (ex: InvocationTargetException) {
@@ -149,26 +149,19 @@ class LiveInstrumentRemote : AbstractVerticle() {
         )
     }
 
-    private fun addInstrument(clazz: KClass<out LiveInstrument>, command: LiveInstrumentCommand) {
+    private fun addInstrument(command: LiveInstrumentCommand) {
         if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
-        val instrumentData = command.context.liveInstruments[0]
-        applyInstrument!!.invoke(null, Json.decodeValue(instrumentData, clazz.java))
+        applyInstrument!!.invoke(null, command.context.instruments.first()) //todo: check for multiple
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
-        for (breakpointData in command.context.liveInstruments) {
-            val breakpointObject = JsonObject(breakpointData)
-            val breakpointId = breakpointObject.getString("id")
-            val location = breakpointObject.getJsonObject("location")
-            val source = location.getString("source")
-            val line = location.getInteger("line")
-            removeInstrument!!.invoke(null, source, line, breakpointId)
+        for (breakpoint in command.context.instruments) {
+            val breakpointId = breakpoint.id
+            val location = breakpoint.location
+            removeInstrument!!.invoke(null, location.source, location.line, breakpointId)
         }
-        for (locationData in command.context.locations) {
-            val location = JsonObject(locationData)
-            val source = location.getString("source")
-            val line = location.getInteger("line")
-            removeInstrument!!.invoke(null, source, line, null)
+        for (location in command.context.locations) {
+            removeInstrument!!.invoke(null, location.source, location.line, null)
         }
     }
 
