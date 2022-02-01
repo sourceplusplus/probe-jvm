@@ -48,7 +48,7 @@ class LiveLogTest : ProbeIntegrationTest() {
 
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
                     val item = Json.decodeValue(event.data, LiveLogHit::class.java)
-                    assertEquals("1 a a", item.logResult.logs.first().getFormattedMessage())
+                    assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
                 }
                 consumer.unregister()
                 testContext.completeNow()
