@@ -27,11 +27,7 @@ import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
 import spp.protocol.ProtocolMarshaller
-import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.breakpoint.LiveBreakpoint
-import spp.protocol.instrument.log.LiveLog
-import spp.protocol.instrument.meter.LiveMeter
-import spp.protocol.instrument.span.LiveSpan
+import spp.protocol.instrument.*
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.ProbeAddress
 import spp.protocol.probe.command.CommandType

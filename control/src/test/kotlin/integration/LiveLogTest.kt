@@ -27,11 +27,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.SourceMarkerServices.Provide
-import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.LiveInstrumentEvent
-import spp.protocol.instrument.LiveInstrumentEventType
-import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.log.LiveLog
+import spp.protocol.instrument.*
 import spp.protocol.instrument.log.event.LiveLogHit
 import java.util.concurrent.TimeUnit
 
@@ -55,16 +51,14 @@ class LiveLogTest : ProbeIntegrationTest() {
             }
         }
 
-        val promise = Promise.promise<LiveInstrument>()
-        instrumentService.addLiveInstrument(
+        assertNotNull(instrumentService.addLiveInstrument(
             LiveLog(
                 logFormat = "{} {} {}",
                 logArguments = listOf("a", "b", "c"),
                 location = LiveSourceLocation("VariableTests", 35),
                 applyImmediately = true
-            ), promise
-        )
-        assertNotNull(promise.future().await())
+            )
+        ).await())
 
         callVariableTests()
         if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {

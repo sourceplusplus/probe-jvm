@@ -27,11 +27,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.SourceMarkerServices.Provide
-import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.LiveInstrumentEvent
-import spp.protocol.instrument.LiveInstrumentEventType
-import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.breakpoint.LiveBreakpoint
+import spp.protocol.instrument.*
 import spp.protocol.instrument.breakpoint.event.LiveBreakpointHit
 import java.util.concurrent.TimeUnit
 
@@ -56,14 +52,12 @@ class LiveBreakpointTest : ProbeIntegrationTest() {
             }
         }
 
-        val promise = Promise.promise<LiveInstrument>()
-        instrumentService.addLiveInstrument(
+        assertNotNull(instrumentService.addLiveInstrument(
             LiveBreakpoint(
                 location = LiveSourceLocation("VariableTests", 35),
                 applyImmediately = true
-            ), promise
-        )
-        assertNotNull(promise.future().await())
+            )
+        ).await())
 
         callVariableTests()
         if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {

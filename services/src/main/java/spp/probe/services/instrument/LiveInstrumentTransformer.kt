@@ -24,10 +24,10 @@ import net.bytebuddy.jar.asm.Type
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
-import spp.protocol.instrument.breakpoint.LiveBreakpoint
-import spp.protocol.instrument.log.LiveLog
-import spp.protocol.instrument.meter.LiveMeter
-import spp.protocol.instrument.span.LiveSpan
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveMeter
+import spp.protocol.instrument.LiveSpan
 
 class LiveInstrumentTransformer(
     private val className: String,
