@@ -137,15 +137,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
         map["occurredAt"] = System.currentTimeMillis()
         map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
 
-        val address = when (clazz) {
-            LiveBreakpoint::class -> PlatformAddress.LIVE_BREAKPOINT_REMOVED.address
-            LiveLog::class -> PlatformAddress.LIVE_LOG_REMOVED.address
-            LiveMeter::class -> PlatformAddress.LIVE_METER_REMOVED.address
-            LiveSpan::class -> PlatformAddress.LIVE_SPAN_REMOVED.address
-            else -> throw IllegalArgumentException("Unknown instrument: $clazz")
-        }
         FrameHelper.sendFrame(
-            BridgeEventType.PUBLISH.name.lowercase(), address, JsonObject.mapFrom(map), SourceProbe.tcpSocket
+            BridgeEventType.PUBLISH.name.lowercase(), PlatformAddress.LIVE_INSTRUMENT_REMOVED.address,
+            JsonObject.mapFrom(map), SourceProbe.tcpSocket
         )
     }
 
