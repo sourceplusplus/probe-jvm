@@ -36,7 +36,7 @@ import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.probe.ProbeAddress
-import spp.protocol.probe.status.ProbeConnection
+import spp.protocol.status.InstanceConnection
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -259,7 +259,7 @@ object SourceProbe {
 
             //send probe connected status
             val replyAddress = UUID.randomUUID().toString()
-            val pc = ProbeConnection(PROBE_ID, System.currentTimeMillis(), meta)
+            val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
             val consumer = vertx!!.eventBus().localConsumer<Boolean>("local.$replyAddress")
             consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
