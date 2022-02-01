@@ -17,7 +17,6 @@
  */
 package integration
 
-import io.vertx.core.Promise
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
@@ -27,8 +26,11 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.SourceMarkerServices.Provide
-import spp.protocol.instrument.*
-import spp.protocol.instrument.log.event.LiveLogHit
+import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.event.LiveInstrumentEvent
+import spp.protocol.instrument.event.LiveInstrumentEventType
+import spp.protocol.instrument.event.LiveLogHit
 import java.util.concurrent.TimeUnit
 
 class LiveLogTest : ProbeIntegrationTest() {
