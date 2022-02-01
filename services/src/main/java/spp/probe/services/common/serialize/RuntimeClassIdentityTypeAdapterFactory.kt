@@ -22,13 +22,7 @@ import com.google.gson.internal.Streams
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import kotlin.jvm.JvmOverloads
-import kotlin.Throws
 import java.io.IOException
-import java.util.LinkedHashMap
-import java.lang.NullPointerException
-import java.lang.IllegalArgumentException
-import java.lang.ClassNotFoundException
 
 /**
  *
