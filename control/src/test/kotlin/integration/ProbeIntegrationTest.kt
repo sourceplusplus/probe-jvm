@@ -37,9 +37,9 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spp.protocol.ProtocolMarshaller
-import spp.protocol.SourceMarkerServices
+import spp.protocol.SourceServices
 import spp.protocol.extend.TCPServiceFrameParser
-import spp.protocol.service.live.LiveInstrumentService
+import spp.protocol.service.LiveInstrumentService
 import java.io.IOException
 import java.util.*
 
@@ -71,18 +71,18 @@ abstract class ProbeIntegrationTest {
 
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
-            setupHandler(socket, vertx, SourceMarkerServices.Utilize.LIVE_INSTRUMENT)
+            setupHandler(socket, vertx, SourceServices.Utilize.LIVE_INSTRUMENT)
 
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
-                SourceMarkerServices.Provide.LIVE_INSTRUMENT_SUBSCRIBER,
+                SourceServices.Provide.LIVE_INSTRUMENT_SUBSCRIBER,
                 JsonObject(),
                 socket
             )
 
             instrumentService = ServiceProxyBuilder(vertx)
                 .setToken(SYSTEM_JWT_TOKEN)
-                .setAddress(SourceMarkerServices.Utilize.LIVE_INSTRUMENT)
+                .setAddress(SourceServices.Utilize.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
         }
 

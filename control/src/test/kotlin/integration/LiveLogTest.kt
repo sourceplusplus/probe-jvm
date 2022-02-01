@@ -25,7 +25,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.SourceMarkerServices.Provide
+import spp.protocol.SourceServices.Provide
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.event.LiveInstrumentEvent
