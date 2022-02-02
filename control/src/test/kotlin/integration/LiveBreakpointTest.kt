@@ -25,7 +25,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.SourceServices.Provide
+import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.event.LiveBreakpointHit
@@ -38,7 +38,7 @@ class LiveBreakpointTest : ProbeIntegrationTest() {
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(Provide.LIVE_INSTRUMENT_SUBSCRIBER)
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
             testContext.verify {
                 val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
@@ -54,12 +54,14 @@ class LiveBreakpointTest : ProbeIntegrationTest() {
             }
         }
 
-        assertNotNull(instrumentService.addLiveInstrument(
-            LiveBreakpoint(
-                location = LiveSourceLocation("VariableTests", 35),
-                applyImmediately = true
-            )
-        ).await())
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation("VariableTests", 35),
+                    applyImmediately = true
+                )
+            ).await()
+        )
 
         callVariableTests()
         if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {

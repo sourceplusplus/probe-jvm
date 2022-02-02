@@ -38,6 +38,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spp.protocol.ProtocolMarshaller
 import spp.protocol.SourceServices
+import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
 import spp.protocol.extend.TCPServiceFrameParser
 import spp.protocol.service.LiveInstrumentService
 import java.io.IOException
@@ -75,7 +76,7 @@ abstract class ProbeIntegrationTest {
 
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
-                SourceServices.Provide.LIVE_INSTRUMENT_SUBSCRIBER,
+                toLiveInstrumentSubscriberAddress("system"),
                 JsonObject(),
                 socket
             )
