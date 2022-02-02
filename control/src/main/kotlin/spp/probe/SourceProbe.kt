@@ -267,25 +267,7 @@ object SourceProbe {
                 //register remotes
                 FrameHelper.sendFrame(
                     BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_BREAKPOINT_REMOTE.address + ":" + PROBE_ID,
-                    JsonObject(),
-                    tcpSocket
-                )
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_LOG_REMOTE.address + ":" + PROBE_ID,
-                    JsonObject(),
-                    tcpSocket
-                )
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_METER_REMOTE.address + ":" + PROBE_ID,
-                    JsonObject(),
-                    tcpSocket
-                )
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + PROBE_ID,
+                    ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + PROBE_ID,
                     JsonObject(),
                     tcpSocket
                 )

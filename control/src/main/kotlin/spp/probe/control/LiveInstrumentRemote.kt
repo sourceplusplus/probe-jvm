@@ -37,7 +37,6 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.*
 import java.util.function.BiConsumer
-import kotlin.reflect.KClass
 
 class LiveInstrumentRemote : AbstractVerticle() {
 
@@ -96,20 +95,11 @@ class LiveInstrumentRemote : AbstractVerticle() {
             throw RuntimeException(e)
         }
         vertx.eventBus()
-            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_BREAKPOINT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { handleInstrumentationRequest(LiveBreakpoint::class, it) }
-        vertx.eventBus()
-            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_LOG_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { handleInstrumentationRequest(LiveLog::class, it) }
-        vertx.eventBus()
-            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_METER_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { handleInstrumentationRequest(LiveMeter::class, it) }
-        vertx.eventBus()
-            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + SourceProbe.PROBE_ID)
-            .handler { handleInstrumentationRequest(LiveSpan::class, it) }
+            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
+            .handler { handleInstrumentationRequest(it) }
     }
 
-    private fun handleInstrumentationRequest(clazz: KClass<out LiveInstrument>, it: Message<JsonObject>) {
+    private fun handleInstrumentationRequest(it: Message<JsonObject>) {
         try {
             val command = ProtocolMarshaller.deserializeLiveInstrumentCommand(it.body())
             when (command.commandType) {
@@ -118,16 +108,16 @@ class LiveInstrumentRemote : AbstractVerticle() {
             }
         } catch (ex: InvocationTargetException) {
             if (ex.cause != null) {
-                publishCommandError(it, ex.cause!!, clazz)
+                publishCommandError(it, ex.cause!!)
             } else {
-                publishCommandError(it, ex.targetException, clazz)
+                publishCommandError(it, ex.targetException)
             }
         } catch (ex: Throwable) {
-            publishCommandError(it, ex, clazz)
+            publishCommandError(it, ex)
         }
     }
 
-    private fun publishCommandError(it: Message<JsonObject>, ex: Throwable, clazz: KClass<out LiveInstrument>) {
+    private fun publishCommandError(it: Message<JsonObject>, ex: Throwable) {
         val map: MutableMap<String, Any> = HashMap()
         map["command"] = it.body().toString()
         map["occurredAt"] = System.currentTimeMillis()
