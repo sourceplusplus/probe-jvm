@@ -38,7 +38,7 @@ class LiveBreakpointTest : ProbeIntegrationTest() {
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(Provide.LIVE_INSTRUMENT_SUBSCRIBER)
         consumer.handler {
             testContext.verify {
                 val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)

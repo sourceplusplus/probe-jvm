@@ -97,7 +97,7 @@ abstract class ProbeIntegrationTest {
         fun setupHandler(socket: NetSocket, vertx: Vertx, address: String) {
             vertx.eventBus().localConsumer<JsonObject>(address) { resp ->
                 val replyAddress = UUID.randomUUID().toString()
-                val tempConsumer = vertx.eventBus().localConsumer<Any>("local.$replyAddress")
+                val tempConsumer = vertx.eventBus().localConsumer<Any>(replyAddress)
                 tempConsumer.handler {
                     resp.reply(it.body())
                     tempConsumer.unregister()

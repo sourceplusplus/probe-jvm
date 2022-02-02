@@ -95,7 +95,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
             throw RuntimeException(e)
         }
         vertx.eventBus()
-            .localConsumer<JsonObject>("local." + ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
+            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
     }
 

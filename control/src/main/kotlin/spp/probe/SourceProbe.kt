@@ -209,7 +209,7 @@ object SourceProbe {
                 if ("message" == frame.getString("type")) {
                     if (frame.getString("replyAddress") != null) {
                         vertx!!.eventBus().request<Any?>(
-                            "local." + frame.getString("address"),
+                            frame.getString("address"),
                             frame.getJsonObject("body")
                         ).onComplete {
                             if (it.succeeded()) {
@@ -230,7 +230,7 @@ object SourceProbe {
                         }
                     } else {
                         vertx!!.eventBus().publish(
-                            "local." + frame.getString("address"),
+                            frame.getString("address"),
                             frame.getValue("body")
                         )
                     }
@@ -260,7 +260,7 @@ object SourceProbe {
             //send probe connected status
             val replyAddress = UUID.randomUUID().toString()
             val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
-            val consumer = vertx!!.eventBus().localConsumer<Boolean>("local.$replyAddress")
+            val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)
             consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
 
