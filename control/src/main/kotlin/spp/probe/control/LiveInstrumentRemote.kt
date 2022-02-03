@@ -94,7 +94,11 @@ class LiveInstrumentRemote : AbstractVerticle() {
             e.printStackTrace()
             throw RuntimeException(e)
         }
-        vertx.eventBus()
+
+        vertx.eventBus() //global instrument remote
+            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE.address)
+            .handler { handleInstrumentationRequest(it) }
+        vertx.eventBus() //probe specific instrument remote
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
     }
@@ -149,7 +153,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         private val EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
             if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
             FrameHelper.sendFrame(
-                BridgeEventType.PUBLISH.name.lowercase(Locale.getDefault()),
+                BridgeEventType.PUBLISH.name.lowercase(),
                 address,
                 JsonObject(json),
                 SourceProbe.tcpSocket

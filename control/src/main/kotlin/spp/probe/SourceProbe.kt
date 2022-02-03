@@ -52,7 +52,7 @@ object SourceProbe {
 
     private val BUILD = ResourceBundle.getBundle("build")
     private var PROBE_DIRECTORY = File(
-        if (System.getProperty("os.name").lowercase(Locale.getDefault()).startsWith("mac"))
+        if (System.getProperty("os.name").lowercase().startsWith("mac"))
             "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
     )
     var instrumentation: Instrumentation? = null
@@ -214,14 +214,14 @@ object SourceProbe {
                         ).onComplete {
                             if (it.succeeded()) {
                                 FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(Locale.getDefault()),
+                                    BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
                                     JsonObject.mapFrom(it.result().body()),
                                     socket.result()
                                 )
                             } else {
                                 FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(Locale.getDefault()),
+                                    BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
                                     JsonObject.mapFrom(it.cause()),
                                     socket.result()
@@ -266,7 +266,13 @@ object SourceProbe {
 
                 //register remotes
                 FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
+                    BridgeEventType.REGISTER.name.lowercase(),
+                    ProbeAddress.LIVE_INSTRUMENT_REMOTE.address,
+                    JsonObject(),
+                    tcpSocket
+                )
+                FrameHelper.sendFrame(
+                    BridgeEventType.REGISTER.name.lowercase(),
                     ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + PROBE_ID,
                     JsonObject(),
                     tcpSocket
@@ -274,7 +280,7 @@ object SourceProbe {
                 consumer.unregister()
             }
             FrameHelper.sendFrame(
-                BridgeEventType.SEND.name.lowercase(Locale.getDefault()), PlatformAddress.PROBE_CONNECTED.address,
+                BridgeEventType.SEND.name.lowercase(), PlatformAddress.PROBE_CONNECTED.address,
                 replyAddress, JsonObject(), true, JsonObject.mapFrom(pc), socket.result()
             )
         }
