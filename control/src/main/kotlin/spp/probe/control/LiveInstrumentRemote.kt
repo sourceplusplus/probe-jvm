@@ -96,10 +96,10 @@ class LiveInstrumentRemote : AbstractVerticle() {
         }
 
         vertx.eventBus() //global instrument remote
-            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE.address)
+            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE)
             .handler { handleInstrumentationRequest(it) }
         vertx.eventBus() //probe specific instrument remote
-            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE.address + ":" + SourceProbe.PROBE_ID)
+            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + SourceProbe.PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
     }
 
@@ -128,7 +128,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
 
         FrameHelper.sendFrame(
-            BridgeEventType.PUBLISH.name.lowercase(), PlatformAddress.LIVE_INSTRUMENT_REMOVED.address,
+            BridgeEventType.PUBLISH.name.lowercase(), PlatformAddress.LIVE_INSTRUMENT_REMOVED,
             JsonObject.mapFrom(map), SourceProbe.tcpSocket
         )
     }

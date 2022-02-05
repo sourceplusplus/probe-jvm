@@ -117,7 +117,7 @@ object LiveInstrumentService {
                 instrument.isLive = true
                 if (!instrument.isRemoval) {
                     instrumentEventConsumer!!.accept(
-                        PlatformAddress.LIVE_INSTRUMENT_APPLIED.address,
+                        PlatformAddress.LIVE_INSTRUMENT_APPLIED,
                         ModelSerializer.INSTANCE.toJson(instrument.instrument)
                     )
                 }
@@ -227,7 +227,7 @@ object LiveInstrumentService {
         }
 
         instrumentEventConsumer!!.accept(
-            PlatformAddress.LIVE_INSTRUMENT_REMOVED.address,
+            PlatformAddress.LIVE_INSTRUMENT_REMOVED,
             ModelSerializer.INSTANCE.toJson(map)
         )
     }
