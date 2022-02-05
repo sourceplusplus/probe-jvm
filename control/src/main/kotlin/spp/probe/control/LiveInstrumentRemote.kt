@@ -135,16 +135,16 @@ class LiveInstrumentRemote : AbstractVerticle() {
 
     private fun addInstrument(command: LiveInstrumentCommand) {
         if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
-        applyInstrument!!.invoke(null, command.context.instruments.first()) //todo: check for multiple
+        applyInstrument!!.invoke(null, command.instruments.first()) //todo: check for multiple
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
-        for (breakpoint in command.context.instruments) {
+        for (breakpoint in command.instruments) {
             val breakpointId = breakpoint.id
             val location = breakpoint.location
             removeInstrument!!.invoke(null, location.source, location.line, breakpointId)
         }
-        for (location in command.context.locations) {
+        for (location in command.locations) {
             removeInstrument!!.invoke(null, location.source, location.line, null)
         }
     }
