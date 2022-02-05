@@ -35,8 +35,8 @@ import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.platform.PlatformAddress
-import spp.protocol.probe.ProbeAddress
-import spp.protocol.status.InstanceConnection
+import spp.protocol.platform.ProbeAddress
+import spp.protocol.platform.status.InstanceConnection
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException

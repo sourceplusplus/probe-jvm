@@ -28,10 +28,10 @@ import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
 import spp.protocol.ProtocolMarshaller
 import spp.protocol.instrument.*
+import spp.protocol.instrument.command.CommandType
+import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.PlatformAddress
-import spp.protocol.probe.ProbeAddress
-import spp.protocol.probe.command.CommandType
-import spp.protocol.probe.command.LiveInstrumentCommand
+import spp.protocol.platform.ProbeAddress
 import java.lang.instrument.Instrumentation
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
