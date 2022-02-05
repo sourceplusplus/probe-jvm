@@ -30,8 +30,8 @@ import spp.protocol.ProtocolMarshaller
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
-import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.ProbeAddress
+import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
@@ -128,7 +128,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
 
         FrameHelper.sendFrame(
-            BridgeEventType.PUBLISH.name.lowercase(), PlatformAddress.LIVE_INSTRUMENT_REMOVED,
+            BridgeEventType.PUBLISH.name.lowercase(), ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
             JsonObject.mapFrom(map), SourceProbe.tcpSocket
         )
     }

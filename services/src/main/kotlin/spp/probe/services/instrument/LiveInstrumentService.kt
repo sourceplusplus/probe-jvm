@@ -30,7 +30,7 @@ import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
 import spp.probe.services.error.LiveInstrumentException
 import spp.protocol.instrument.LiveInstrument
-import spp.protocol.platform.PlatformAddress
+import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
@@ -117,7 +117,7 @@ object LiveInstrumentService {
                 instrument.isLive = true
                 if (!instrument.isRemoval) {
                     instrumentEventConsumer!!.accept(
-                        PlatformAddress.LIVE_INSTRUMENT_APPLIED,
+                        ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
                         ModelSerializer.INSTANCE.toJson(instrument.instrument)
                     )
                 }
@@ -227,7 +227,7 @@ object LiveInstrumentService {
         }
 
         instrumentEventConsumer!!.accept(
-            PlatformAddress.LIVE_INSTRUMENT_REMOVED,
+            ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
             ModelSerializer.INSTANCE.toJson(map)
         )
     }
