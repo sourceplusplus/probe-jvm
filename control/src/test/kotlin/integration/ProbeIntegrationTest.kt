@@ -76,9 +76,8 @@ abstract class ProbeIntegrationTest {
 
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
-                toLiveInstrumentSubscriberAddress("system"),
-                JsonObject(),
-                socket
+                toLiveInstrumentSubscriberAddress("system"), null,
+                JsonObject().put("auth-token", SYSTEM_JWT_TOKEN), null, null, socket
             )
 
             instrumentService = ServiceProxyBuilder(vertx)
