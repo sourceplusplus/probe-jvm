@@ -18,8 +18,8 @@
 package spp.probe.services.common.model
 
 import org.springframework.expression.Expression
-import spp.protocol.instrument.HitThrottle
 import spp.protocol.instrument.LiveInstrument
+import spp.protocol.instrument.throttle.HitThrottle
 
 class ActiveLiveInstrument @JvmOverloads constructor(
     val instrument: LiveInstrument,

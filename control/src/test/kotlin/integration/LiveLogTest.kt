@@ -17,7 +17,6 @@
  */
 package integration
 
-import io.vertx.core.Promise
 import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
@@ -26,13 +25,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.SourceMarkerServices.Provide
-import spp.protocol.instrument.LiveInstrument
-import spp.protocol.instrument.LiveInstrumentEvent
-import spp.protocol.instrument.LiveInstrumentEventType
+import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
+import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.log.LiveLog
-import spp.protocol.instrument.log.event.LiveLogHit
+import spp.protocol.instrument.event.LiveInstrumentEvent
+import spp.protocol.instrument.event.LiveInstrumentEventType
+import spp.protocol.instrument.event.LiveLogHit
 import java.util.concurrent.TimeUnit
 
 class LiveLogTest : ProbeIntegrationTest() {
@@ -40,7 +38,7 @@ class LiveLogTest : ProbeIntegrationTest() {
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>("local." + Provide.LIVE_INSTRUMENT_SUBSCRIBER)
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
             testContext.verify {
                 val event = Json.decodeValue(it.body().toString(), LiveInstrumentEvent::class.java)
@@ -48,23 +46,23 @@ class LiveLogTest : ProbeIntegrationTest() {
 
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
                     val item = Json.decodeValue(event.data, LiveLogHit::class.java)
-                    assertEquals("1 a a", item.logResult.logs.first().getFormattedMessage())
+                    assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
                 }
                 consumer.unregister()
                 testContext.completeNow()
             }
         }
 
-        val promise = Promise.promise<LiveInstrument>()
-        instrumentService.addLiveInstrument(
-            LiveLog(
-                logFormat = "{} {} {}",
-                logArguments = listOf("a", "b", "c"),
-                location = LiveSourceLocation("VariableTests", 35),
-                applyImmediately = true
-            ), promise
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveLog(
+                    logFormat = "{} {} {}",
+                    logArguments = listOf("a", "b", "c"),
+                    location = LiveSourceLocation("VariableTests", 35),
+                    applyImmediately = true
+                )
+            ).await()
         )
-        assertNotNull(promise.future().await())
 
         callVariableTests()
         if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {

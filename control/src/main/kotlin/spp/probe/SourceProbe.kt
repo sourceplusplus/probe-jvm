@@ -35,8 +35,8 @@ import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.platform.PlatformAddress
-import spp.protocol.probe.ProbeAddress
-import spp.protocol.probe.status.ProbeConnection
+import spp.protocol.platform.ProbeAddress
+import spp.protocol.platform.status.InstanceConnection
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -52,7 +52,7 @@ object SourceProbe {
 
     private val BUILD = ResourceBundle.getBundle("build")
     private var PROBE_DIRECTORY = File(
-        if (System.getProperty("os.name").lowercase(Locale.getDefault()).startsWith("mac"))
+        if (System.getProperty("os.name").lowercase().startsWith("mac"))
             "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
     )
     var instrumentation: Instrumentation? = null
@@ -209,19 +209,19 @@ object SourceProbe {
                 if ("message" == frame.getString("type")) {
                     if (frame.getString("replyAddress") != null) {
                         vertx!!.eventBus().request<Any?>(
-                            "local." + frame.getString("address"),
+                            frame.getString("address"),
                             frame.getJsonObject("body")
                         ).onComplete {
                             if (it.succeeded()) {
                                 FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(Locale.getDefault()),
+                                    BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
                                     JsonObject.mapFrom(it.result().body()),
                                     socket.result()
                                 )
                             } else {
                                 FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(Locale.getDefault()),
+                                    BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
                                     JsonObject.mapFrom(it.cause()),
                                     socket.result()
@@ -230,7 +230,7 @@ object SourceProbe {
                         }
                     } else {
                         vertx!!.eventBus().publish(
-                            "local." + frame.getString("address"),
+                            frame.getString("address"),
                             frame.getValue("body")
                         )
                     }
@@ -259,40 +259,28 @@ object SourceProbe {
 
             //send probe connected status
             val replyAddress = UUID.randomUUID().toString()
-            val pc = ProbeConnection(PROBE_ID, System.currentTimeMillis(), meta)
-            val consumer = vertx!!.eventBus().localConsumer<Boolean>("local.$replyAddress")
+            val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
+            val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)
             consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
 
                 //register remotes
                 FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_BREAKPOINT_REMOTE.address + ":" + PROBE_ID,
+                    BridgeEventType.REGISTER.name.lowercase(),
+                    ProbeAddress.LIVE_INSTRUMENT_REMOTE,
                     JsonObject(),
                     tcpSocket
                 )
                 FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_LOG_REMOTE.address + ":" + PROBE_ID,
-                    JsonObject(),
-                    tcpSocket
-                )
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_METER_REMOTE.address + ":" + PROBE_ID,
-                    JsonObject(),
-                    tcpSocket
-                )
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(Locale.getDefault()),
-                    ProbeAddress.LIVE_SPAN_REMOTE.address + ":" + PROBE_ID,
+                    BridgeEventType.REGISTER.name.lowercase(),
+                    ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,
                     JsonObject(),
                     tcpSocket
                 )
                 consumer.unregister()
             }
             FrameHelper.sendFrame(
-                BridgeEventType.SEND.name.lowercase(Locale.getDefault()), PlatformAddress.PROBE_CONNECTED.address,
+                BridgeEventType.SEND.name.lowercase(), PlatformAddress.PROBE_CONNECTED,
                 replyAddress, JsonObject(), true, JsonObject.mapFrom(pc), socket.result()
             )
         }

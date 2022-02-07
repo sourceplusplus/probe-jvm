@@ -27,9 +27,9 @@ import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.breakpoint.LiveBreakpoint
-import spp.protocol.instrument.log.LiveLog
 import java.lang.instrument.Instrumentation
 
 @RunWith(JUnit4::class)

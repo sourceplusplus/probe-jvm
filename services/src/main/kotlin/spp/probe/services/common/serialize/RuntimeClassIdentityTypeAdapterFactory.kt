@@ -22,13 +22,7 @@ import com.google.gson.internal.Streams
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import kotlin.jvm.JvmOverloads
-import kotlin.Throws
 import java.io.IOException
-import java.util.LinkedHashMap
-import java.lang.NullPointerException
-import java.lang.IllegalArgumentException
-import java.lang.ClassNotFoundException
 
 /**
  *
@@ -118,7 +112,7 @@ import java.lang.ClassNotFoundException
  * .registerSubtype(Diamond.class);
 `</pre> *
  */
-class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<*>?, typeFieldName: String?) :
+class RuntimeClassIdentityTypeAdapterFactory<T> private constructor(baseType: Class<*>?, typeFieldName: String?) :
     TypeAdapterFactory {
     private val baseType: Class<*>
     private val typeFieldName: String
@@ -149,7 +143,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
     fun registerSubtype(
         type: Class<out T>?,
         label: String? = type!!.simpleName
-    ): RuntimeClassNameTypeAdapterFactory<T> {
+    ): RuntimeClassIdentityTypeAdapterFactory<T> {
         if (type == null || label == null) {
             throw NullPointerException()
         }
@@ -195,7 +189,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                             throw JsonParseException("Cannot find class $label", e)
                         }
                         val subClass = TypeToken.get(aClass)
-                        delegate = gson.getDelegateAdapter(this@RuntimeClassNameTypeAdapterFactory, subClass)
+                        delegate = gson.getDelegateAdapter(this@RuntimeClassIdentityTypeAdapterFactory, subClass)
                         if (delegate == null) {
                             throw JsonParseException(
                                 "cannot deserialize " + baseType + " subtype named "
@@ -207,7 +201,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                 } else if (jsonElement.isJsonNull) {
                     null
                 } else {
-                    val delegate = gson.getDelegateAdapter(this@RuntimeClassNameTypeAdapterFactory, type)
+                    val delegate = gson.getDelegateAdapter(this@RuntimeClassIdentityTypeAdapterFactory, type)
                         ?: throw JsonParseException("cannot deserialize $baseType; did you forget to register a subtype?")
                     delegate.fromJsonTree(jsonElement)
                 }
@@ -216,7 +210,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
             @Throws(IOException::class)
             override fun write(out: JsonWriter, value: R?) {
                 val srcType: Class<*> = value!!.javaClass
-                val label = srcType.name
+                val label = Integer.toHexString(System.identityHashCode(value))
                 val delegate = getDelegate(srcType)
                     ?: throw JsonParseException(
                         "cannot serialize " + srcType.name
@@ -259,16 +253,16 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
         /**
          * Creates a new runtime type adapter using for `baseType` using `typeFieldName` as the type field name. Type field names are case sensitive.
          */
-        fun <T> of(baseType: Class<T>?, typeFieldName: String?): RuntimeClassNameTypeAdapterFactory<T> {
-            return RuntimeClassNameTypeAdapterFactory(baseType, typeFieldName)
+        fun <T> of(baseType: Class<T>?, typeFieldName: String?): RuntimeClassIdentityTypeAdapterFactory<T> {
+            return RuntimeClassIdentityTypeAdapterFactory(baseType, typeFieldName)
         }
 
         /**
          * Creates a new runtime type adapter for `baseType` using `"type"` as
          * the type field name.
          */
-        fun <T> of(baseType: Class<T>?): RuntimeClassNameTypeAdapterFactory<T> {
-            return RuntimeClassNameTypeAdapterFactory(baseType, "@class")
+        fun <T> of(baseType: Class<T>?): RuntimeClassIdentityTypeAdapterFactory<T> {
+            return RuntimeClassIdentityTypeAdapterFactory(baseType, "@identity")
         }
     }
 }
