@@ -96,7 +96,7 @@ object SourceProbe {
                 "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
             ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
             val sizeCappedClass = Class.forName(
-                "spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory", true, agentClassLoader
+                "spp.probe.services.common.serialize.DepthSizeCappedTypeAdapterFactory", true, agentClassLoader
             )
             sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
                 .invoke(null, instrumentation)
@@ -138,7 +138,7 @@ object SourceProbe {
                 "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
             ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
             val sizeCappedClass = Class.forName(
-                "spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory", true, agentClassLoader
+                "spp.probe.services.common.serialize.DepthSizeCappedTypeAdapterFactory", true, agentClassLoader
             )
             sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
                 .invoke(null, instrumentation)
