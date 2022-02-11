@@ -53,7 +53,8 @@ enum class ModelSerializer {
                     }
                 } else null
             }
-        }).registerTypeAdapterFactory(object : TypeAdapterFactory {
+        })
+        .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (OutputStream::class.java.isAssignableFrom(typeToken.rawType)) {
                     object : TypeAdapter<OutputStream?>() {
