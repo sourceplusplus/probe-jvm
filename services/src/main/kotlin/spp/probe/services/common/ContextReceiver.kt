@@ -224,7 +224,7 @@ object ContextReceiver {
     private fun encodeObject(varName: String, value: Any): String? {
         return try {
             String.format(
-                "{\"@class\":\"%s\",\"@identity\":\"%s\",\"$varName\":%s}",
+                "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
                 ModelSerializer.INSTANCE.toExtendedJson(value)
             )
@@ -233,7 +233,7 @@ object ContextReceiver {
                 val map: MutableMap<String, Any?> = HashMap()
                 map[varName] = value.javaClass.name + "@" + Integer.toHexString(System.identityHashCode(value))
                 map["@class"] = "java.lang.Class"
-                map["@identity"] = Integer.toHexString(System.identityHashCode(value))
+                map["@id"] = Integer.toHexString(System.identityHashCode(value))
                 map["@ex"] = ex.message
                 return ModelSerializer.INSTANCE.toJson(map)
             } catch (ignore: Exception) {

@@ -24,7 +24,8 @@ dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.7")
 
-    implementation("com.google.code.gson:gson:$gsonVersion")
+    //implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
     implementation("org.springframework:spring-expression:5.3.15")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
     implementation("org.jetbrains:annotations:23.0.0")

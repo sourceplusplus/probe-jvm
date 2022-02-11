@@ -20,6 +20,7 @@ package spp.probe.services.common.serialize
 import com.google.gson.Gson
 import com.google.gson.TypeAdapter
 import com.google.gson.TypeAdapterFactory
+import com.google.gson.internal.bind.JsogRegistry
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
@@ -27,31 +28,69 @@ import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 import java.lang.instrument.Instrumentation
 
-class SizeCappedTypeAdapterFactory : TypeAdapterFactory {
+class DepthSizeCappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T>? {
         return if (instrumentation == null || maxMemorySize == -1L) null else object : TypeAdapter<T>() {
+
             @Throws(IOException::class)
             override fun write(jsonWriter: JsonWriter, value: T?) {
+                if (value == null) {
+                    jsonWriter.nullValue()
+                    return
+                } else if (value is Class<*>) {
+                    jsonWriter.value(value.name)
+                    return
+                }
+
+                JsogRegistry.get().userData.putIfAbsent("depth", 0)
+                if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
+                    jsonWriter.beginObject()
+                    jsonWriter.name("@skip")
+                    jsonWriter.value("MAX_DEPTH_EXCEEDED")
+                    jsonWriter.name("@class")
+                    jsonWriter.value(value.javaClass.name)
+                    jsonWriter.name("@id")
+                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                    jsonWriter.endObject()
+                    return
+                }
+
                 val objSize = instrumentation!!.getObjectSize(value)
                 if (objSize <= maxMemorySize) {
-                    ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(this@SizeCappedTypeAdapterFactory, type)
-                        .write(jsonWriter, value)
+                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+                    try {
+                        ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
+                            this@DepthSizeCappedTypeAdapterFactory, type
+                        ).write(jsonWriter, value)
+                    } catch (e: Exception) {
+                        jsonWriter.beginObject()
+                        jsonWriter.name("@skip")
+                        jsonWriter.value("EXCEPTION_OCCURRED")
+                        jsonWriter.name("@class")
+                        jsonWriter.value(value.javaClass.name)
+                        jsonWriter.name("@size")
+                        jsonWriter.value(objSize.toString())
+                        jsonWriter.name("@cause")
+                        jsonWriter.value(e.message)
+                        jsonWriter.endObject()
+                    }
+                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
                 } else {
                     jsonWriter.beginObject()
+                    jsonWriter.name("@skip")
+                    jsonWriter.value("MAX_SIZE_EXCEEDED")
                     jsonWriter.name("@class")
-                    jsonWriter.value("LargeObject")
+                    jsonWriter.value(value.javaClass.name)
                     jsonWriter.name("@size")
                     jsonWriter.value(objSize.toString())
-                    jsonWriter.name("@identity")
+                    jsonWriter.name("@id")
                     jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
                     jsonWriter.endObject()
                 }
             }
 
-            override fun read(jsonReader: JsonReader): T? {
-                return null
-            }
+            override fun read(jsonReader: JsonReader): T? = null
         }
     }
 
