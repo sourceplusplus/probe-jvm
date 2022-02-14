@@ -28,7 +28,7 @@ import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 import java.lang.instrument.Instrumentation
 
-class DepthSizeCappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
+class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T>? {
         return if (instrumentation == null || maxMemorySize == -1L) null else object : TypeAdapter<T>() {
@@ -61,7 +61,7 @@ class DepthSizeCappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory 
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
                     try {
                         ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                            this@DepthSizeCappedTypeAdapterFactory, type
+                            this@CappedTypeAdapterFactory, type
                         ).write(jsonWriter, value)
                     } catch (e: Exception) {
                         jsonWriter.beginObject()

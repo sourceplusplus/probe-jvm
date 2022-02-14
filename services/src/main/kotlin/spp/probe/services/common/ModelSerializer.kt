@@ -22,7 +22,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
-import spp.probe.services.common.serialize.DepthSizeCappedTypeAdapterFactory
+import spp.probe.services.common.serialize.CappedTypeAdapterFactory
 import java.io.IOException
 import java.io.OutputStream
 import java.util.*
@@ -41,7 +41,7 @@ enum class ModelSerializer {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     val extendedGson: Gson = GsonBuilder()
         .setJsogPolicy(JsogPolicy.DEFAULT.withJsogAlwaysEnabled())
-        .registerTypeAdapterFactory(DepthSizeCappedTypeAdapterFactory(2))
+        .registerTypeAdapterFactory(CappedTypeAdapterFactory(2))
         .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (ignoredTypes.contains(typeToken.rawType.name)) {
