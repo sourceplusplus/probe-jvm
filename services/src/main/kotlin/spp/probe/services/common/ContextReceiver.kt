@@ -236,7 +236,8 @@ object ContextReceiver {
                 map[varName] = value.javaClass.name + "@" + Integer.toHexString(System.identityHashCode(value))
                 map["@class"] = "java.lang.Class"
                 map["@id"] = Integer.toHexString(System.identityHashCode(value))
-                map["@ex"] = ex.message
+                map["@skip"] = "EXCEPTION_OCCURRED"
+                map["@cause"] = ex.message
                 return ModelSerializer.INSTANCE.toJson(map)
             } catch (ignore: Exception) {
             }
