@@ -50,7 +50,7 @@ import java.util.zip.ZipInputStream
 
 object SourceProbe {
 
-    private val BUILD = ResourceBundle.getBundle("build")
+    private val BUILD = ResourceBundle.getBundle("probe_build")
     private var PROBE_DIRECTORY = File(
         if (System.getProperty("os.name").lowercase().startsWith("mac"))
             "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
