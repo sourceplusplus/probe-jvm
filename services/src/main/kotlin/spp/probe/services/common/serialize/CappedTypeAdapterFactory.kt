@@ -101,7 +101,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         private var maxMemorySize: Long = -1
 
         @JvmStatic
-        fun setInstrumentation(instrumentation: Instrumentation?) {
+        fun setInstrumentation(instrumentation: Instrumentation) {
             Companion.instrumentation = instrumentation
         }
 
