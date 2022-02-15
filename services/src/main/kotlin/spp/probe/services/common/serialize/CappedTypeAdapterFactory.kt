@@ -73,6 +73,8 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         jsonWriter.value(objSize.toString())
                         jsonWriter.name("@cause")
                         jsonWriter.value(e.message)
+                        jsonWriter.name("@id")
+                        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
                         jsonWriter.endObject()
                     }
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
