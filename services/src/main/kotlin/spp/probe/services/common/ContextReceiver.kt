@@ -37,6 +37,7 @@ import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 object ContextReceiver {
 
@@ -44,6 +45,7 @@ object ContextReceiver {
     private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
     private val logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient::class.java)
+    private val executor = Executors.newFixedThreadPool(5)
 
     operator fun get(instrumentId: String): ContextMap {
         val contextMap = ContextMap()
@@ -84,7 +86,7 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
+    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) = executor.submit {
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
         val localVars: Map<String, Any>? = localVariables.remove(breakpointId)
         localVars?.forEach { (key: String, value: Any) ->
@@ -116,7 +118,7 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) {
+    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) = executor.submit {
         val localVars: Map<String, Any>? = localVariables.remove(logId)
         val localFields: Map<String, Any>? = fields.remove(logId)
         val localStaticFields: Map<String, Any>? = staticFields.remove(logId)
@@ -170,8 +172,8 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putMeter(meterId: String) {
-        val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return
+    fun putMeter(meterId: String) = executor.submit {
+        val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return@submit
         val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             when (liveMeter.meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
@@ -224,7 +226,7 @@ object ContextReceiver {
     private fun encodeObject(varName: String, value: Any): String? {
         return try {
             String.format(
-                "{\"@class\":\"%s\",\"@identity\":\"%s\",\"$varName\":%s}",
+                "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
                 ModelSerializer.INSTANCE.toExtendedJson(value)
             )
@@ -233,8 +235,9 @@ object ContextReceiver {
                 val map: MutableMap<String, Any?> = HashMap()
                 map[varName] = value.javaClass.name + "@" + Integer.toHexString(System.identityHashCode(value))
                 map["@class"] = "java.lang.Class"
-                map["@identity"] = Integer.toHexString(System.identityHashCode(value))
-                map["@ex"] = ex.message
+                map["@id"] = Integer.toHexString(System.identityHashCode(value))
+                map["@skip"] = "EXCEPTION_OCCURRED"
+                map["@cause"] = ex.message
                 return ModelSerializer.INSTANCE.toJson(map)
             } catch (ignore: Exception) {
             }

@@ -17,18 +17,15 @@
  */
 package spp.probe.services.common
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.TypeAdapter
-import com.google.gson.TypeAdapterFactory
+import com.google.gson.*
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import spp.probe.services.common.serialize.RuntimeClassIdentityTypeAdapterFactory
 import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
-import spp.probe.services.common.serialize.SizeCappedTypeAdapterFactory
+import spp.probe.services.common.serialize.CappedTypeAdapterFactory
 import java.io.IOException
 import java.io.OutputStream
+import java.util.*
 
 enum class ModelSerializer {
     INSTANCE;
@@ -43,7 +40,8 @@ enum class ModelSerializer {
 
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     val extendedGson: Gson = GsonBuilder()
-        .registerTypeAdapterFactory(SizeCappedTypeAdapterFactory())
+        .setJsogPolicy(JsogPolicy.DEFAULT.withJsogAlwaysEnabled())
+        .registerTypeAdapterFactory(CappedTypeAdapterFactory(2))
         .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (ignoredTypes.contains(typeToken.rawType.name)) {
@@ -73,7 +71,6 @@ enum class ModelSerializer {
                 } else null
             }
         })
-        .registerTypeAdapterFactory(RuntimeClassIdentityTypeAdapterFactory.of(Any::class.java))
         .registerTypeAdapterFactory(RuntimeClassNameTypeAdapterFactory.of(Any::class.java))
         .disableHtmlEscaping().create()
 

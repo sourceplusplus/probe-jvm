@@ -23,9 +23,11 @@ services:
       - "5445:5445"
       - "5450:5450"
       - "5455:5455"
+      - "5107:5107"
     environment:
       - SPP_LOGGING_LEVEL=trace
       - SPP_OAP_HOST=skywalking-oap
+      - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5107
     volumes:
       - ./config/spp-platform.crt:/opt/sourceplusplus/config/spp-platform.crt
       - ./config/spp-platform.key:/opt/sourceplusplus/config/spp-platform.key
