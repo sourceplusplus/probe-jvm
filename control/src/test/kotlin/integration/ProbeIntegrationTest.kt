@@ -36,7 +36,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spp.protocol.ProtocolMarshaller
+import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.SourceServices
 import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
 import spp.protocol.extend.TCPServiceFrameParser
