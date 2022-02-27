@@ -33,7 +33,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import java.util.concurrent.TimeUnit
 
-class LiveBreakpointTest : ProbeIntegrationTest() {
+class ProbeBreakpointTest : ProbeIntegrationTest() {
 
     @Test
     fun testPrimitives() = runBlocking {
