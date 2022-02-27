@@ -68,7 +68,6 @@ abstract class ProbeIntegrationTest {
         @JvmStatic
         fun setup() = runBlocking {
             vertx = Vertx.vertx()
-            ProtocolMarshaller.setupCodecs(vertx)
 
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
