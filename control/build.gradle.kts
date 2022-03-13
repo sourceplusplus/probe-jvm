@@ -25,7 +25,6 @@ tasks.getByName<JavaCompile>("compileJava") {
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
-    implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
         isTransitive = false
@@ -41,10 +40,6 @@ dependencies {
     testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
-    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
-    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion")
-    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-guava:$jacksonVersion")
-    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 }
 
 tasks.getByName<Test>("test") {
@@ -148,5 +143,8 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("org.yaml", "spp.probe.common.org.yaml")
     relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
+
+    //need to move marshall package to allow probe to observe platform
+    relocate("spp.protocol.marshall", "spp.protocol")
 }
 tasks.getByName("jar").dependsOn("shadowJar")

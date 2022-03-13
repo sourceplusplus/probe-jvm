@@ -26,7 +26,7 @@ import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
-import spp.protocol.ProtocolMarshaller
+import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand

@@ -36,7 +36,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spp.protocol.ProtocolMarshaller
+import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.SourceServices
 import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
 import spp.protocol.extend.TCPServiceFrameParser
@@ -68,7 +68,6 @@ abstract class ProbeIntegrationTest {
         @JvmStatic
         fun setup() = runBlocking {
             vertx = Vertx.vertx()
-            ProtocolMarshaller.setupCodecs(vertx)
 
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
