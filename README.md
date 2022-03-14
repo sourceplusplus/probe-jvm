@@ -12,7 +12,7 @@ This project provides JVM support to the [Source++](https://github.com/sourceplu
 
 ## Standalone Agent
 
-1. Add `spp-probe-*.jar`& `spp-probe.yml` to the same directory
+1. Add `spp-probe-*.jar` and `spp-probe.yml` to the same directory
     - E.g. [spp-probe-0.4.2.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.4.2/spp-probe-0.4.2.jar) & [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
 1. Boot application with `-javaagent:spp-probe-*.jar` parameter
     - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.4.2.jar -jar MyApp.jar`
