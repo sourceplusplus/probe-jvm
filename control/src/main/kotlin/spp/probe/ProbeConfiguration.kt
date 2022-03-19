@@ -117,13 +117,25 @@ object ProbeConfiguration {
         get() {
             val settings = toProperties(rawProperties).stream()
                 .filter { it[0].startsWith("skywalking.") }
-                .collect(Collectors.toList())
+                .collect(Collectors.toList()).toMutableList()
+            getSkyWalkingDefaults()
+                .filter { default -> settings.stream().noneMatch { it[0] == default[0] } }
+                .forEach { settings.add(it) }
             if (settings.stream().noneMatch { it[0] == "skywalking.agent.service_name" } ||
                 settings.stream().noneMatch { it[0] == "skywalking.collector.backend_service" }) {
                 throw RuntimeException("Missing Apache SkyWalking setup configuration")
             }
             return settings
         }
+
+    private fun getSkyWalkingDefaults(): MutableSet<Array<String>> {
+        return mutableSetOf(
+            arrayOf("skywalking.agent.is_cache_enhanced_class", "true"),
+            arrayOf("skywalking.agent.class_cache_mode", "FILE"),
+            arrayOf("skywalking.plugin.toolkit.log.transmit_formatted", "false")
+        )
+    }
+
     val sppSettings: List<Array<String>>
         get() = toProperties(rawProperties).stream()
             .filter { it[0].startsWith("spp.") }
