@@ -26,7 +26,7 @@ dependencies {
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
-    implementation("org.springframework:spring-expression:5.3.17")
+    implementation("org.springframework:spring-expression:5.3.18")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
