@@ -20,6 +20,7 @@ package spp.probe
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import io.vertx.core.json.JsonObject
+import spp.probe.SourceProbe.PROBE_ID
 import java.io.File
 import java.io.FileInputStream
 import java.util.stream.Collectors
@@ -130,6 +131,7 @@ object ProbeConfiguration {
 
     private fun getSkyWalkingDefaults(): MutableSet<Array<String>> {
         return mutableSetOf(
+            arrayOf("skywalking.agent.instance_properties_json", JsonObject().put("probe_id", PROBE_ID).toString()),
             arrayOf("skywalking.agent.is_cache_enhanced_class", "true"),
             arrayOf("skywalking.agent.class_cache_mode", "FILE"),
             arrayOf("skywalking.plugin.toolkit.log.transmit_formatted", "false")
