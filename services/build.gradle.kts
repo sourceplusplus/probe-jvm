@@ -18,7 +18,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("com.github.sourceplusplus.protocol:protocol:05b144c6ba") {
+    implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
         isTransitive = false
     }
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
