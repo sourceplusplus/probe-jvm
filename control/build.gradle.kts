@@ -26,7 +26,7 @@ dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
+    implementation("com.github.sourceplusplus.protocol:protocol:05b144c6ba") {
         isTransitive = false
     }
 
