@@ -2,10 +2,10 @@ pluginManagement {
     plugins {
         String kotlinVersion = "1.6.10"
         id 'org.jetbrains.kotlin.jvm' version kotlinVersion apply false
-        id 'com.avast.gradle.docker-compose' version "0.15.2" apply false
+        id 'com.avast.gradle.docker-compose' version "0.16.4" apply false
         id 'io.gitlab.arturbosch.detekt' version "1.20.0" apply false
         id 'com.github.johnrengelman.shadow' version "7.1.2" apply false
-        id 'com.diffplug.spotless' version '6.4.2' apply false
+        id 'com.diffplug.spotless' version '6.6.1' apply false
     }
 }
 
