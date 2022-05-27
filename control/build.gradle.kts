@@ -13,10 +13,9 @@ val jacksonVersion: String by project
 val vertxVersion: String by project
 val jupiterVersion: String by project
 val logbackVersion: String by project
-val probeVersion: String = project.properties["probeVersion"] as String? ?: projectVersion
 
 group = probeGroup
-version = probeVersion
+version = project.properties["probeVersion"] as String? ?: projectVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)

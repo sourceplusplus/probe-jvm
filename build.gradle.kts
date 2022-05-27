@@ -13,10 +13,9 @@ val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
-val probeVersion: String = project.properties["probeVersion"] as String? ?: projectVersion
 
 group = probeGroup
-version = probeVersion
+version = project.properties["probeVersion"] as String? ?: projectVersion
 
 subprojects {
     repositories {
