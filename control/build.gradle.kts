@@ -134,11 +134,11 @@ tasks.register<Zip>("zipSppSkywalkingAgent") {
     from(File(projectDir.parentFile, "e2e/skywalking-agent"))
     into("plugins") {
         doFirst {
-            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$projectVersion.jar").exists()) {
+            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$probeVersion.jar").exists()) {
                 throw GradleException("Missing spp-skywalking-services")
             }
         }
-        from(File(projectDir, "../services/build/libs/spp-skywalking-services-$projectVersion.jar"))
+        from(File(projectDir, "../services/build/libs/spp-skywalking-services-$probeVersion.jar"))
     }
 }
 tasks["classes"].dependsOn("zipSppSkywalkingAgent")
