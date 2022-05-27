@@ -40,7 +40,8 @@ jobs:
           echo "SPP_PROBE_VERSION=$VERSION" >> $GITHUB_ENV
           echo "SPP_RELEASE_VERSION=${VERSION/-SNAPSHOT/}" >> $GITHUB_ENV
 
-      - run: ./gradlew assembleUp -Dbuild.profile=release -PprojectVersion=$SPP_RELEASE_VERSION
+      - run: ./gradlew build -Dbuild.profile=release -PprobeVersion=$SPP_RELEASE_VERSION
+      - run: ./gradlew assembleUp -Dbuild.profile=release
 
       - name: Docker IPs
         run: docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)

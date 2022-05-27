@@ -8,9 +8,10 @@ val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
+val probeVersion: String = project.properties["probeVersion"] as String? ?: projectVersion
 
 group = probeGroup
-version = projectVersion
+version = probeVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
