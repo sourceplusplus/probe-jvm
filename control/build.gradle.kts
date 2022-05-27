@@ -4,6 +4,7 @@ plugins {
     id("com.github.johnrengelman.shadow")
     id("java")
     id("org.jetbrains.kotlin.jvm")
+    id("maven-publish")
 }
 
 val probeGroup: String by project
@@ -13,20 +14,46 @@ val jacksonVersion: String by project
 val vertxVersion: String by project
 val jupiterVersion: String by project
 val logbackVersion: String by project
+val probeVersion: String by project
 
 group = probeGroup
-version = projectVersion
+version = probeVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
     sourceCompatibility = "1.8"
 }
 
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/sourceplusplus/probe-jvm")
+            credentials {
+                username = System.getenv("GH_PUBLISH_USERNAME")?.toString()
+                password = System.getenv("GH_PUBLISH_TOKEN")?.toString()
+            }
+        }
+    }
+
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = probeGroup
+                artifactId = "probe-jvm"
+                version = projectVersion
+
+                from(components["kotlin"])
+            }
+        }
+    }
+}
+
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
+    implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
 
@@ -72,7 +99,7 @@ tasks.create("createProperties") {
             val p = Properties()
             p["build_id"] = UUID.randomUUID().toString()
             p["build_date"] = Date().toInstant().toString()
-            p["build_version"] = project.version.toString()
+            p["build_version"] = probeVersion
             p["apache_skywalking_version"] = skywalkingAgentVersion
             p.store(it, null)
         }
