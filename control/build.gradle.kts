@@ -4,7 +4,6 @@ plugins {
     id("com.github.johnrengelman.shadow")
     id("java")
     id("org.jetbrains.kotlin.jvm")
-    id("maven-publish")
 }
 
 val probeGroup: String by project
@@ -22,31 +21,6 @@ version = probeVersion
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
     sourceCompatibility = "1.8"
-}
-
-configure<PublishingExtension> {
-    repositories {
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/sourceplusplus/probe-jvm")
-            credentials {
-                username = System.getenv("GH_PUBLISH_USERNAME")?.toString()
-                password = System.getenv("GH_PUBLISH_TOKEN")?.toString()
-            }
-        }
-    }
-
-    publishing {
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = probeGroup
-                artifactId = "probe-jvm"
-                version = projectVersion
-
-                from(components["kotlin"])
-            }
-        }
-    }
 }
 
 dependencies {
