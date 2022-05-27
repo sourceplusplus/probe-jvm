@@ -117,7 +117,7 @@ jobs:
           asset_content_type: application/java-archive
 
       - name: Remove Old Snapshot Packages
-        if: github.ref == 'refs/heads/master'
+#        if: github.ref == 'refs/heads/master'
         uses: smartsquaregmbh/delete-old-packages@v0.4.0
         with:
           keep: 0
@@ -126,7 +126,7 @@ jobs:
             plus.sourceplus.probe.probe-jvm
 
       - name: Publish New Snapshot Packages
-        if: github.ref == 'refs/heads/master'
+#        if: github.ref == 'refs/heads/master'
         run: ./gradlew publish
         env:
           GH_PUBLISH_USERNAME: $GITHUB_ACTOR
