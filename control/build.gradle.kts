@@ -73,7 +73,7 @@ tasks.create("createProperties") {
             val p = Properties()
             p["build_id"] = UUID.randomUUID().toString()
             p["build_date"] = Date().toInstant().toString()
-            p["build_version"] = probeVersion
+            p["build_version"] = project.version.toString()
             p["apache_skywalking_version"] = skywalkingAgentVersion
             p.store(it, null)
         }
