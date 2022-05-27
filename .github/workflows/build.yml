@@ -127,7 +127,7 @@ jobs:
 
       - name: Publish New Snapshot Packages
 #        if: github.ref == 'refs/heads/master'
-        run: ./gradlew publish
+        run: ./gradlew publish -Dbuild.profile=release
         env:
           GH_PUBLISH_USERNAME: $GITHUB_ACTOR
           GH_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
