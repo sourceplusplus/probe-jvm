@@ -15,12 +15,13 @@ val jacksonVersion: String by project
 val vertxVersion: String by project
 
 group = probeGroup
-version = projectVersion
+version = project.properties["probeVersion"] as String? ?: projectVersion
 
 subprojects {
     repositories {
         mavenCentral()
         maven(url = "https://jitpack.io")
+        maven(url = "https://pkg.sourceplus.plus/sourceplusplus/protocol")
     }
 
     apply(plugin = "com.diffplug.spotless")
@@ -55,7 +56,7 @@ tasks {
             dependsOn(":control:build")
         }
 
-        from("control/build/libs/spp-probe-$projectVersion.jar")
+        from("control/build/libs/spp-probe-${project.version}.jar")
         into(File(projectDir, "e2e"))
     }
 

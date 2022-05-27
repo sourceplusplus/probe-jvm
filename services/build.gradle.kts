@@ -10,7 +10,7 @@ val gsonVersion: String by project
 val jacksonVersion: String by project
 
 group = probeGroup
-version = projectVersion
+version = project.properties["probeVersion"] as String? ?: projectVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
@@ -18,7 +18,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
+    implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")

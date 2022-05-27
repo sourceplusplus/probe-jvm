@@ -11,6 +11,7 @@ on:
     paths-ignore:
       - '**.md'
       - '**.svg'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -37,8 +38,9 @@ jobs:
           VERSION="$(echo "$PROPERTIES" | grep "^version:" | cut -f2- -d ' ')"
           echo "::set-output name=version::$VERSION"
           echo "SPP_PROBE_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "SPP_RELEASE_VERSION=${VERSION/-SNAPSHOT/}" >> $GITHUB_ENV
 
-      - run: ./gradlew assembleUp -Dbuild.profile=release
+      - run: ./gradlew assembleUp -Dbuild.profile=release -PprobeVersion=$SPP_RELEASE_VERSION
 
       - name: Docker IPs
         run: docker inspect --format='{{.Name}} - {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(docker ps -aq)
@@ -89,8 +91,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.SPP_PROBE_VERSION }}
-          release_name: v${{ env.SPP_PROBE_VERSION }}
+          tag_name: ${{ env.SPP_RELEASE_VERSION }}
+          release_name: v${{ env.SPP_RELEASE_VERSION }}
           draft: true
 
       - name: Upload spp-probe asset
@@ -100,8 +102,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.createDraft.outputs.upload_url }}
-          asset_path: ./e2e/spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
-          asset_name: spp-probe-${{ env.SPP_PROBE_VERSION }}.jar
+          asset_path: ./e2e/spp-probe-${{ env.SPP_RELEASE_VERSION }}.jar
+          asset_name: spp-probe-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_content_type: application/java-archive
 
       - name: Upload spp-probe-services asset
@@ -111,6 +113,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.createDraft.outputs.upload_url }}
-          asset_path: ./services/build/libs/spp-skywalking-services-${{ env.SPP_PROBE_VERSION }}.jar
-          asset_name: spp-skywalking-services-${{ env.SPP_PROBE_VERSION }}.jar
+          asset_path: ./services/build/libs/spp-skywalking-services-${{ env.SPP_RELEASE_VERSION }}.jar
+          asset_name: spp-skywalking-services-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_content_type: application/java-archive

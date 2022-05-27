@@ -15,7 +15,7 @@ val jupiterVersion: String by project
 val logbackVersion: String by project
 
 group = probeGroup
-version = projectVersion
+version = project.properties["probeVersion"] as String? ?: projectVersion
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
@@ -26,7 +26,7 @@ dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    implementation("com.github.sourceplusplus.protocol:protocol:$projectVersion") {
+    implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
 
@@ -107,11 +107,11 @@ tasks.register<Zip>("zipSppSkywalkingAgent") {
     from(File(projectDir.parentFile, "e2e/skywalking-agent"))
     into("plugins") {
         doFirst {
-            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-$projectVersion.jar").exists()) {
+            if (!File(projectDir, "../services/build/libs/spp-skywalking-services-${project.version}.jar").exists()) {
                 throw GradleException("Missing spp-skywalking-services")
             }
         }
-        from(File(projectDir, "../services/build/libs/spp-skywalking-services-$projectVersion.jar"))
+        from(File(projectDir, "../services/build/libs/spp-skywalking-services-${project.version}.jar"))
     }
 }
 tasks["classes"].dependsOn("zipSppSkywalkingAgent")
