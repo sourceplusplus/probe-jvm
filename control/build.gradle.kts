@@ -35,7 +35,7 @@ configure<PublishingExtension> {
             create<MavenPublication>("maven") {
                 groupId = probeGroup
                 artifactId = "probe-jvm"
-                version = projectVersion
+                version = project.version.toString()
 
                 artifact("$buildDir/libs/spp-probe-${project.version}.jar")
             }
