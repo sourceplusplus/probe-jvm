@@ -124,6 +124,7 @@ jobs:
           version-pattern: "^\\d+\\.\\d+\\.\\d+-SNAPSHOT$"
           names: |
             plus.sourceplus.probe.probe-jvm
+            plus.sourceplus.probe.probe-jvm-services
 
       - name: Publish New Snapshot Packages
         if: github.ref == 'refs/heads/master'
