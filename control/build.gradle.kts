@@ -37,7 +37,7 @@ configure<PublishingExtension> {
                 artifactId = "probe-jvm"
                 version = projectVersion
 
-                from(components["kotlin"])
+                artifact("$buildDir/libs/spp-probe-${project.version}.jar")
             }
         }
     }
