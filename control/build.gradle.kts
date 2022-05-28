@@ -174,3 +174,4 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("spp.protocol.marshall", "spp.protocol")
 }
 tasks.getByName("jar").dependsOn("shadowJar")
+tasks.getByName("generatePomFileForMavenPublication").dependsOn("shadowJar")
