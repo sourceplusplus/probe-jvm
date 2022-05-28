@@ -37,7 +37,6 @@ jobs:
           PROPERTIES="$(./gradlew properties --console=plain -q)"
           VERSION="$(echo "$PROPERTIES" | grep "^version:" | cut -f2- -d ' ')"
           echo "::set-output name=version::$VERSION"
-          echo "SPP_PROBE_VERSION=$VERSION" >> $GITHUB_ENV
           echo "SPP_RELEASE_VERSION=${VERSION/-SNAPSHOT/}" >> $GITHUB_ENV
 
       - run: ./gradlew assembleUp -Dbuild.profile=release -PprobeVersion=$SPP_RELEASE_VERSION
@@ -116,3 +115,19 @@ jobs:
           asset_path: ./services/build/libs/spp-skywalking-services-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_name: spp-skywalking-services-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_content_type: application/java-archive
+
+      - name: Remove Old Snapshot Packages
+        if: github.ref == 'refs/heads/master'
+        uses: smartsquaregmbh/delete-old-packages@v0.4.0
+        with:
+          keep: 0
+          version-pattern: "^\\d+\\.\\d+\\.\\d+-SNAPSHOT$"
+          names: |
+            plus.sourceplus.probe.probe-jvm
+
+      - name: Publish New Snapshot Packages
+        if: github.ref == 'refs/heads/master'
+        run: ./gradlew publish -Dbuild.profile=release
+        env:
+          GH_PUBLISH_USERNAME: $GITHUB_ACTOR
+          GH_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
