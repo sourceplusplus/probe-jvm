@@ -1,6 +1,7 @@
 plugins {
     id("com.github.johnrengelman.shadow")
     id("org.jetbrains.kotlin.jvm")
+    id("maven-publish")
 }
 
 val probeGroup: String by project
@@ -11,6 +12,31 @@ val jacksonVersion: String by project
 
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
+
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/sourceplusplus/probe-jvm")
+            credentials {
+                username = System.getenv("GH_PUBLISH_USERNAME")?.toString()
+                password = System.getenv("GH_PUBLISH_TOKEN")?.toString()
+            }
+        }
+    }
+
+    publishing {
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = probeGroup
+                artifactId = "probe-jvm-services"
+                version = projectVersion
+
+                from(components["kotlin"])
+            }
+        }
+    }
+}
 
 tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
