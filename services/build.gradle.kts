@@ -30,7 +30,7 @@ configure<PublishingExtension> {
             create<MavenPublication>("maven") {
                 groupId = probeGroup
                 artifactId = "probe-jvm-services"
-                version = projectVersion
+                version = project.version.toString()
 
                 from(components["kotlin"])
             }
