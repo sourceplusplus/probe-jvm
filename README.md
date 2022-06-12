@@ -10,17 +10,33 @@ This project provides JVM support to the [Source++](https://github.com/sourceplu
 
 # How to use?
 
+## Gradle Plugin
+
+1. Configure the [Gradle Application Plugin](https://docs.gradle.org/current/userguide/application_plugin.html)
+1. Add the following to the `build.gradle` file:
+   ```groovy
+   plugins {
+       id("com.ryandens.javaagent-application") version "0.3.2"
+   }
+   repositories {
+       maven { url "https://pkg.sourceplus.plus/sourceplusplus/probe-jvm" }
+   }
+   dependencies {
+       javaagent("plus.sourceplus.probe:probe-jvm:0.5.4")
+   }
+   ```
+
 ## Standalone Agent
 
 1. Add `spp-probe-*.jar` and `spp-probe.yml` to the same directory
-    - E.g. [spp-probe-0.4.6.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.4.6/spp-probe-0.4.6.jar) & [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
+    - E.g. [spp-probe-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-probe-0.5.4.jar) & [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
 1. Boot application with `-javaagent:spp-probe-*.jar` parameter
-    - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.4.6.jar -jar MyApp.jar`
+    - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.5.4.jar -jar MyApp.jar`
 
 ## Apache SkyWalking Plugin
 
 1. Add `spp-probe-*.jar` and `spp-skywalking-services-*.jar` to `skywalking-agent/plugins` directory
-    - E.g. [spp-probe-0.4.6.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.4.6/spp-probe-0.4.6.jar) & [spp-skywalking-services-0.4.6.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.4.6/spp-skywalking-services-0.4.6.jar)
+    - E.g. [spp-probe-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-probe-0.5.4.jar) & [spp-skywalking-services-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-skywalking-services-0.5.4.jar)
 1. Add `spp-probe.yml` to `skywalking-agent/config` directory
     - E.g. [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
 1. Reboot Apache SkyWalking agent
