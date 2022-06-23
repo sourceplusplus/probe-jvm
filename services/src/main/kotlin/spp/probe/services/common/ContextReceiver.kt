@@ -161,13 +161,13 @@ object ContextReceiver {
                 LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
                     .setText(TextLog.newBuilder().setText(logFormat).build()).build()
             )
-        val logData = if (-1 == ContextManager.getSpanId()) builder.build() else builder.setTraceContext(
+        val logData = if (-1 == ContextManager.getSpanId()) builder else builder.setTraceContext(
             TraceContext.newBuilder()
                 .setTraceId(ContextManager.getGlobalTraceId())
                 .setSpanId(ContextManager.getSpanId())
                 .setTraceSegmentId(ContextManager.getSegmentId())
                 .build()
-        ).build()
+        )
         logReport.produce(logData)
     }
 
