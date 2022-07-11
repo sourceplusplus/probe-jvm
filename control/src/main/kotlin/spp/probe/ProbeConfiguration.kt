@@ -130,12 +130,15 @@ object ProbeConfiguration {
         }
 
     private fun getSkyWalkingDefaults(): MutableSet<Array<String>> {
-        return mutableSetOf(
+        return setOf(
             arrayOf("skywalking.agent.instance_properties_json", JsonObject().put("probe_id", PROBE_ID).toString()),
             arrayOf("skywalking.agent.is_cache_enhanced_class", "true"),
             arrayOf("skywalking.agent.class_cache_mode", "FILE"),
-            arrayOf("skywalking.plugin.toolkit.log.transmit_formatted", "false")
-        )
+            arrayOf("skywalking.plugin.toolkit.log.transmit_formatted", "false"),
+            sppSettings.find { it[0] == "spp.platform_host" }?.let {
+                arrayOf("skywalking.collector.backend_service", it[1] + ":11800")
+            }
+        ).filterNotNull().toMutableSet()
     }
 
     val sppSettings: List<Array<String>>
