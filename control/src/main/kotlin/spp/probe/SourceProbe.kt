@@ -129,6 +129,7 @@ object SourceProbe {
         vertx = Vertx.vertx()
 
         unzipAgent(BUILD.getString("apache_skywalking_version"))
+        writeCaCertIfNecessary()
         addAgentToClassLoader()
         configureAgent(true)
         invokeAgent()
@@ -321,7 +322,11 @@ object SourceProbe {
     }
 
     private fun unzipAgent(skywalkingVersion: String) {
-        if (System.getenv("SPP_DELETE_PROBE_DIRECTORY_ON_BOOT") != "false") {
+        val deleteProbeDirOnBoot = ProbeConfiguration.spp.getBoolean(
+            "delete_probe_directory_on_boot",
+            System.getenv("SPP_DELETE_PROBE_DIRECTORY_ON_BOOT")?.lowercase()?.toBooleanStrictOrNull()
+        ) ?: true
+        if (deleteProbeDirOnBoot) {
             deleteRecursively(PROBE_DIRECTORY)
         }
         PROBE_DIRECTORY.mkdirs()
@@ -358,6 +363,26 @@ object SourceProbe {
                 zipEntry = zis.nextEntry
             }
             zis.closeEntry()
+        }
+    }
+
+    private fun writeCaCertIfNecessary() {
+        val caCertFile = File(PROBE_DIRECTORY, "ca" + File.separator + "ca.crt")
+        if (!caCertFile.exists()) {
+            if (ProbeConfiguration.getString("platform_certificate") != null) {
+                val myCaAsABuffer = Buffer.buffer(
+                    "-----BEGIN CERTIFICATE-----\n" +
+                            ProbeConfiguration.getString("platform_certificate") +
+                            "-----END CERTIFICATE-----"
+                )
+
+                caCertFile.parentFile.mkdirs()
+                if (caCertFile.createNewFile()) {
+                    caCertFile.writeBytes(myCaAsABuffer.bytes)
+                } else {
+                    throw IOException("Failed to create file $caCertFile")
+                }
+            }
         }
     }
 
