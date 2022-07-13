@@ -167,7 +167,7 @@ object SourceProbe {
         if (connected.get()) return
         val options = NetClientOptions()
             .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
-            .setSsl(!ProbeConfiguration.spp.getBoolean("disable_tls", System.getenv("SPP_DISABLE_TLS") == "true"))
+            .setSsl(ProbeConfiguration.spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") != "false"))
             .setTrustAll(!ProbeConfiguration.spp.getBoolean("verify_host", true))
             .apply {
                 if (ProbeConfiguration.getString("platform_certificate") != null) {
