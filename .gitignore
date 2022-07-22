@@ -1,0 +1,13 @@
+# Ignore artifacts
+build/
+/docker/e2e/spp-*.jar
+
+# Ignore downloaded skywalking agent
+/e2e/apache-skywalking-java-agent-*.tgz
+/e2e/skywalking-agent/
+
+# Ignore IDE files
+.idea/
+
+# Ignore .gradle directory
+.gradle/
