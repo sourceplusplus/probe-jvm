@@ -5,7 +5,7 @@ pluginManagement {
         id 'com.avast.gradle.docker-compose' version "0.16.8" apply false
         id 'io.gitlab.arturbosch.detekt' version "1.21.0" apply false
         id 'com.github.johnrengelman.shadow' version "7.1.2" apply false
-        id 'com.diffplug.spotless' version '6.8.0' apply false
+        id 'com.diffplug.spotless' version '6.9.0' apply false
     }
 }
 
