@@ -26,10 +26,10 @@ import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
-import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
+import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
@@ -128,8 +128,13 @@ class LiveInstrumentRemote : AbstractVerticle() {
         map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
 
         FrameHelper.sendFrame(
-            BridgeEventType.PUBLISH.name.lowercase(), ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
-            JsonObject.mapFrom(map), SourceProbe.tcpSocket
+            BridgeEventType.PUBLISH.name.lowercase(),
+            ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
+            null,
+            SourceProbe.probeMessageHeaders,
+            false,
+            JsonObject.mapFrom(map),
+            SourceProbe.tcpSocket
         )
     }
 
@@ -155,6 +160,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
             FrameHelper.sendFrame(
                 BridgeEventType.PUBLISH.name.lowercase(),
                 address,
+                null,
+                SourceProbe.probeMessageHeaders,
+                false,
                 JsonObject(json),
                 SourceProbe.tcpSocket
             )

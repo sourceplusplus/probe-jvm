@@ -69,6 +69,7 @@ object SourceProbe {
     val PROBE_ID = UUID.randomUUID().toString()
     val isAgentInitialized: Boolean
         get() = instrumentation != null
+    val probeMessageHeaders = JsonObject()
 
     @JvmStatic
     fun bootAsPlugin(inst: Instrumentation) {
@@ -217,6 +218,9 @@ object SourceProbe {
                                 FrameHelper.sendFrame(
                                     BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
+                                    null,
+                                    probeMessageHeaders,
+                                    true,
                                     JsonObject.mapFrom(it.result().body()),
                                     socket.result()
                                 )
@@ -224,6 +228,9 @@ object SourceProbe {
                                 FrameHelper.sendFrame(
                                     BridgeEventType.SEND.name.lowercase(),
                                     frame.getString("replyAddress"),
+                                    null,
+                                    probeMessageHeaders,
+                                    true,
                                     JsonObject.mapFrom(it.cause()),
                                     socket.result()
                                 )
@@ -259,6 +266,9 @@ object SourceProbe {
             }
 
             //send probe connected status
+            meta["client_id"]?.let { probeMessageHeaders.put("client_id", it) }
+            meta["client_secret"]?.let { probeMessageHeaders.put("client_secret", it) }
+            meta["tenant_id"]?.let { probeMessageHeaders.put("tenant_id", it) }
             val replyAddress = UUID.randomUUID().toString()
             val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
             val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)
@@ -269,20 +279,31 @@ object SourceProbe {
                 FrameHelper.sendFrame(
                     BridgeEventType.REGISTER.name.lowercase(),
                     ProbeAddress.LIVE_INSTRUMENT_REMOTE,
+                    null,
+                    probeMessageHeaders,
+                    false,
                     JsonObject(),
                     tcpSocket
                 )
                 FrameHelper.sendFrame(
                     BridgeEventType.REGISTER.name.lowercase(),
                     ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,
+                    null,
+                    probeMessageHeaders,
+                    false,
                     JsonObject(),
                     tcpSocket
                 )
                 consumer.unregister()
             }
             FrameHelper.sendFrame(
-                BridgeEventType.SEND.name.lowercase(), PlatformAddress.PROBE_CONNECTED,
-                replyAddress, JsonObject(), true, JsonObject.mapFrom(pc), socket.result()
+                BridgeEventType.SEND.name.lowercase(),
+                PlatformAddress.PROBE_CONNECTED,
+                replyAddress,
+                probeMessageHeaders,
+                true,
+                JsonObject.mapFrom(pc),
+                socket.result()
             )
         }
     }
