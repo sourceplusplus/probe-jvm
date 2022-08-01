@@ -141,6 +141,19 @@ object ProbeConfiguration {
             arrayOf("skywalking.plugin.toolkit.log.transmit_formatted", "false"),
             sppSettings.find { it[0] == "spp.platform_host" }?.let {
                 arrayOf("skywalking.collector.backend_service", it[1] + ":11800")
+            },
+            getJsonObject("authentication")?.let {
+                val clientId = it.getString("client_id")
+                val clientSecret = it.getString("client_secret")
+                val tenantId = it.getString("tenant_id")
+                val authToken = "$clientId:$clientSecret".let {
+                    if (tenantId != null) {
+                        "$it:$tenantId"
+                    } else {
+                        it
+                    }
+                }
+                arrayOf("skywalking.agent.authentication", authToken)
             }
         ).filterNotNull().toMutableSet()
     }

@@ -202,7 +202,9 @@ object SourceProbe {
             }
             socket.result().closeHandler {
                 connected.set(false)
-                connectToPlatform()
+                vertx!!.setTimer(5000) {
+                    connectToPlatform()
+                }
             }
 
             //handle platform messages
@@ -242,6 +244,16 @@ object SourceProbe {
                             frame.getValue("body")
                         )
                     }
+                } else if ("err" == frame.getString("type")) {
+                    val errorMessage = frame.getString("message")
+                    if (ProbeConfiguration.isNotQuite) {
+                        if (errorMessage == "blocked by bridgeEvent handler") {
+                            System.err.println("Probe authentication failed")
+                        } else {
+                            System.err.println(frame.getString("message"))
+                        }
+                    }
+                    disconnectFromPlatform()
                 } else {
                     throw UnsupportedOperationException(frame.toString())
                 }
