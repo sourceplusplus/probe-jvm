@@ -265,10 +265,14 @@ object SourceProbe {
                 meta.putAll(ProbeConfiguration.spp.getJsonObject("probe_metadata").map)
             }
 
+            //add probe auth headers
+            ProbeConfiguration.getJsonObject("authentication")?.let {
+                it.getString("client_id")?.let { probeMessageHeaders.put("client_id", it) }
+                it.getString("client_secret")?.let { probeMessageHeaders.put("client_secret", it) }
+                it.getString("tenant_id")?.let { probeMessageHeaders.put("tenant_id", it) }
+            }
+
             //send probe connected status
-            meta["client_id"]?.let { probeMessageHeaders.put("client_id", it) }
-            meta["client_secret"]?.let { probeMessageHeaders.put("client_secret", it) }
-            meta["tenant_id"]?.let { probeMessageHeaders.put("tenant_id", it) }
             val replyAddress = UUID.randomUUID().toString()
             val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
             val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)

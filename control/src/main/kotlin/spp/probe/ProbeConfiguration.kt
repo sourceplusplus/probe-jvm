@@ -97,7 +97,11 @@ object ProbeConfiguration {
     val spp: JsonObject
         get() = localProperties!!.getJsonObject("spp")
 
-    fun getString(property: String?): String? {
+    fun getJsonObject(property: String): JsonObject? {
+        return localProperties!!.getJsonObject("spp").getJsonObject(property)
+    }
+
+    fun getString(property: String): String? {
         return localProperties!!.getJsonObject("spp").getString(property)
     }
 
