@@ -29,9 +29,11 @@ object ProbeConfiguration {
 
     private var rawProperties: Map<String, Map<String, Any>>? = null
     private var localProperties: JsonObject? = null
+    var customProbeFile: String? = null
 
-    init {
+    fun load() {
         var localFile = File("spp-probe.yml")
+        customProbeFile?.let { localFile = File(it) }
         try {
             //working directory?
             val mapper = ObjectMapper(YAMLFactory())

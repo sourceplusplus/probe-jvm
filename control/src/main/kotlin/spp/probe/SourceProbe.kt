@@ -111,6 +111,9 @@ object SourceProbe {
 
     @JvmStatic
     fun premain(args: String?, inst: Instrumentation) {
+        ProbeConfiguration.customProbeFile = args
+        ProbeConfiguration.load()
+        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via premain. args: $args")
         if (isAgentInitialized) {
             if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
             return
