@@ -41,7 +41,7 @@ object ProbeConfiguration {
                 rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
                         as Map<String, Map<String, Any>>?
             }
-            if (ProbeConfiguration::class.java.protectionDomain.codeSource.location == null) {
+            if (rawProperties == null && ProbeConfiguration::class.java.protectionDomain.codeSource.location == null) {
                 //ran through SkyWalking
                 localFile = File(
                     File(
@@ -66,7 +66,7 @@ object ProbeConfiguration {
                     rawProperties = mapper.readValue(FileInputStream(localFile), MutableMap::class.java)
                             as Map<String, Map<String, Any>>?
                 }
-            } else {
+            } else if (rawProperties == null) {
                 //ran through intellij?
                 localFile = File(
                     File(
