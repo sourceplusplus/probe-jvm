@@ -16,7 +16,9 @@
  */
 package integration
 
+import io.vertx.core.Promise
 import io.vertx.core.Vertx
+import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
@@ -31,6 +33,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
@@ -38,6 +41,8 @@ import org.slf4j.LoggerFactory
 import spp.protocol.SourceServices
 import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
 import spp.protocol.extend.TCPServiceFrameParser
+import spp.protocol.platform.PlatformAddress
+import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
 import java.io.IOException
 import java.util.*
@@ -49,15 +54,15 @@ abstract class ProbeIntegrationTest {
 
         val log: Logger = LoggerFactory.getLogger(ProbeIntegrationTest::class.java)
         const val SYSTEM_JWT_TOKEN =
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJkZXZlbG9wZXJfaWQiOiJzeXN0ZW0iLCJjcmVhdGVkX2F0IjoxNjIyNDIxMzY0ODY4" +
-                    "LCJleHBpcmVzX2F0IjoxNjUzOTU3MzY0ODY4LCJpYXQiOjE2MjI0MjEzNjR9.ZVHtxQkfCF7KM_dyDOgawbwpEAsmnCWB4c8I" +
-                    "52svPvVc-SlzkEe0SYrNufNPniYZeM3IF0Gbojl_DSk2KleAz9CLRO3zfegciXKeEEvGjsNOqfQjgU5yZtBWmTimVXq5QoZME" +
-                    "GuAojACaf-m4J0H7o4LQNGwrDVA-noXVE0Eu84A5HxkjrRuFlQWv3fzqSRC_-lI0zRKuFGD-JkIfJ9b_wP_OjBWT6nmqkZn_J" +
-                    "mK7UwniTUJjocszSA2Ma3XLx2xVPzBcz00QWyjhIyiftxNQzgqLl1XDVkRtzXUIrHnFCR8BcgR_PsqTBn5nH7aCp16zgmkkbO" +
-                    "pmJXlNpDSVz9zUY4NOrB1jTzDB190COrfCXddb7JO6fmpet9_Zd3kInJx4XsT3x7JfBSWr9FBqFoUmNkgIWjkbN1TpwMyizXA" +
-                    "Sp1nOmwJ64FDIbSpfpgUAqfSWXKZYhSisfnBLEyHCjMSPzVmDh949w-W1wU9q5nGFtrx6PTOxK_WKOiWU8_oeTjL0pD8pKXqJ" +
-                    "MaLW-OIzfrl3kzQNuF80YT-nxmNtp5PrcxehprlPmqSB_dyTHccsO3l63d8y9hiIzfRUgUjTJbktFn5t41ADARMs_0WMpIGZJ" +
-                    "yxcVssstt4J1Gj8WUFOdqPsIKigJZMn3yshC5S-KY-7S0dVd0VXgvpPqmpb9Q9Uho"
+            "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ0ZW5hbnRfaWQiOiJ0ZW5hbnQxIiwiZGV2ZWxvcGVyX2lkIjoic3lzdGVtIiwiY3JlY" +
+                    "XRlZF9hdCI6MTY2MDM4NzgwNjI2MSwiZXhwaXJlc19hdCI6MTY5MTkyMzgwNjI2MSwiaWF0IjoxNjYwMzg3ODA2fQ.e0lWdOmF" +
+                    "PY_Bi9tE4wp_SUmv4GKuMInrs8oWlacd5pvbGryAj4pFbOhstj0-Nc-DIXbuTp5VKTqSpwgSrFMtNjFTQTJ9q2182Wjlh7g19H" +
+                    "ZipCL-Qjuy2Oh-hLkbm1KZKY8DymYKYkDUZjO8Owb97_BbBewKRCfCqqFKABnMcAhyOJ5PLs61xG0uBe9IVvjzlXz8Uwx9ObE1" +
+                    "N74cDsm1arCbDyVnSYMOIm9ilOBjUynastAyybYEDRp5jjyXhHwzcZ4vlKp65AUd1Jw2QZBBgTCT-U01tIAjDujGejarEgcGed" +
+                    "M31y44sS3kaJwHQIS01mb2RpaZQzMlp1HtBJS3QtT3M8OUDlOSnT4_cc0lp2y4xXI26W66q-M0KBlFisCJPR0lvP1njg_jMspy" +
+                    "n0YBbu4zMEQtSy2L6NIMAaEj7lVLu_mMisaD33pbORW0QsGFjq-krPo6FfulCSYdxNNyUrlh93f6Qy3KQlM8Kp47INfoV6AJGc" +
+                    "kpEGzeVrCiKCYq2MaCbENh2Eu4EpBkLawuBid8RgQ-Kp-tlv9rxYdbQp8R8HA4lF9bMK-hM3-akkWzENqEof6e_gE2xdk-e-6-" +
+                    "jJGQpouEiVCaA81f4CswRYHdAVgsSwVfWEqP072CULplI_KhgFhQ1YBQ_ku_jxTkGSfvub2bkeAHZdqyrMQwu7o"
 
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
@@ -71,12 +76,32 @@ abstract class ProbeIntegrationTest {
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
             setupHandler(socket, vertx, SourceServices.Utilize.LIVE_INSTRUMENT)
 
+            //setup connection
+            val replyAddress = UUID.randomUUID().toString()
+            val pc = InstanceConnection(UUID.randomUUID().toString(), System.currentTimeMillis())
+            val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
+            val headers = JsonObject().put("auth-token", SYSTEM_JWT_TOKEN)
+
+            val promise = Promise.promise<Void>()
+            consumer.handler {
+                assertTrue(it.body())
+
+                promise.complete()
+                consumer.unregister()
+
+                FrameHelper.sendFrame(
+                    BridgeEventType.REGISTER.name.lowercase(),
+                    toLiveInstrumentSubscriberAddress("system"), null,
+                    headers, null, null, socket
+                )
+            }
             FrameHelper.sendFrame(
-                BridgeEventType.REGISTER.name.lowercase(),
-                toLiveInstrumentSubscriberAddress("system"), null,
-                JsonObject().put("auth-token", SYSTEM_JWT_TOKEN), null, null, socket
+                BridgeEventType.SEND.name.lowercase(),
+                PlatformAddress.MARKER_CONNECTED,
+                replyAddress, headers, true, JsonObject.mapFrom(pc), socket
             )
 
+            promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
                 .setToken(SYSTEM_JWT_TOKEN)
                 .setAddress(SourceServices.Utilize.LIVE_INSTRUMENT)
