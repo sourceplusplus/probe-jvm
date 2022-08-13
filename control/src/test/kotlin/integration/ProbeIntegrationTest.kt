@@ -117,7 +117,7 @@ abstract class ProbeIntegrationTest {
                 .setSsl(true)
                 .setTrustAll(true)
             val tcpSocket = withTimeout(5000) {
-                vertx.createNetClient(options).connect(5455, serviceHost).await()
+                vertx.createNetClient(options).connect(12800, serviceHost).await()
             }
             return tcpSocket
         }
