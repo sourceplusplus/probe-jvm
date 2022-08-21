@@ -114,9 +114,6 @@ object ContextReceiver {
 
     @JvmStatic
     fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) = executor.submit {
-        val localVars: Map<String, Any?>? = localVariables.remove(logId)
-        val localFields: Map<String, Any?>? = fields.remove(logId)
-        val localStaticFields: Map<String, Any?>? = staticFields.remove(logId)
         val logTags = LogTags.newBuilder()
             .addData(
                 KeyStringValuePair.newBuilder()
@@ -133,11 +130,11 @@ object ContextReceiver {
         if (logArguments.isNotEmpty()) {
             for (i in logArguments.indices) {
                 //todo: is it smarter to pass localVariables[arg]?
-                var argValue = localVars?.get(logArguments[i])
+                var argValue = localVariables.remove(logId)?.get(logArguments[i])?.second
                 if (argValue == null) {
-                    argValue = localFields?.get(logArguments[i])
+                    argValue = fields.remove(logId)?.get(logArguments[i])?.second
                     if (argValue == null) {
-                        argValue = localStaticFields?.get(logArguments[i])
+                        argValue = staticFields.remove(logId)?.get(logArguments[i])?.second
                     }
                 }
                 val value = Optional.ofNullable(argValue).orElse("null")
