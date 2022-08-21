@@ -41,7 +41,7 @@ class LiveInstrumentTransformer(
         private val THROWABLE_INTERNAL_NAME = Type.getInternalName(Throwable::class.java)
         const val REMOTE_CLASS_LOCATION = "spp/probe/control/LiveInstrumentRemote"
         private const val REMOTE_CHECK_DESC = "(Ljava/lang/String;)Z"
-        private const val REMOTE_SAVE_VAR_DESC = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;)V"
+        private const val REMOTE_SAVE_VAR_DESC = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V"
         private const val PUT_LOG_DESC = "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V"
 
         fun isXRETURN(opcode: Int): Boolean {
@@ -155,10 +155,12 @@ class LiveInstrumentTransformer(
     private fun addLocals(instrumentId: String, line: Int) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
             if (line >= local.start && line < local.end) {
+                val type = Type.getType(local.desc)
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(local.name)
-                mv.visitVarInsn(Type.getType(local.desc).getOpcode(Opcodes.ILOAD), local.index)
+                mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), local.index)
                 LiveTransformer.boxIfNecessary(mv, local.desc)
+                mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
                     Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
                     "putLocalVariable", REMOTE_SAVE_VAR_DESC, false
@@ -169,10 +171,12 @@ class LiveInstrumentTransformer(
 
     private fun addStaticFields(instrumentId: String) {
         for (staticField in classMetadata.staticFields) {
+            val type = Type.getType(staticField.desc)
             mv.visitLdcInsn(instrumentId)
             mv.visitLdcInsn(staticField.name)
             mv.visitFieldInsn(Opcodes.GETSTATIC, className, staticField.name, staticField.desc)
             LiveTransformer.boxIfNecessary(mv, staticField.desc)
+            mv.visitLdcInsn(type.className)
             mv.visitMethodInsn(
                 Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
                 "putStaticField", REMOTE_SAVE_VAR_DESC, false
@@ -183,11 +187,13 @@ class LiveInstrumentTransformer(
     private fun addFields(instrumentId: String) {
         if (access and Opcodes.ACC_STATIC == 0) {
             for (field in classMetadata.fields) {
+                val type = Type.getType(field.desc)
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(field.name)
                 mv.visitVarInsn(Opcodes.ALOAD, 0)
                 mv.visitFieldInsn(Opcodes.GETFIELD, className, field.name, field.desc)
                 LiveTransformer.boxIfNecessary(mv, field.desc)
+                mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
                     Opcodes.INVOKESTATIC, REMOTE_CLASS_LOCATION,
                     "putField", REMOTE_SAVE_VAR_DESC, false

@@ -38,11 +38,12 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
+@Suppress("unused")
 object ContextReceiver {
 
-    private val localVariables: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
-    private val fields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
-    private val staticFields: MutableMap<String?, MutableMap<String, Any>> = ConcurrentHashMap()
+    private val localVariables: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
+    private val fields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
+    private val staticFields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
     private val logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient::class.java)
     private val executor = Executors.newFixedThreadPool(5)
 
@@ -61,46 +62,41 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putLocalVariable(instrumentId: String, key: String, value: Any?) {
-        addInstrumentVariable(instrumentId, key, value, localVariables)
+    fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
+        addInstrumentVariable(instrumentId, key, value, type, localVariables)
     }
 
     @JvmStatic
-    fun putField(instrumentId: String, key: String, value: Any?) {
-        addInstrumentVariable(instrumentId, key, value, fields)
+    fun putField(instrumentId: String, key: String, value: Any?, type: String) {
+        addInstrumentVariable(instrumentId, key, value, type, fields)
     }
 
     @JvmStatic
-    fun putStaticField(instrumentId: String, key: String, value: Any?) {
-        addInstrumentVariable(instrumentId, key, value, staticFields)
+    fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
+        addInstrumentVariable(instrumentId, key, value, type, staticFields)
     }
 
     private fun addInstrumentVariable(
-        instrumentId: String, key: String, value: Any?,
-        variableMap: MutableMap<String?, MutableMap<String, Any>>
+        instrumentId: String, key: String, value: Any?, type: String,
+        variableMap: MutableMap<String?, MutableMap<String, Pair<String, Any?>>>
     ) {
-        if (value != null) {
-            variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = value
-        }
+        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = Pair(type, value)
     }
 
     @JvmStatic
     fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) = executor.submit {
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
-        val localVars: Map<String, Any>? = localVariables.remove(breakpointId)
-        localVars?.forEach { (key: String, value: Any) ->
+        localVariables.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(key, value)
             )
         }
-        val localFields: Map<String, Any>? = fields.remove(breakpointId)
-        localFields?.forEach { (key: String, value: Any) ->
+        fields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.field:$breakpointId:$key"), encodeObject(key, value)
             )
         }
-        val localStaticFields: Map<String, Any>? = staticFields.remove(breakpointId)
-        localStaticFields?.forEach { (key: String, value: Any) ->
+        staticFields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.static-field:$breakpointId:$key"), encodeObject(key, value)
             )
@@ -118,9 +114,9 @@ object ContextReceiver {
 
     @JvmStatic
     fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) = executor.submit {
-        val localVars: Map<String, Any>? = localVariables.remove(logId)
-        val localFields: Map<String, Any>? = fields.remove(logId)
-        val localStaticFields: Map<String, Any>? = staticFields.remove(logId)
+        val localVars: Map<String, Any?>? = localVariables.remove(logId)
+        val localFields: Map<String, Any?>? = fields.remove(logId)
+        val localStaticFields: Map<String, Any?>? = staticFields.remove(logId)
         val logTags = LogTags.newBuilder()
             .addData(
                 KeyStringValuePair.newBuilder()
@@ -179,15 +175,18 @@ object ContextReceiver {
                     "count_" + meterId.replace("-", "_")
                 ).mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
                     .build()
+
                 MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
                     "gauge_" + meterId.replace("-", "_")
                 ) { liveMeter.metricValue.value.toDouble() }
                     .build()
+
                 MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
                     .build()
+
                 else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
             }
         }
@@ -197,12 +196,14 @@ object ContextReceiver {
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
+
             MeterType.GAUGE -> {}
             MeterType.HISTOGRAM -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Histogram).addValue(liveMeter.metricValue.value.toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
+
             else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
         }
     }
@@ -222,7 +223,11 @@ object ContextReceiver {
         ContextManager.stopSpan(activeSpan)
     }
 
-    private fun encodeObject(varName: String, value: Any): String? {
+    private fun encodeObject(varName: String, varData: Pair<String, Any?>): String? {
+        val value = varData.second ?: return String.format(
+            "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s}", varData.first, null
+        )
+
         return try {
             String.format(
                 "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",

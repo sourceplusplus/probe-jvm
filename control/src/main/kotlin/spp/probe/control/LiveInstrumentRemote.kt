@@ -37,6 +37,7 @@ import java.lang.reflect.Method
 import java.util.*
 import java.util.function.BiConsumer
 
+@Suppress("unused")
 class LiveInstrumentRemote : AbstractVerticle() {
 
     private var applyInstrument: Method? = null
@@ -68,15 +69,15 @@ class LiveInstrumentRemote : AbstractVerticle() {
             )
             putLocalVariable = contextClass.getMethod(
                 "putLocalVariable",
-                String::class.java, String::class.java, Any::class.java
+                String::class.java, String::class.java, Any::class.java, String::class.java
             )
             putField = contextClass.getMethod(
                 "putField",
-                String::class.java, String::class.java, Any::class.java
+                String::class.java, String::class.java, Any::class.java, String::class.java
             )
             putStaticField = contextClass.getMethod(
                 "putStaticField",
-                String::class.java, String::class.java, Any::class.java
+                String::class.java, String::class.java, Any::class.java, String::class.java
             )
             putBreakpoint = contextClass.getMethod(
                 "putBreakpoint",
@@ -253,27 +254,27 @@ class LiveInstrumentRemote : AbstractVerticle() {
         }
 
         @JvmStatic
-        fun putLocalVariable(breakpointId: String, key: String, value: Any?) {
+        fun putLocalVariable(breakpointId: String, key: String, value: Any?, type: String) {
             try {
-                putLocalVariable!!.invoke(null, breakpointId, key, value)
+                putLocalVariable!!.invoke(null, breakpointId, key, value, type)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
         @JvmStatic
-        fun putField(breakpointId: String, key: String, value: Any?) {
+        fun putField(breakpointId: String, key: String, value: Any?, type: String?) {
             try {
-                putField!!.invoke(null, breakpointId, key, value)
+                putField!!.invoke(null, breakpointId, key, value, type)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
         @JvmStatic
-        fun putStaticField(breakpointId: String, key: String, value: Any?) {
+        fun putStaticField(breakpointId: String, key: String, value: Any?, type: String) {
             try {
-                putStaticField!!.invoke(null, breakpointId, key, value)
+                putStaticField!!.invoke(null, breakpointId, key, value, type)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
