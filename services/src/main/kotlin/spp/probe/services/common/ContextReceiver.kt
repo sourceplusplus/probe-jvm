@@ -49,9 +49,9 @@ object ContextReceiver {
 
     operator fun get(instrumentId: String): ContextMap {
         val contextMap = ContextMap()
-        contextMap.fields = fields[instrumentId]
-        contextMap.localVariables = localVariables[instrumentId]
-        contextMap.staticFields = staticFields[instrumentId]
+        contextMap.fields = fields[instrumentId]?.map { it.key to it.value.second }?.toMap()
+        contextMap.localVariables = localVariables[instrumentId]?.map { it.key to it.value.second }?.toMap()
+        contextMap.staticFields = staticFields[instrumentId]?.map { it.key to it.value.second }?.toMap()
         return contextMap
     }
 
