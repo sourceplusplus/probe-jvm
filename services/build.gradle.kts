@@ -48,7 +48,7 @@ dependencies {
         isTransitive = false
     }
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    compileOnly("net.bytebuddy:byte-buddy:1.12.13")
+    compileOnly("net.bytebuddy:byte-buddy:1.12.14")
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
