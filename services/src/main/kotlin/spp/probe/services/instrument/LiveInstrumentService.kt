@@ -18,6 +18,7 @@ package spp.probe.services.instrument
 
 import net.bytebuddy.pool.TypePool
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.springframework.expression.ParseException
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
@@ -39,6 +40,7 @@ import java.util.stream.Collectors
 
 object LiveInstrumentService {
 
+    private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
     private val applyingInstruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
     private val parser = SpelExpressionParser(
@@ -52,6 +54,7 @@ object LiveInstrumentService {
     init {
         timer.schedule(object : TimerTask() {
             override fun run() {
+                if (log.isDebugEnable) log.debug("Running LiveInstrumentScheduler")
                 val removeInstruments: MutableList<ActiveLiveInstrument> = ArrayList()
                 instruments.values.forEach {
                     if (it.instrument.expiresAt != null
@@ -67,6 +70,8 @@ object LiveInstrumentService {
                         removeInstruments.add(it)
                     }
                 }
+
+                if (log.isDebugEnable) log.debug("Found {} expired instruments", removeInstruments.size)
                 removeInstruments.forEach { _removeInstrument(it.instrument, null) }
             }
         }, 5000, 5000)
@@ -74,6 +79,14 @@ object LiveInstrumentService {
 
     var liveInstrumentApplier = object : LiveInstrumentApplier {
         override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
+            if (log.isInfoEnable) {
+                if (instrument.isRemoval) {
+                    log.info("Attempting to remove live instrument: {}", instrument.instrument)
+                } else {
+                    log.info("Attempting to apply live instrument: {}", instrument.instrument)
+                }
+            }
+
             val className = if (instrument.instrument.location.source.contains("(")) {
                 instrument.instrument.location.source.substringBefore("(").substringBeforeLast(".")
             } else {
@@ -83,17 +96,24 @@ object LiveInstrumentService {
             for (classLoader in poolMap.keys) {
                 try {
                     clazz = Class.forName(className, true, classLoader)
+                    if (log.isInfoEnable) log.info("Found {} in class loader {}", clazz, classLoader)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (poolMap.isEmpty()) {
                 try {
                     clazz = Class.forName(className)
+                    if (log.isInfoEnable) log.info("Found {} in system class loader", clazz)
                 } catch (ignored: ClassNotFoundException) {
                 }
             }
             if (clazz == null) {
+                if (log.isDebugEnable) log.debug("{} not found", className)
                 if (instrument.instrument.applyImmediately) {
+                    log.warn(
+                        "Unable to find {}. Live instrument {} cannot be applied immediately",
+                        className, instrument.instrument
+                    )
                     throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
                         .toEventBusException()
                 } else if (!instrument.isRemoval) {
@@ -114,13 +134,19 @@ object LiveInstrumentService {
                 inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
                 instrument.isLive = true
-                if (!instrument.isRemoval) {
+
+                if (instrument.isRemoval) {
+                    if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument)
+                } else {
+                    if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument)
                     instrumentEventConsumer!!.accept(
                         ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
                         ModelSerializer.INSTANCE.toJson(instrument.instrument)
                     )
                 }
             } catch (ex: Throwable) {
+                log.warn(ex, "Failed to apply live instrument: {}", instrument)
+
                 //remove and re-transform
                 _removeInstrument(instrument.instrument, ex)
                 applyingInstruments.remove(instrument.instrument.id)
@@ -128,6 +154,7 @@ object LiveInstrumentService {
                 try {
                     inst.retransformClasses(clazz)
                 } catch (e: UnmodifiableClassException) {
+                    log.warn(e, "Failed to re-transform class: {}", clazz)
                     throw RuntimeException(e)
                 }
             } finally {
@@ -176,6 +203,7 @@ object LiveInstrumentService {
                     val expression = parser.parseExpression(liveInstrument.condition!!)
                     ActiveLiveInstrument(liveInstrument, expression)
                 } catch (ex: ParseException) {
+                    log.warn(ex, "Failed to parse condition: {}", liveInstrument.condition)
                     throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
                         .toEventBusException()
                 }
@@ -217,6 +245,12 @@ object LiveInstrumentService {
     }
 
     fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+        if (ex != null) {
+            log.warn(ex, "Removing erroneous live instrument: {}", instrument)
+        } else {
+            log.info("Removing live instrument: {}", instrument)
+        }
+
         removeInstrument(instrument.location.source, instrument.location.line, instrument.id)
         val map: MutableMap<String, Any?> = HashMap()
         map["instrument"] = ModelSerializer.INSTANCE.toJson(instrument)
@@ -287,6 +321,7 @@ object LiveInstrumentService {
                 false
             }
         } catch (e: Throwable) {
+            log.warn(e, "Failed to evaluate condition: {}", instrument.instrument.condition)
             ContextReceiver.clear(instrumentId)
             _removeInstrument(instrument.instrument, e)
             false

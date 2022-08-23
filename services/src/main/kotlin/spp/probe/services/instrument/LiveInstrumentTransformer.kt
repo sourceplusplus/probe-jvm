@@ -20,6 +20,7 @@ import net.bytebuddy.jar.asm.Label
 import net.bytebuddy.jar.asm.MethodVisitor
 import net.bytebuddy.jar.asm.Opcodes
 import net.bytebuddy.jar.asm.Type
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
@@ -38,6 +39,7 @@ class LiveInstrumentTransformer(
 ) : MethodVisitor(Opcodes.ASM7, mv) {
 
     companion object {
+        private val log = LogManager.getLogger(LiveInstrumentTransformer::class.java)
         private val THROWABLE_INTERNAL_NAME = Type.getInternalName(Throwable::class.java)
         const val REMOTE_CLASS_LOCATION = "spp/probe/control/LiveInstrumentRemote"
         private const val REMOTE_CHECK_DESC = "(Ljava/lang/String;)Z"
@@ -82,6 +84,7 @@ class LiveInstrumentTransformer(
                     descArgs.delete(0, 2)
                 }
             } else {
+                log.warn("Invalid descriptor: $desc")
                 throw IllegalArgumentException("Invalid descriptor: $desc")
             }
         }
@@ -91,6 +94,7 @@ class LiveInstrumentTransformer(
         if (activeSpans.size == 1) {
             liveInstrument = activeSpans[0].instrument as LiveSpan
         } else if (activeSpans.size > 1) {
+            log.warn("Multiple live spans found for $qualifiedMethodName")
             TODO()
         }
     }
@@ -98,6 +102,10 @@ class LiveInstrumentTransformer(
     override fun visitLineNumber(line: Int, start: Label) {
         mv.visitLineNumber(line, start)
         for (instrument in LiveInstrumentService.getInstruments(className.replace("/", "."), line)) {
+            if (log.isInfoEnable) {
+                log.info("Injecting live instrument {} on line {} of {}", instrument.instrument, line, className)
+            }
+
             val instrumentLabel = Label()
             isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
             when (instrument.instrument) {
@@ -106,6 +114,7 @@ class LiveInstrumentTransformer(
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
                 }
+
                 is LiveLog -> {
                     val log = instrument.instrument
                     if (log.logArguments.isNotEmpty() || instrument.expression != null) {
@@ -114,6 +123,7 @@ class LiveInstrumentTransformer(
                     isHit(log.id!!, instrumentLabel)
                     putLog(log)
                 }
+
                 is LiveMeter -> {
                     val meter = instrument.instrument
                     if (instrument.expression != null) {
