@@ -57,6 +57,7 @@ dependencies {
     implementation("org.jetbrains:annotations:23.0.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
+    testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
