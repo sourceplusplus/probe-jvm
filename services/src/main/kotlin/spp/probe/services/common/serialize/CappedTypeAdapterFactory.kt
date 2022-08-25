@@ -113,14 +113,17 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     if (i >= maxArraySize) return@forEach
                     doWrite(jsonWriter, it as T, it!!::class.java as Class<T>, objSize)
                 }
-                jsonWriter.beginObject()
-                jsonWriter.name("@skip")
-                jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
-                jsonWriter.name("@skip[size]")
-                jsonWriter.value(arrSize)
-                jsonWriter.name("@skip[max]")
-                jsonWriter.value(maxArraySize)
-                jsonWriter.endObject()
+
+                if (arrSize > maxArraySize) {
+                    jsonWriter.beginObject()
+                    jsonWriter.name("@skip")
+                    jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                    jsonWriter.name("@skip[size]")
+                    jsonWriter.value(arrSize)
+                    jsonWriter.name("@skip[max]")
+                    jsonWriter.value(maxArraySize)
+                    jsonWriter.endObject()
+                }
                 jsonWriter.endArray()
             }
 
