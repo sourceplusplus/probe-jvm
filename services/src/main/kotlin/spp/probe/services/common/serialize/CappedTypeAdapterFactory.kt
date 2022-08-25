@@ -59,56 +59,35 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 if (objSize <= maxMemorySize) {
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
 
-                    if (value is Array<*>) {
-                        jsonWriter.beginArray()
-                        value.forEachIndexed { i, it ->
-                            if (i >= maxArraySize) return@forEachIndexed
-                            doWrite(jsonWriter, it as T, it!!::class.java as Class<T>, objSize)
-                        }
-                        if (value.size > maxArraySize) {
-                            jsonWriter.beginObject()
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
-                            jsonWriter.name("@skip[size]")
-                            jsonWriter.value(value.size)
-                            jsonWriter.name("@skip[max]")
-                            jsonWriter.value(maxArraySize)
-                            jsonWriter.endObject()
-                        }
-                        jsonWriter.endArray()
-                    } else if (value is List<*>) {
-                        jsonWriter.beginArray()
-                        value.forEachIndexed { i, it ->
-                            if (i >= maxArraySize) return@forEachIndexed
-                            doWrite(jsonWriter, it as T, it!!::class.java as Class<T>, objSize)
-                        }
-                        if (value.size > maxArraySize) {
-                            jsonWriter.beginObject()
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
-                            jsonWriter.name("@skip[size]")
-                            jsonWriter.value(value.size)
-                            jsonWriter.name("@skip[max]")
-                            jsonWriter.value(maxArraySize)
-                            jsonWriter.endObject()
-                        }
-                        jsonWriter.endArray()
-                    } else if (value is Map<*, *>) {
+                    if (value is List<*> && value.size > maxArraySize) {
+                        writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                    } else if (value is Map<*, *> && value.size > maxArraySize) {
                         jsonWriter.beginObject()
                         value.onEachIndexed { i, entry ->
                             if (i >= maxArraySize) return@onEachIndexed
-                            jsonWriter.name(entry.key.toString())
-                            doWrite(jsonWriter, entry.value as T, entry.value!!::class.java as Class<T>, objSize)
+                            println(type)
+                            doWrite(jsonWriter, entry as T, entry::class.java.name, objSize)
                         }
-                        if (value.size > maxArraySize) {
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
-                            jsonWriter.name("@skip[size]")
-                            jsonWriter.value(value.size)
-                            jsonWriter.name("@skip[max]")
-                            jsonWriter.value(maxArraySize)
-                        }
+                        jsonWriter.name("@skip")
+                        jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                        jsonWriter.name("@skip[size]")
+                        jsonWriter.value(value.size)
+                        jsonWriter.name("@skip[max]")
+                        jsonWriter.value(maxArraySize)
                         jsonWriter.endObject()
+                    } else if (value!!::class.java.isArray) {
+                        when (value) {
+                            is BooleanArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is ByteArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is CharArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is ShortArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is IntArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is LongArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is FloatArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is DoubleArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is Array<*> -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
+                        }
                     } else {
                         doWrite(jsonWriter, value, value.javaClass.name, objSize)
                     }
@@ -126,6 +105,23 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
                     jsonWriter.endObject()
                 }
+            }
+
+            private fun writeArray(jsonWriter: JsonWriter, value: Iterator<*>, arrSize: Int, objSize: Long) {
+                jsonWriter.beginArray()
+                value.withIndex().forEach { (i, it) ->
+                    if (i >= maxArraySize) return@forEach
+                    doWrite(jsonWriter, it as T, it!!::class.java as Class<T>, objSize)
+                }
+                jsonWriter.beginObject()
+                jsonWriter.name("@skip")
+                jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                jsonWriter.name("@skip[size]")
+                jsonWriter.value(arrSize)
+                jsonWriter.name("@skip[max]")
+                jsonWriter.value(maxArraySize)
+                jsonWriter.endObject()
+                jsonWriter.endArray()
             }
 
             private fun doWrite(jsonWriter: JsonWriter, value: T?, javaClazz: Class<T>, objSize: Long) {
