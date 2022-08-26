@@ -59,7 +59,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 if (objSize <= maxMemorySize) {
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
 
-                    if (value is List<*> && value.size > maxArraySize) {
+                    if (value is List<*>) {
                         writeArray(jsonWriter, value.iterator(), value.size, objSize)
                     } else if (value is Map<*, *> && value.size > maxArraySize) {
                         jsonWriter.beginArray()
@@ -67,24 +67,30 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                             if (i >= maxArraySize) return@onEachIndexed
                             jsonWriter.beginObject()
                             jsonWriter.name(entry.key.toString())
-                            when (entry.value) {
-                                (entry.value == null) -> jsonWriter.nullValue()
-                                is Boolean -> jsonWriter.value(entry.value as Boolean)
-                                is Number -> jsonWriter.value(entry.value as Number)
-                                is Char -> jsonWriter.value(entry.value.toString())
-                                is String -> jsonWriter.value(entry.value as String)
-                                else -> doWrite(jsonWriter, entry.value, objSize)
+                            if (entry.value == null) {
+                                jsonWriter.nullValue()
+                            } else {
+                                when (entry.value) {
+                                    is Boolean -> jsonWriter.value(entry.value as Boolean)
+                                    is Number -> jsonWriter.value(entry.value as Number)
+                                    is Char -> jsonWriter.value(entry.value.toString())
+                                    is String -> jsonWriter.value(entry.value as String)
+                                    else -> doWrite(jsonWriter, entry.value, objSize)
+                                }
                             }
                             jsonWriter.endObject()
                         }
-                        jsonWriter.beginObject()
-                        jsonWriter.name("@skip")
-                        jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
-                        jsonWriter.name("@skip[size]")
-                        jsonWriter.value(value.size)
-                        jsonWriter.name("@skip[max]")
-                        jsonWriter.value(maxArraySize)
-                        jsonWriter.endObject()
+
+                        if (value.size > maxArraySize) {
+                            jsonWriter.beginObject()
+                            jsonWriter.name("@skip")
+                            jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                            jsonWriter.name("@skip[size]")
+                            jsonWriter.value(value.size)
+                            jsonWriter.name("@skip[max]")
+                            jsonWriter.value(maxArraySize)
+                            jsonWriter.endObject()
+                        }
                         jsonWriter.endArray()
                     } else if (value!!::class.java.isArray) {
                         when (value) {
@@ -122,7 +128,11 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 jsonWriter.beginArray()
                 value.withIndex().forEach { (i, it) ->
                     if (i >= maxArraySize) return@forEach
-                    doWrite(jsonWriter, it as T, it!!::class.java as Class<T>, objSize)
+                    if (it == null) {
+                        jsonWriter.nullValue()
+                    } else {
+                        doWrite(jsonWriter, it as T, it::class.java as Class<T>, objSize)
+                    }
                 }
 
                 if (arrSize > maxArraySize) {
