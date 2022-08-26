@@ -37,6 +37,8 @@ import spp.protocol.instrument.meter.MetricValueType
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 
 @Suppress("unused")
 object ContextReceiver {
@@ -83,7 +85,8 @@ object ContextReceiver {
         var copyValue = value
         when (copyValue) {
             is Map<*, *> -> copyValue = copyValue.toMap()
-            is Set<*> -> copyValue = copyValue.toSet()
+            is LinkedHashSet<*> -> copyValue = LinkedHashSet(copyValue)
+            is HashSet<*> -> copyValue = HashSet(copyValue)
             is Collection<*> -> copyValue = copyValue.toList()
         }
         variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = Pair(type, copyValue)

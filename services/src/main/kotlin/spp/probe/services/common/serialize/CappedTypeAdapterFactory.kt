@@ -59,8 +59,8 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 if (objSize <= maxMemorySize) {
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
 
-                    if (value is List<*>) {
-                        writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                    if (value is Collection<*>) {
+                        writeCollection(jsonWriter, value.iterator(), value.size, objSize)
                     } else if (value is Map<*, *> && value.size > maxArraySize) {
                         jsonWriter.beginArray()
                         value.onEachIndexed { i, entry ->
@@ -84,7 +84,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         if (value.size > maxArraySize) {
                             jsonWriter.beginObject()
                             jsonWriter.name("@skip")
-                            jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                            jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
                             jsonWriter.name("@skip[size]")
                             jsonWriter.value(value.size)
                             jsonWriter.name("@skip[max]")
@@ -94,15 +94,15 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         jsonWriter.endArray()
                     } else if (value!!::class.java.isArray) {
                         when (value) {
-                            is BooleanArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is ByteArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is CharArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is ShortArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is IntArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is LongArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is FloatArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is DoubleArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
-                            is Array<*> -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
+                            is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                            is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
                             else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                         }
                     } else {
@@ -124,7 +124,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
             }
 
-            private fun writeArray(jsonWriter: JsonWriter, value: Iterator<*>, arrSize: Int, objSize: Long) {
+            private fun writeCollection(jsonWriter: JsonWriter, value: Iterator<*>, arrSize: Int, objSize: Long) {
                 jsonWriter.beginArray()
                 value.withIndex().forEach { (i, it) ->
                     if (i >= maxArraySize) return@forEach
@@ -138,7 +138,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 if (arrSize > maxArraySize) {
                     jsonWriter.beginObject()
                     jsonWriter.name("@skip")
-                    jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
+                    jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
                     jsonWriter.name("@skip[size]")
                     jsonWriter.value(arrSize)
                     jsonWriter.name("@skip[max]")
