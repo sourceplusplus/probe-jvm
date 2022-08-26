@@ -62,12 +62,22 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     if (value is List<*> && value.size > maxArraySize) {
                         writeArray(jsonWriter, value.iterator(), value.size, objSize)
                     } else if (value is Map<*, *> && value.size > maxArraySize) {
-                        jsonWriter.beginObject()
+                        jsonWriter.beginArray()
                         value.onEachIndexed { i, entry ->
                             if (i >= maxArraySize) return@onEachIndexed
-                            println(type)
-                            doWrite(jsonWriter, entry as T, entry::class.java.name, objSize)
+                            jsonWriter.beginObject()
+                            jsonWriter.name(entry.key.toString())
+                            when (entry.value) {
+                                (entry.value == null) -> jsonWriter.nullValue()
+                                is Boolean -> jsonWriter.value(entry.value as Boolean)
+                                is Number -> jsonWriter.value(entry.value as Number)
+                                is Char -> jsonWriter.value(entry.value.toString())
+                                is String -> jsonWriter.value(entry.value as String)
+                                else -> doWrite(jsonWriter, entry.value, objSize)
+                            }
+                            jsonWriter.endObject()
                         }
+                        jsonWriter.beginObject()
                         jsonWriter.name("@skip")
                         jsonWriter.value("MAX_ARRAY_SIZE_EXCEEDED")
                         jsonWriter.name("@skip[size]")
@@ -75,6 +85,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         jsonWriter.name("@skip[max]")
                         jsonWriter.value(maxArraySize)
                         jsonWriter.endObject()
+                        jsonWriter.endArray()
                     } else if (value!!::class.java.isArray) {
                         when (value) {
                             is BooleanArray -> writeArray(jsonWriter, value.iterator(), value.size, objSize)
@@ -89,7 +100,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                             else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                         }
                     } else {
-                        doWrite(jsonWriter, value, value.javaClass.name, objSize)
+                        doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
                     }
 
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
@@ -127,17 +138,17 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 jsonWriter.endArray()
             }
 
-            private fun doWrite(jsonWriter: JsonWriter, value: T?, javaClazz: Class<T>, objSize: Long) {
+            private fun doWrite(jsonWriter: JsonWriter, value: Any?, objSize: Long) {
                 try {
                     ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                        this@CappedTypeAdapterFactory, TypeToken.get(javaClazz)
+                        this@CappedTypeAdapterFactory, TypeToken.get(Any::class.java)
                     ).write(jsonWriter, value)
                 } catch (e: Exception) {
                     jsonWriter.beginObject()
                     jsonWriter.name("@skip")
                     jsonWriter.value("EXCEPTION_OCCURRED")
                     jsonWriter.name("@class")
-                    jsonWriter.value(javaClazz.name)
+                    jsonWriter.value(value!!::class.java.name)
                     jsonWriter.name("@size")
                     jsonWriter.value(objSize.toString())
                     jsonWriter.name("@cause")
@@ -148,17 +159,17 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
             }
 
-            private fun doWrite(jsonWriter: JsonWriter, value: T?, javaClassName: String, objSize: Long) {
+            private fun <T> doWrite(jsonWriter: JsonWriter, value: T?, javaClazz: Class<T>, objSize: Long) {
                 try {
                     ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                        this@CappedTypeAdapterFactory, type
+                        this@CappedTypeAdapterFactory, TypeToken.get(javaClazz)
                     ).write(jsonWriter, value)
                 } catch (e: Exception) {
                     jsonWriter.beginObject()
                     jsonWriter.name("@skip")
                     jsonWriter.value("EXCEPTION_OCCURRED")
                     jsonWriter.name("@class")
-                    jsonWriter.value(javaClassName)
+                    jsonWriter.value(javaClazz.name)
                     jsonWriter.name("@size")
                     jsonWriter.value(objSize.toString())
                     jsonWriter.name("@cause")
