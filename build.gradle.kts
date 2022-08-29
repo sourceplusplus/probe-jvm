@@ -26,7 +26,39 @@ subprojects {
     apply(plugin = "com.diffplug.spotless")
     configure<com.diffplug.gradle.spotless.SpotlessExtension> {
         kotlin {
-            licenseHeaderFile(file("../LICENSE-HEADER.txt"))
+            val startYear = 2022
+            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            val copyrightYears = if (startYear == currentYear) {
+                "$startYear"
+            } else {
+                "$startYear-$currentYear"
+            }
+
+            val probeProject = findProject(":probes:jvm") ?: rootProject
+            val licenseHeader = Regex("( . Copyright [\\S\\s]+)")
+                .find(File(probeProject.projectDir, "LICENSE").readText())!!
+                .value.lines().joinToString("\n") {
+                    if (it.trim().isEmpty()) {
+                        " *"
+                    } else {
+                        " * " + it.trim()
+                    }
+                }
+            val formattedLicenseHeader = buildString {
+                append("/*\n")
+                append(
+                    licenseHeader.replace(
+                        "Copyright [yyyy] [name of copyright owner]",
+                        "Source++, the open-source live coding platform.\n" +
+                                " * Copyright (C) $copyrightYears CodeBrig, Inc."
+                    ).replace(
+                        "http://www.apache.org/licenses/LICENSE-2.0",
+                        "    http://www.apache.org/licenses/LICENSE-2.0"
+                    )
+                )
+                append("/")
+            }
+            licenseHeader(formattedLicenseHeader)
         }
     }
 }
