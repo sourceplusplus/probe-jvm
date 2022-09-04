@@ -34,11 +34,11 @@ import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
+import java.io.ByteArrayInputStream
+import java.io.ObjectInputStream
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
-import kotlin.collections.HashSet
-import kotlin.collections.LinkedHashSet
 
 @Suppress("unused")
 object ContextReceiver {
@@ -185,10 +185,24 @@ object ContextReceiver {
                 ).mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
                     .build()
 
-                MeterType.GAUGE -> return@computeIfAbsent MeterFactory.gauge(
-                    "gauge_" + meterId.replace("-", "_")
-                ) { liveMeter.metricValue.value.toDouble() }
-                    .build()
+                MeterType.GAUGE -> {
+                    if (liveMeter.metricValue.valueType == MetricValueType.SUPPLIER) {
+                        val decoded = Base64.getDecoder().decode(liveMeter.metricValue.value)
+
+                        @Suppress("UNCHECKED_CAST")
+                        val supplier: () -> Double = ObjectInputStream(
+                            ByteArrayInputStream(decoded)
+                        ).readObject() as () -> Double
+                        return@computeIfAbsent MeterFactory.gauge(
+                            "gauge_" + meterId.replace("-", "_"), supplier
+                        ).build()
+                    } else {
+                        return@computeIfAbsent MeterFactory.gauge(
+                            "gauge_" + meterId.replace("-", "_")
+                        ) { liveMeter.metricValue.value.toDouble() }
+                            .build()
+                    }
+                }
 
                 MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
                     "histogram_" + meterId.replace("-", "_")
