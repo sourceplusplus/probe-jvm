@@ -22,6 +22,7 @@ import org.apache.skywalking.apm.agent.core.context.ContextManager
 import org.apache.skywalking.apm.agent.core.context.tag.StringTag
 import org.apache.skywalking.apm.agent.core.context.trace.AbstractSpan
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.apache.skywalking.apm.agent.core.meter.Counter
 import org.apache.skywalking.apm.agent.core.meter.CounterMode
 import org.apache.skywalking.apm.agent.core.meter.Histogram
@@ -43,6 +44,7 @@ import java.util.concurrent.Executors
 @Suppress("unused")
 object ContextReceiver {
 
+    private val log = LogManager.getLogger(ContextReceiver::class.java)
     private val localVariables: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
     private val fields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
     private val staticFields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
@@ -179,6 +181,7 @@ object ContextReceiver {
     fun putMeter(meterId: String) = executor.submit {
         val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return@submit
         val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
+            log.info("Initial trigger of live meter: $meterId")
             when (liveMeter.meterType) {
                 MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
                     "count_" + meterId.replace("-", "_")
