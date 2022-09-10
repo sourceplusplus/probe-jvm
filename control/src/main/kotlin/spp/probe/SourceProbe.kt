@@ -132,7 +132,7 @@ object SourceProbe {
         vertx = Vertx.vertx()
 
         unzipAgent(BUILD.getString("apache_skywalking_version"))
-        writeCaCertIfNecessary()
+        updateCaCertIfNecessary()
         addAgentToClassLoader()
         configureAgent(true)
         invokeAgent()
@@ -170,7 +170,7 @@ object SourceProbe {
         if (connected.get()) return
         val options = NetClientOptions()
             .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
-            .setSsl(ProbeConfiguration.spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") != "false"))
+            .setSsl(ProbeConfiguration.sslEnabled)
             .setTrustAll(!ProbeConfiguration.spp.getBoolean("verify_host", true))
             .apply {
                 if (ProbeConfiguration.getString("platform_certificate") != null) {
@@ -405,9 +405,9 @@ object SourceProbe {
         }
     }
 
-    private fun writeCaCertIfNecessary() {
+    private fun updateCaCertIfNecessary() {
         val caCertFile = File(PROBE_DIRECTORY, "ca" + File.separator + "ca.crt")
-        if (!caCertFile.exists()) {
+        if (ProbeConfiguration.sslEnabled && !caCertFile.exists()) {
             if (ProbeConfiguration.getString("platform_certificate") != null) {
                 val myCaAsABuffer = Buffer.buffer(
                     "-----BEGIN CERTIFICATE-----\n" +
@@ -422,6 +422,8 @@ object SourceProbe {
                     throw IOException("Failed to create file $caCertFile")
                 }
             }
+        } else if (!ProbeConfiguration.sslEnabled && caCertFile.exists()) {
+            caCertFile.delete()
         }
     }
 
