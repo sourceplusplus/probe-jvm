@@ -182,6 +182,11 @@ object ProbeConfiguration {
             return level?.uppercase() ?: "WARN"
         }
 
+    val sslEnabled: Boolean
+        get() {
+            return spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") != "false")
+        }
+
     private fun toProperties(config: Map<String, Map<String, Any>>?): List<Array<String>> {
         val sb: MutableList<Array<String>> = ArrayList()
         for (key in config!!.keys) {
