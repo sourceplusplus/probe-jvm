@@ -22,6 +22,7 @@ import io.vertx.core.json.JsonObject
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
@@ -90,9 +91,9 @@ class LiveInstrumentRemote : AbstractVerticle() {
             putMeter = contextClass.getMethod("putMeter", String::class.java)
             openLocalSpan = contextClass.getMethod("openLocalSpan", String::class.java)
             closeLocalSpan = contextClass.getMethod("closeLocalSpan", String::class.java, Throwable::class.java)
-        } catch (e: Throwable) {
-            e.printStackTrace()
-            throw RuntimeException(e)
+        } catch (ex: Throwable) {
+            log.error("Failed to initialize live instrument remote", ex)
+            throw RuntimeException(ex)
         }
 
         vertx.eventBus() //global instrument remote
@@ -126,6 +127,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
         map["command"] = it.body().toString()
         map["occurredAt"] = System.currentTimeMillis()
         map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
+        log.error("Error occurred while processing command", ex)
 
         FrameHelper.sendFrame(
             BridgeEventType.PUBLISH.name.lowercase(),
@@ -155,6 +157,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
     }
 
     companion object {
+        private val log = LogManager.getLogger(LiveInstrumentRemote::class.java)
         private val EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
             if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
             FrameHelper.sendFrame(
