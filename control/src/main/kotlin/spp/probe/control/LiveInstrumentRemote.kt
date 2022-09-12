@@ -29,7 +29,6 @@ import spp.probe.SourceProbe
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
-import spp.protocol.marshall.ProtocolMarshaller
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
@@ -106,7 +105,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
 
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {
         try {
-            val command = ProtocolMarshaller.deserializeLiveInstrumentCommand(it.body())
+            val command = LiveInstrumentCommand(it.body())
             when (command.commandType) {
                 CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(command)
                 CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
