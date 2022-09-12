@@ -9,6 +9,7 @@ val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val jacksonVersion: String by project
+val vertxVersion: String by project
 
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
@@ -47,6 +48,7 @@ dependencies {
     implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
+    implementation("io.vertx:vertx-core:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.16")
 
@@ -58,9 +60,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.4.0")
 }
 
 tasks {
@@ -89,6 +88,7 @@ tasks {
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
+        relocate("io.vertx", "spp.probe.services.dependencies.io.vertx")
     }
     getByName("jar").dependsOn("shadowJar")
 
