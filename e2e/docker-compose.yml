@@ -18,7 +18,7 @@ services:
       - "11800:11800"
       - "12800:12800"
     environment:
-      - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5107
+      - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5106
       - SPP_LOGGING_LEVEL=trace
       - SW_CORE_GRPC_SSL_ENABLED=true
       - SW_CORE_GRPC_SSL_KEY_PATH=/skywalking/config/spp-platform.key
