@@ -14,7 +14,7 @@ services:
     container_name: spp-platform
     hostname: spp-platform
     ports:
-      - "5107:5107"
+      - "5106:5106"
       - "11800:11800"
       - "12800:12800"
     environment:
