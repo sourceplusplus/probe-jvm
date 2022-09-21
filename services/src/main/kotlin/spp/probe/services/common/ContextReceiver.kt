@@ -189,7 +189,7 @@ object ContextReceiver {
                     .build()
 
                 MeterType.GAUGE -> {
-                    if (liveMeter.metricValue.valueType == MetricValueType.SUPPLIER) {
+                    if (liveMeter.metricValue.valueType == MetricValueType.NUMBER_SUPPLIER) {
                         val decoded = Base64.getDecoder().decode(liveMeter.metricValue.value)
 
                         @Suppress("UNCHECKED_CAST")
