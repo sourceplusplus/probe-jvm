@@ -50,7 +50,7 @@ dependencies {
     }
     implementation("io.vertx:vertx-core:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    compileOnly("net.bytebuddy:byte-buddy:1.12.16")
+    compileOnly("net.bytebuddy:byte-buddy:1.12.17")
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
