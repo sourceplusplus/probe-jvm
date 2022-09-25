@@ -194,6 +194,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         }
     }
 
+    @Suppress("unused")
     companion object {
         private var instrumentation: Instrumentation? = null
         private var maxMemorySize: Long = -1
