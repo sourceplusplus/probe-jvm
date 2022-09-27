@@ -443,10 +443,7 @@ object SourceProbe {
             if (version.startsWith("1.")) {
                 version = version.substring(2, 3)
             } else {
-                val dot = version.indexOf(".")
-                if (dot != -1) {
-                    version = version.substring(0, dot)
-                }
+                version = version.substringBefore(".")
             }
             return version.toInt()
         }
