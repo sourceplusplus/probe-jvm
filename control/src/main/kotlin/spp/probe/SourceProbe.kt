@@ -439,10 +439,7 @@ object SourceProbe {
 
     private val jvmMajorVersion: Int
         get() {
-            var version = System.getProperty("java.version")
-            if (version.contains("-")) {
-                version = version.substring(0, version.indexOf("-"))
-            }
+            var version = System.getProperty("java.version").substringBefore("-")
             if (version.startsWith("1.")) {
                 version = version.substring(2, 3)
             } else {
