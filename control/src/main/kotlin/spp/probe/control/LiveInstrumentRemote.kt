@@ -23,7 +23,6 @@ import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
-import org.apache.skywalking.apm.agent.core.plugin.WitnessFinder
 import spp.probe.ProbeConfiguration
 import spp.probe.SourceProbe
 import spp.protocol.instrument.*
@@ -50,10 +49,6 @@ class LiveInstrumentRemote : AbstractVerticle() {
             val serviceClass = Class.forName(
                 "spp.probe.services.instrument.LiveInstrumentService", false, agentClassLoader
             )
-            val poolMapField = WitnessFinder::class.java.getDeclaredField("poolMap")
-            poolMapField.isAccessible = true
-            serviceClass.getMethod("setPoolMap", MutableMap::class.java)
-                .invoke(null, poolMapField[WitnessFinder.INSTANCE])
             serviceClass.getMethod("setInstrumentEventConsumer", BiConsumer::class.java).invoke(null, EVENT_CONSUMER)
             serviceClass.getMethod("setInstrumentation", Instrumentation::class.java)
                 .invoke(null, SourceProbe.instrumentation)

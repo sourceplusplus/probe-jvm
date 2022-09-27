@@ -16,7 +16,6 @@
  */
 package spp.probe.services.instrument
 
-import net.bytebuddy.pool.TypePool
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.springframework.expression.ParseException
@@ -47,7 +46,6 @@ object LiveInstrumentService {
         SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
     )
     private var instrumentEventConsumer: BiConsumer<String, String>? = null
-    private var poolMap: Map<ClassLoader, TypePool> = HashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
     private var instrumentation: Instrumentation? = null
 
@@ -92,21 +90,13 @@ object LiveInstrumentService {
             } else {
                 instrument.instrument.location.source
             }
-            var clazz: Class<*>? = null
-            for (classLoader in poolMap.keys) {
-                try {
-                    clazz = Class.forName(className, true, classLoader)
-                    if (log.isInfoEnable) log.info("Found {} in class loader {}", clazz, classLoader)
-                } catch (ignored: ClassNotFoundException) {
-                }
+
+            if (log.isInfoEnable) log.info("Searching for {} in all loaded classes", className)
+            val clazz: Class<*>? = inst.allLoadedClasses.find { it.name == className }
+            if (clazz != null) {
+                if (log.isInfoEnable) log.info("Found {} in all loaded classes", clazz)
             }
-            if (poolMap.isEmpty()) {
-                try {
-                    clazz = Class.forName(className)
-                    if (log.isInfoEnable) log.info("Found {} in system class loader", clazz)
-                } catch (ignored: ClassNotFoundException) {
-                }
-            }
+
             if (clazz == null) {
                 if (log.isDebugEnable) log.debug("{} not found", className)
                 if (instrument.instrument.applyImmediately) {
@@ -162,11 +152,6 @@ object LiveInstrumentService {
                 inst.removeTransformer(transformer)
             }
         }
-    }
-
-    @JvmStatic
-    fun setPoolMap(poolMap: Map<*, *>) {
-        LiveInstrumentService.poolMap = poolMap as Map<ClassLoader, TypePool>
     }
 
     @JvmStatic
