@@ -33,6 +33,7 @@ import org.apache.skywalking.apm.agent.core.logging.core.LogLevel
 import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
+import spp.protocol.artifact.ArtifactLanguage
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.status.InstanceConnection
@@ -264,7 +265,7 @@ object SourceProbe {
 
             //define probe metadata
             val meta = HashMap<String, Any>()
-            meta["language"] = "java"
+            meta["language"] = ArtifactLanguage.JVM.name.lowercase()
             meta["probe_version"] = BUILD.getString("build_version")
             meta["java_version"] = System.getProperty("java.version")
             try {
