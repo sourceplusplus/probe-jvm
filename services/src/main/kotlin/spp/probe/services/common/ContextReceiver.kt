@@ -162,7 +162,7 @@ object ContextReceiver {
             .setTimestamp(System.currentTimeMillis())
             .setService(Config.Agent.SERVICE_NAME)
             .setServiceInstance(Config.Agent.INSTANCE_NAME)
-            .setEndpoint(ContextManager.getPrimaryEndpointName())
+            .apply { endpoint = ContextManager.getPrimaryEndpointName() }
             .setTags(logTags.build())
             .setBody(
                 LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
