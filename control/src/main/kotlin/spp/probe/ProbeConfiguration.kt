@@ -184,7 +184,7 @@ object ProbeConfiguration {
 
     val sslEnabled: Boolean
         get() {
-            return spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") != "false")
+            return spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") == "true")
         }
 
     private fun toProperties(config: Map<String, Map<String, Any>>?): List<Array<String>> {
