@@ -39,7 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spp.protocol.SourceServices
-import spp.protocol.SourceServices.Provide.toLiveInstrumentSubscriberAddress
+import spp.protocol.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 import spp.protocol.extend.TCPServiceFrameParser
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
@@ -74,7 +74,7 @@ abstract class ProbeIntegrationTest {
 
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
-            setupHandler(socket, vertx, SourceServices.Utilize.LIVE_INSTRUMENT)
+            setupHandler(socket, vertx, SourceServices.LIVE_INSTRUMENT)
 
             //setup connection
             val replyAddress = UUID.randomUUID().toString()
@@ -104,7 +104,7 @@ abstract class ProbeIntegrationTest {
             promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
                 .setToken(SYSTEM_JWT_TOKEN)
-                .setAddress(SourceServices.Utilize.LIVE_INSTRUMENT)
+                .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
         }
 
