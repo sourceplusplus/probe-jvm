@@ -18,7 +18,6 @@ package spp.probe.services.common.model
 
 import junit.framework.TestCase
 import org.junit.Test
-import spp.protocol.instrument.throttle.HitThrottle
 import spp.protocol.instrument.throttle.ThrottleStep
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
