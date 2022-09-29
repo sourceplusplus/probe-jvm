@@ -22,21 +22,21 @@ This project provides JVM support to the [Source++](https://github.com/sourceplu
        maven { url "https://pkg.sourceplus.plus/sourceplusplus/probe-jvm" }
    }
    dependencies {
-       javaagent("plus.sourceplus.probe:probe-jvm:0.5.4")
+       javaagent("plus.sourceplus.probe:probe-jvm:0.7.0")
    }
    ```
 
 ## Standalone Agent
 
 1. Add `spp-probe-*.jar` and `spp-probe.yml` to the same directory
-    - E.g. [spp-probe-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-probe-0.5.4.jar) & [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
+    - E.g. [spp-probe-0.7.0.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.7.0/spp-probe-0.7.0.jar) & [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
 1. Boot application with `-javaagent:spp-probe-*.jar` parameter
-    - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.5.4.jar -jar MyApp.jar`
+    - E.g. `java -javaagent:/opt/spp-platform/spp-probe-0.7.0.jar -jar MyApp.jar`
 
 ## Apache SkyWalking Plugin
 
 1. Add `spp-probe-*.jar` and `spp-skywalking-services-*.jar` to `skywalking-agent/plugins` directory
-    - E.g. [spp-probe-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-probe-0.5.4.jar) & [spp-skywalking-services-0.5.4.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.5.4/spp-skywalking-services-0.5.4.jar)
+    - E.g. [spp-probe-0.7.0.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.7.0/spp-probe-0.7.0.jar) & [spp-skywalking-services-0.7.0.jar](https://github.com/sourceplusplus/probe-jvm/releases/download/0.7.0/spp-skywalking-services-0.7.0.jar)
 1. Add `spp-probe.yml` to `skywalking-agent/config` directory
     - E.g. [spp-probe.yml](https://docs.sourceplusplus.com/implementation/tools/probe/configuration/)
 1. Reboot Apache SkyWalking agent
