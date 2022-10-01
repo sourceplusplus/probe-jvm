@@ -18,9 +18,11 @@ package spp.probe.services.common.serialize
 
 import com.google.gson.*
 import com.google.gson.internal.Streams
+import com.google.gson.internal.bind.JsogRegistry
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import java.io.IOException
 
 /**
@@ -113,6 +115,9 @@ import java.io.IOException
  */
 class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<*>?, typeFieldName: String?) :
     TypeAdapterFactory {
+
+    private val log = LogManager.getLogger(RuntimeClassNameTypeAdapterFactory::class.java)
+
     private val baseType: Class<*>
     private val typeFieldName: String
     private val labelToSubtype: MutableMap<String, Class<*>> = LinkedHashMap()
@@ -224,6 +229,23 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                         Streams.write(jsonObject, out)
                     } else {
                         val clone = JsonObject()
+
+                        //search for self-references
+                        try {
+                            srcType.declaredFields.forEach {
+                                it.isAccessible = true
+                                val fieldValue = it.get(value)
+                                if (fieldValue === value) {
+                                    val selfRef = JsonObject()
+                                    selfRef.addProperty("@ref", JsogRegistry.get().geId(value))
+                                    selfRef.addProperty("@class", value.javaClass.name)
+                                    clone.add(it.name, selfRef)
+                                }
+                            }
+                        } catch (e: Throwable) {
+                            log.error("Error while serializing self-references", e)
+                        }
+
                         clone.add(typeFieldName, JsonPrimitive(label))
                         for ((key, value1) in jsonObject.entrySet()) {
                             clone.add(key, value1)
