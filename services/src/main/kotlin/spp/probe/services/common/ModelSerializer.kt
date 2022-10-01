@@ -20,8 +20,8 @@ import com.google.gson.*
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
 import spp.probe.services.common.serialize.CappedTypeAdapterFactory
+import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
 import java.io.IOException
 import java.io.OutputStream
 import java.util.*

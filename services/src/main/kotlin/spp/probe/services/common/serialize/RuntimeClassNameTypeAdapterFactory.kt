@@ -18,6 +18,8 @@ package spp.probe.services.common.serialize
 
 import com.google.gson.*
 import com.google.gson.internal.Streams
+import com.google.gson.internal.bind.JsogRegistry
+import com.google.gson.internal.bind.ReflectiveTypeAdapterFactory
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
@@ -224,6 +226,34 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                         Streams.write(jsonObject, out)
                     } else {
                         val clone = JsonObject()
+
+                        //search for self-references
+                        try {
+                            val boundFields = delegate.let {
+                                if (it is ReflectiveTypeAdapterFactory.Adapter<*>) {
+                                    val field =
+                                        ReflectiveTypeAdapterFactory.Adapter::class.java.getDeclaredField("boundFields")
+                                    field.isAccessible = true
+                                    field.get(it) as Map<String, *>
+                                } else {
+                                    null
+                                }
+                            }
+                            boundFields?.forEach {
+                                val field = value?.javaClass?.getDeclaredField(it.key)
+                                field.isAccessible = true
+                                val fieldValue = field.get(value)
+                                if (fieldValue === value) {
+                                    val selfRef = JsonObject()
+                                    selfRef.addProperty("@ref", JsogRegistry.get().geId(value))
+                                    selfRef.addProperty("@class", value.javaClass.name)
+                                    clone.add(it.key, selfRef)
+                                }
+                            }
+                        } catch (e: Throwable) {
+                            e.printStackTrace()
+                        }
+
                         clone.add(typeFieldName, JsonPrimitive(label))
                         for ((key, value1) in jsonObject.entrySet()) {
                             clone.add(key, value1)
