@@ -23,6 +23,7 @@ import com.google.gson.internal.bind.ReflectiveTypeAdapterFactory
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import java.io.IOException
 
 /**
@@ -115,6 +116,9 @@ import java.io.IOException
  */
 class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<*>?, typeFieldName: String?) :
     TypeAdapterFactory {
+
+    private val log = LogManager.getLogger(RuntimeClassNameTypeAdapterFactory::class.java)
+
     private val baseType: Class<*>
     private val typeFieldName: String
     private val labelToSubtype: MutableMap<String, Class<*>> = LinkedHashMap()
@@ -251,7 +255,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                                 }
                             }
                         } catch (e: Throwable) {
-                            e.printStackTrace()
+                            log.error("Error while serializing self-references", e)
                         }
 
                         clone.add(typeFieldName, JsonPrimitive(label))
