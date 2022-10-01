@@ -231,8 +231,8 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                         try {
                             val boundFields = delegate.let {
                                 if (it is ReflectiveTypeAdapterFactory.Adapter<*>) {
-                                    val field =
-                                        ReflectiveTypeAdapterFactory.Adapter::class.java.getDeclaredField("boundFields")
+                                    val field = ReflectiveTypeAdapterFactory.Adapter::class.java
+                                        .getDeclaredField("boundFields")
                                     field.isAccessible = true
                                     field.get(it) as Map<String, *>
                                 } else {
