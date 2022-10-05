@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk
+FROM openjdk:11.0.16-jdk
 
 RUN mkdir -p /tmp/spp-probe/ca
 ADD ./config/spp-platform.crt /tmp/spp-probe/ca/ca.crt
