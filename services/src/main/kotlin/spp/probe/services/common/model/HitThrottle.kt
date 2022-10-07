@@ -17,42 +17,40 @@
 package spp.probe.services.common.model
 
 import spp.protocol.instrument.throttle.ThrottleStep
-import kotlin.jvm.Transient
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
-class HitThrottle(private val limit: Int, step: ThrottleStep) {
+class HitThrottle(private val limit: Int, private val step: ThrottleStep) {
 
-    private val step: ThrottleStep
+    private val lastReset = AtomicLong(-1)
+    private val hitCount = AtomicInteger(0)
 
-    @Transient
-    private var lastReset: Long = -1
+    private val _totalHitCount = AtomicInteger(0)
+    val totalHitCount: Int
+        get() = _totalHitCount.get()
 
-    @Transient
-    private var hitCount = 0
 
-    @Transient
-    var totalHitCount = 0
-        private set
-
-    @Transient
-    var totalLimitedCount = 0
-        private set
-
-    init {
-        this.step = step
-    }
+    private val _totalLimitedCount = AtomicInteger(0)
+    val totalLimitedCount: Int
+        get() = _totalLimitedCount.get()
 
     fun isRateLimited(): Boolean {
-        if (hitCount++ < limit) {
-            totalHitCount++
+        if (hitCount.getAndIncrement() < limit) {
+            if (lastReset.get() == -1L) {
+                lastReset.set(System.currentTimeMillis())
+            }
+
+            _totalHitCount.incrementAndGet()
             return false
         }
-        return if (System.currentTimeMillis() - lastReset > step.toMillis(1)) {
-            hitCount = 1
-            totalHitCount++
-            lastReset = System.currentTimeMillis()
+
+        return if (System.currentTimeMillis() - lastReset.get() > step.toMillis(1)) {
+            hitCount.set(1)
+            _totalHitCount.incrementAndGet()
+            lastReset.set(System.currentTimeMillis())
             false
         } else {
-            totalLimitedCount++
+            _totalLimitedCount.incrementAndGet()
             true
         }
     }
