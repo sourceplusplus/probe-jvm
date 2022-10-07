@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit
 class HitThrottleTest {
 
     @Test
-    @Throws(Exception::class)
     fun oneASecond() {
         val hitThrottle = HitThrottle(1, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
@@ -37,7 +36,6 @@ class HitThrottleTest {
     }
 
     @Test
-    @Throws(Exception::class)
     fun twiceASecond() {
         val hitThrottle = HitThrottle(2, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
@@ -49,7 +47,6 @@ class HitThrottleTest {
     }
 
     @Test
-    @Throws(Exception::class)
     fun fourTimesASecond() {
         val hitThrottle = HitThrottle(4, ThrottleStep.SECOND)
         val scheduler = Executors.newScheduledThreadPool(1)
