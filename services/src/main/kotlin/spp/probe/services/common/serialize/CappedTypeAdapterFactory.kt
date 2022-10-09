@@ -218,9 +218,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
     }
 
     private fun doWriteUnsafe(jsonWriter: JsonWriter, value: Any?) {
-        println("Writing unsafe: " + value?.let { it::class.java.name })
         if (value != null && JsogRegistry.get().geId(value) != null) {
-            println("Already serialized: " + value::class.java.name)
             jsonWriter.name("@ref")
             jsonWriter.value(JsogRegistry.get().geId(value))
             jsonWriter.name("@class")
@@ -236,7 +234,6 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
         JsogRegistry.get().userData.putIfAbsent("depth", 0)
         if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
-            println("Max depth exceeded")
             jsonWriter.name("@skip")
             jsonWriter.value("MAX_DEPTH_EXCEEDED")
             jsonWriter.name("@class")
@@ -254,8 +251,6 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
             try {
                 JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
-                var currentDepth = JsogRegistry.get().userData["depth"] as Int
-                println("Writing field ${field.name} of ${value.javaClass.name} - Depth: $currentDepth")
 
                 if (fieldValue == null) {
                     jsonWriter.name(field.name)
@@ -268,7 +263,6 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         String::class.java
                     ).invoke(module, fieldValue::class.java.`package`.name) as Boolean
                     if (isExported) {
-                        println("Exported")
                         jsonWriter.name(field.name)
                         try {
                             ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
@@ -287,7 +281,6 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                             jsonWriter.endObject()
                         }
                     } else {
-                        println("Not exported")
                         val sw = StringWriter()
                         val innerJsonWriter = JsonWriter(sw)
                         innerJsonWriter.beginObject()
@@ -307,8 +300,6 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
-                currentDepth = JsogRegistry.get().userData["depth"] as Int
-                println("Done writing field ${field.name} of ${value.javaClass.name} - Depth: $currentDepth")
             } catch (ignored: Exception) {
                 ignored.printStackTrace()
             }
