@@ -48,12 +48,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 JsogRegistry.get().userData.putIfAbsent("depth", 0)
                 if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
                     jsonWriter.beginObject()
-                    jsonWriter.name("@skip")
-                    jsonWriter.value("MAX_DEPTH_EXCEEDED")
-                    jsonWriter.name("@class")
-                    jsonWriter.value(value.javaClass.name)
-                    jsonWriter.name("@id")
-                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                    appendMaxDepthExceeded(jsonWriter, value)
                     jsonWriter.endObject()
                     return
                 }
@@ -85,14 +80,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         }
 
                         if (value.size > maxArraySize) {
-                            jsonWriter.beginObject()
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
-                            jsonWriter.name("@skip[size]")
-                            jsonWriter.value(value.size)
-                            jsonWriter.name("@skip[max]")
-                            jsonWriter.value(maxArraySize)
-                            jsonWriter.endObject()
+                            appendMaxCollectionSizeExceeded(jsonWriter, value.size)
                         }
                         jsonWriter.endArray()
                     } else if (value!!::class.java.isArray) {
@@ -114,16 +102,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
                     JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
                 } else {
-                    jsonWriter.beginObject()
-                    jsonWriter.name("@skip")
-                    jsonWriter.value("MAX_SIZE_EXCEEDED")
-                    jsonWriter.name("@class")
-                    jsonWriter.value(value.javaClass.name)
-                    jsonWriter.name("@size")
-                    jsonWriter.value(objSize.toString())
-                    jsonWriter.name("@id")
-                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
-                    jsonWriter.endObject()
+                    appendMaxSizeExceeded(jsonWriter, value, objSize)
                 }
             }
 
@@ -139,14 +118,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 if (arrSize > maxArraySize) {
-                    jsonWriter.beginObject()
-                    jsonWriter.name("@skip")
-                    jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
-                    jsonWriter.name("@skip[size]")
-                    jsonWriter.value(arrSize)
-                    jsonWriter.name("@skip[max]")
-                    jsonWriter.value(maxArraySize)
-                    jsonWriter.endObject()
+                    appendMaxCollectionSizeExceeded(jsonWriter, arrSize)
                 }
                 jsonWriter.endArray()
             }
@@ -157,18 +129,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         this@CappedTypeAdapterFactory, TypeToken.get(Any::class.java)
                     ).write(jsonWriter, value)
                 } catch (e: Exception) {
-                    jsonWriter.beginObject()
-                    jsonWriter.name("@skip")
-                    jsonWriter.value("EXCEPTION_OCCURRED")
-                    jsonWriter.name("@class")
-                    jsonWriter.value(value!!::class.java.name)
-                    jsonWriter.name("@size")
-                    jsonWriter.value(objSize.toString())
-                    jsonWriter.name("@cause")
-                    jsonWriter.value(e.message)
-                    jsonWriter.name("@id")
-                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
-                    jsonWriter.endObject()
+                    appendExceptionOccurred(jsonWriter, value, objSize, e)
                 }
             }
 
@@ -182,34 +143,12 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         try {
                             doWriteUnsafe(jsonWriter, value)
                         } catch (e: Exception) {
-                            jsonWriter.beginObject()
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("EXCEPTION_OCCURRED")
-                            jsonWriter.name("@class")
-                            jsonWriter.value(value!!::class.java.name)
-                            jsonWriter.name("@size")
-                            jsonWriter.value(objSize.toString())
-                            jsonWriter.name("@cause")
-                            jsonWriter.value(e.message)
-                            jsonWriter.name("@id")
-                            jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
-                            jsonWriter.endObject()
+                            appendExceptionOccurred(jsonWriter, value, objSize, e)
                         }
                         return
                     }
 
-                    jsonWriter.beginObject()
-                    jsonWriter.name("@skip")
-                    jsonWriter.value("EXCEPTION_OCCURRED")
-                    jsonWriter.name("@class")
-                    jsonWriter.value(javaClazz.name)
-                    jsonWriter.name("@size")
-                    jsonWriter.value(objSize.toString())
-                    jsonWriter.name("@cause")
-                    jsonWriter.value(e.message)
-                    jsonWriter.name("@id")
-                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
-                    jsonWriter.endObject()
+                    appendExceptionOccurred(jsonWriter, value, objSize, e)
                 }
             }
 
@@ -234,12 +173,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
         JsogRegistry.get().userData.putIfAbsent("depth", 0)
         if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
-            jsonWriter.name("@skip")
-            jsonWriter.value("MAX_DEPTH_EXCEEDED")
-            jsonWriter.name("@class")
-            jsonWriter.value(value.javaClass.name)
-            jsonWriter.name("@id")
-            jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+            appendMaxDepthExceeded(jsonWriter, value)
             return
         }
 
@@ -267,16 +201,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                             this@CappedTypeAdapterFactory, TypeToken.get(fieldValue?.javaClass)
                         ).write(jsonWriter, fieldValue)
                     } catch (e: Exception) {
-                        jsonWriter.beginObject()
-                        jsonWriter.name("@skip")
-                        jsonWriter.value("EXCEPTION_OCCURRED")
-                        jsonWriter.name("@class")
-                        jsonWriter.value(fieldValue.javaClass.name)
-                        jsonWriter.name("@cause")
-                        jsonWriter.value(e.message)
-                        jsonWriter.name("@id")
-                        jsonWriter.value(Integer.toHexString(System.identityHashCode(fieldValue)))
-                        jsonWriter.endObject()
+                        appendExceptionOccurred(jsonWriter, fieldValue, instrumentation!!.getObjectSize(fieldValue), e)
                     }
                 } else {
                     val sw = StringWriter()
@@ -299,6 +224,56 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
             JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
         }
+    }
+
+    private fun appendMaxCollectionSizeExceeded(jsonWriter: JsonWriter, size: Int) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
+        jsonWriter.name("@skip[size]")
+        jsonWriter.value(size)
+        jsonWriter.name("@skip[max]")
+        jsonWriter.value(maxArraySize)
+        jsonWriter.endObject()
+    }
+
+    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("MAX_SIZE_EXCEEDED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value::class.java.name)
+        jsonWriter.name("@size")
+        jsonWriter.value(objSize.toString())
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.endObject()
+    }
+
+    private fun appendMaxDepthExceeded(jsonWriter: JsonWriter, value: Any) {
+        jsonWriter.name("@skip")
+        jsonWriter.value("MAX_DEPTH_EXCEEDED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value.javaClass.name)
+        jsonWriter.name("@size")
+        jsonWriter.value(instrumentation!!.getObjectSize(value))
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+    }
+
+    private fun appendExceptionOccurred(jsonWriter: JsonWriter, value: Any?, objSize: Long, e: Exception) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("EXCEPTION_OCCURRED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value!!::class.java.name)
+        jsonWriter.name("@size")
+        jsonWriter.value(objSize.toString())
+        jsonWriter.name("@cause")
+        jsonWriter.value(e.message)
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.endObject()
     }
 
     @Suppress("unused")

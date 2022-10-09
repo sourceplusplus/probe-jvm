@@ -31,6 +31,7 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
+//todo: tests for each exception type (max depth, etc)
 class UnsafeSerializeTest {
 
     class SunServer : HttpHandler {
@@ -85,10 +86,11 @@ class UnsafeSerializeTest {
         assertEquals(7, os.size())
         //depth 5 (default max depth)
         val channel = os.getJsonObject("channel")
-        assertEquals(3, channel.size())
+        assertEquals(4, channel.size())
         assertEquals("MAX_DEPTH_EXCEEDED", channel.getString("@skip"))
         assertEquals("sun.nio.ch.SocketChannelImpl", channel.getString("@class"))
         assertNotNull(channel.getString("@id"))
+        assertNotNull(channel.getNumber("@size"))
 
         //todo: add more assertions
     }
