@@ -148,7 +148,6 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("")
-    exclude("module-info.class")
     exclude("META-INF/**")
     manifest {
         attributes(
