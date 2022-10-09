@@ -233,8 +233,12 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                         //search for self-references
                         try {
                             srcType.declaredFields.forEach {
-                                it.isAccessible = true
-                                val fieldValue = it.get(value)
+                                val fieldValue = try {
+                                    it.isAccessible = true
+                                    it.get(value)
+                                } catch (e: Exception) {
+                                    CappedTypeAdapterFactory.getFieldValue(it, value)
+                                }
                                 if (fieldValue === value) {
                                     val selfRef = JsonObject()
                                     selfRef.addProperty("@ref", JsogRegistry.get().geId(value))

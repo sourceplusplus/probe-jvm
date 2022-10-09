@@ -16,16 +16,19 @@
  */
 package spp.probe.services.common.serialize
 
-import com.google.gson.Gson
-import com.google.gson.TypeAdapter
-import com.google.gson.TypeAdapterFactory
+import com.google.gson.*
 import com.google.gson.internal.bind.JsogRegistry
+import com.google.gson.internal.bind.JsonTreeWriter
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import org.springframework.objenesis.instantiator.util.UnsafeUtils
 import spp.probe.services.common.ModelSerializer
 import java.io.IOException
+import java.io.StringWriter
 import java.lang.instrument.Instrumentation
+import java.lang.reflect.Field
+import java.lang.reflect.Modifier
 
 class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
@@ -175,6 +178,26 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         this@CappedTypeAdapterFactory, TypeToken.get(javaClazz)
                     ).write(jsonWriter, value)
                 } catch (e: Exception) {
+                    if (e.toString().startsWith("java.lang.reflect.InaccessibleObjectException:")) {
+                        try {
+                            doWriteUnsafe(jsonWriter, value)
+                        } catch (e: Exception) {
+                            jsonWriter.beginObject()
+                            jsonWriter.name("@skip")
+                            jsonWriter.value("EXCEPTION_OCCURRED")
+                            jsonWriter.name("@class")
+                            jsonWriter.value(value!!::class.java.name)
+                            jsonWriter.name("@size")
+                            jsonWriter.value(objSize.toString())
+                            jsonWriter.name("@cause")
+                            jsonWriter.value(e.message)
+                            jsonWriter.name("@id")
+                            jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                            jsonWriter.endObject()
+                        }
+                        return
+                    }
+
                     jsonWriter.beginObject()
                     jsonWriter.name("@skip")
                     jsonWriter.value("EXCEPTION_OCCURRED")
@@ -194,6 +217,104 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         }
     }
 
+    private fun doWriteUnsafe(jsonWriter: JsonWriter, value: Any?) {
+        println("Writing unsafe: " + value?.let { it::class.java.name })
+        if (value != null && JsogRegistry.get().geId(value) != null) {
+            println("Already serialized: " + value::class.java.name)
+            jsonWriter.name("@ref")
+            jsonWriter.value(JsogRegistry.get().geId(value))
+            jsonWriter.name("@class")
+            jsonWriter.value(value::class.java.name)
+            return
+        }
+        value?.let { JsogRegistry.get().register(it) }
+
+        if (value == null) {
+            jsonWriter.nullValue()
+            return
+        }
+
+        JsogRegistry.get().userData.putIfAbsent("depth", 0)
+        if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
+            println("Max depth exceeded")
+            jsonWriter.name("@skip")
+            jsonWriter.value("MAX_DEPTH_EXCEEDED")
+            jsonWriter.name("@class")
+            jsonWriter.value(value.javaClass.name)
+            jsonWriter.name("@id")
+            jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+            return
+        }
+
+        for (field in value::class.java.declaredFields) {
+            val fieldValue = getFieldValue(field, value)
+            if (fieldValue?.javaClass?.name in listOf("jdk.internal.misc.Unsafe", "sun.misc.Unsafe")) {
+                continue
+            }
+
+            try {
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+                var currentDepth = JsogRegistry.get().userData["depth"] as Int
+                println("Writing field ${field.name} of ${value.javaClass.name} - Depth: $currentDepth")
+
+                if (fieldValue == null) {
+                    jsonWriter.name(field.name)
+                    jsonWriter.nullValue()
+                } else {
+                    //see if module is exported
+                    val module = Class::class.java.getDeclaredMethod("getModule").invoke(fieldValue::class.java)
+                    val isExported = fieldValue::class.java.`package` == null || module::class.java.getDeclaredMethod(
+                        "isExported",
+                        String::class.java
+                    ).invoke(module, fieldValue::class.java.`package`.name) as Boolean
+                    if (isExported) {
+                        println("Exported")
+                        jsonWriter.name(field.name)
+                        try {
+                            ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
+                                this@CappedTypeAdapterFactory, TypeToken.get(fieldValue?.javaClass)
+                            ).write(jsonWriter, fieldValue)
+                        } catch (e: Exception) {
+                            jsonWriter.beginObject()
+                            jsonWriter.name("@skip")
+                            jsonWriter.value("EXCEPTION_OCCURRED")
+                            jsonWriter.name("@class")
+                            jsonWriter.value(fieldValue.javaClass.name)
+                            jsonWriter.name("@cause")
+                            jsonWriter.value(e.message)
+                            jsonWriter.name("@id")
+                            jsonWriter.value(Integer.toHexString(System.identityHashCode(fieldValue)))
+                            jsonWriter.endObject()
+                        }
+                    } else {
+                        println("Not exported")
+                        val sw = StringWriter()
+                        val innerJsonWriter = JsonWriter(sw)
+                        innerJsonWriter.beginObject()
+                        doWriteUnsafe(innerJsonWriter, fieldValue)
+                        innerJsonWriter.endObject()
+                        innerJsonWriter.close()
+                        if (jsonWriter is JsonTreeWriter) {
+                            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+                            jsonWriter.javaClass.getDeclaredField("product").apply {
+                                isAccessible = true
+                            }.set(jsonWriter, jsonObject)
+                        } else {
+                            jsonWriter.name(field.name)
+                            jsonWriter.jsonValue(sw.toString())
+                        }
+                    }
+                }
+
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
+                currentDepth = JsogRegistry.get().userData["depth"] as Int
+                println("Done writing field ${field.name} of ${value.javaClass.name} - Depth: $currentDepth")
+            } catch (ignored: Exception) {
+                ignored.printStackTrace()
+            }
+        }
+    }
+
     @Suppress("unused")
     companion object {
         private var instrumentation: Instrumentation? = null
@@ -208,6 +329,48 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         @JvmStatic
         fun setMaxMemorySize(maxMemorySize: Long) {
             Companion.maxMemorySize = maxMemorySize
+        }
+
+        fun getFieldValue(field: Field, value: Any?): Any? {
+            val unsafe = UnsafeUtils.getUnsafe()
+            return if (Modifier.isStatic(field.modifiers)) {
+                val fieldOffset = unsafe.staticFieldOffset(field)
+                val fieldBase = unsafe.staticFieldBase(field) ?: throw NullPointerException("static field base is null")
+                //check primitive
+                if (field.type.isPrimitive) {
+                    when (field.type) {
+                        Boolean::class.java -> unsafe.getBoolean(fieldBase, fieldOffset)
+                        Byte::class.java -> unsafe.getByte(fieldBase, fieldOffset)
+                        Char::class.java -> unsafe.getChar(fieldBase, fieldOffset)
+                        Short::class.java -> unsafe.getShort(fieldBase, fieldOffset)
+                        Int::class.java -> unsafe.getInt(fieldBase, fieldOffset)
+                        Long::class.java -> unsafe.getLong(fieldBase, fieldOffset)
+                        Float::class.java -> unsafe.getFloat(fieldBase, fieldOffset)
+                        Double::class.java -> unsafe.getDouble(fieldBase, fieldOffset)
+                        else -> throw IllegalArgumentException("Unsupported primitive type: " + field.type.name)
+                    }
+                } else {
+                    unsafe.getObject(fieldBase, fieldOffset)
+                }
+            } else {
+                val fieldOffset = unsafe.objectFieldOffset(field)
+                //check primitive
+                if (field.type.isPrimitive) {
+                    when (field.type) {
+                        Boolean::class.java -> unsafe.getBoolean(value, fieldOffset)
+                        Byte::class.java -> unsafe.getByte(value, fieldOffset)
+                        Char::class.java -> unsafe.getChar(value, fieldOffset)
+                        Short::class.java -> unsafe.getShort(value, fieldOffset)
+                        Int::class.java -> unsafe.getInt(value, fieldOffset)
+                        Long::class.java -> unsafe.getLong(value, fieldOffset)
+                        Float::class.java -> unsafe.getFloat(value, fieldOffset)
+                        Double::class.java -> unsafe.getDouble(value, fieldOffset)
+                        else -> throw IllegalArgumentException("Unsupported primitive type: " + field.type.name)
+                    }
+                } else {
+                    unsafe.getObject(value, fieldOffset)
+                }
+            }
         }
     }
 }
