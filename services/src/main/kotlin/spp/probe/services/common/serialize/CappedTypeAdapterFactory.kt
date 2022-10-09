@@ -249,60 +249,55 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 continue
             }
 
-            try {
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+            JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
 
-                if (fieldValue == null) {
+            if (fieldValue == null) {
+                jsonWriter.name(field.name)
+                jsonWriter.nullValue()
+            } else {
+                //see if module is exported
+                val module = Class::class.java.getDeclaredMethod("getModule").invoke(fieldValue::class.java)
+                val isExported = fieldValue::class.java.`package` == null ||
+                        module::class.java.getDeclaredMethod("isExported", String::class.java)
+                            .invoke(module, fieldValue::class.java.`package`.name) as Boolean
+                if (isExported) {
                     jsonWriter.name(field.name)
-                    jsonWriter.nullValue()
+                    try {
+                        ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
+                            this@CappedTypeAdapterFactory, TypeToken.get(fieldValue?.javaClass)
+                        ).write(jsonWriter, fieldValue)
+                    } catch (e: Exception) {
+                        jsonWriter.beginObject()
+                        jsonWriter.name("@skip")
+                        jsonWriter.value("EXCEPTION_OCCURRED")
+                        jsonWriter.name("@class")
+                        jsonWriter.value(fieldValue.javaClass.name)
+                        jsonWriter.name("@cause")
+                        jsonWriter.value(e.message)
+                        jsonWriter.name("@id")
+                        jsonWriter.value(Integer.toHexString(System.identityHashCode(fieldValue)))
+                        jsonWriter.endObject()
+                    }
                 } else {
-                    //see if module is exported
-                    val module = Class::class.java.getDeclaredMethod("getModule").invoke(fieldValue::class.java)
-                    val isExported = fieldValue::class.java.`package` == null || module::class.java.getDeclaredMethod(
-                        "isExported",
-                        String::class.java
-                    ).invoke(module, fieldValue::class.java.`package`.name) as Boolean
-                    if (isExported) {
-                        jsonWriter.name(field.name)
-                        try {
-                            ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                                this@CappedTypeAdapterFactory, TypeToken.get(fieldValue?.javaClass)
-                            ).write(jsonWriter, fieldValue)
-                        } catch (e: Exception) {
-                            jsonWriter.beginObject()
-                            jsonWriter.name("@skip")
-                            jsonWriter.value("EXCEPTION_OCCURRED")
-                            jsonWriter.name("@class")
-                            jsonWriter.value(fieldValue.javaClass.name)
-                            jsonWriter.name("@cause")
-                            jsonWriter.value(e.message)
-                            jsonWriter.name("@id")
-                            jsonWriter.value(Integer.toHexString(System.identityHashCode(fieldValue)))
-                            jsonWriter.endObject()
-                        }
+                    val sw = StringWriter()
+                    val innerJsonWriter = JsonWriter(sw)
+                    innerJsonWriter.beginObject()
+                    doWriteUnsafe(innerJsonWriter, fieldValue)
+                    innerJsonWriter.endObject()
+                    innerJsonWriter.close()
+                    if (jsonWriter is JsonTreeWriter) {
+                        val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+                        jsonWriter.javaClass.getDeclaredField("product").apply {
+                            isAccessible = true
+                        }.set(jsonWriter, jsonObject)
                     } else {
-                        val sw = StringWriter()
-                        val innerJsonWriter = JsonWriter(sw)
-                        innerJsonWriter.beginObject()
-                        doWriteUnsafe(innerJsonWriter, fieldValue)
-                        innerJsonWriter.endObject()
-                        innerJsonWriter.close()
-                        if (jsonWriter is JsonTreeWriter) {
-                            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
-                            jsonWriter.javaClass.getDeclaredField("product").apply {
-                                isAccessible = true
-                            }.set(jsonWriter, jsonObject)
-                        } else {
-                            jsonWriter.name(field.name)
-                            jsonWriter.jsonValue(sw.toString())
-                        }
+                        jsonWriter.name(field.name)
+                        jsonWriter.jsonValue(sw.toString())
                     }
                 }
-
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
-            } catch (ignored: Exception) {
-                ignored.printStackTrace()
             }
+
+            JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
         }
     }
 
@@ -327,40 +322,29 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
             return if (Modifier.isStatic(field.modifiers)) {
                 val fieldOffset = unsafe.staticFieldOffset(field)
                 val fieldBase = unsafe.staticFieldBase(field) ?: throw NullPointerException("static field base is null")
-                //check primitive
-                if (field.type.isPrimitive) {
-                    when (field.type) {
-                        Boolean::class.java -> unsafe.getBoolean(fieldBase, fieldOffset)
-                        Byte::class.java -> unsafe.getByte(fieldBase, fieldOffset)
-                        Char::class.java -> unsafe.getChar(fieldBase, fieldOffset)
-                        Short::class.java -> unsafe.getShort(fieldBase, fieldOffset)
-                        Int::class.java -> unsafe.getInt(fieldBase, fieldOffset)
-                        Long::class.java -> unsafe.getLong(fieldBase, fieldOffset)
-                        Float::class.java -> unsafe.getFloat(fieldBase, fieldOffset)
-                        Double::class.java -> unsafe.getDouble(fieldBase, fieldOffset)
-                        else -> throw IllegalArgumentException("Unsupported primitive type: " + field.type.name)
-                    }
-                } else {
-                    unsafe.getObject(fieldBase, fieldOffset)
-                }
+                getFieldValue(field, fieldBase, fieldOffset)
             } else {
                 val fieldOffset = unsafe.objectFieldOffset(field)
-                //check primitive
-                if (field.type.isPrimitive) {
-                    when (field.type) {
-                        Boolean::class.java -> unsafe.getBoolean(value, fieldOffset)
-                        Byte::class.java -> unsafe.getByte(value, fieldOffset)
-                        Char::class.java -> unsafe.getChar(value, fieldOffset)
-                        Short::class.java -> unsafe.getShort(value, fieldOffset)
-                        Int::class.java -> unsafe.getInt(value, fieldOffset)
-                        Long::class.java -> unsafe.getLong(value, fieldOffset)
-                        Float::class.java -> unsafe.getFloat(value, fieldOffset)
-                        Double::class.java -> unsafe.getDouble(value, fieldOffset)
-                        else -> throw IllegalArgumentException("Unsupported primitive type: " + field.type.name)
-                    }
-                } else {
-                    unsafe.getObject(value, fieldOffset)
+                getFieldValue(field, value, fieldOffset)
+            }
+        }
+
+        private fun getFieldValue(field: Field, value: Any?, fieldOffset: Long): Any? {
+            val unsafe = UnsafeUtils.getUnsafe()
+            return if (field.type.isPrimitive) {
+                when (field.type) {
+                    Boolean::class.java -> unsafe.getBoolean(value, fieldOffset)
+                    Byte::class.java -> unsafe.getByte(value, fieldOffset)
+                    Char::class.java -> unsafe.getChar(value, fieldOffset)
+                    Short::class.java -> unsafe.getShort(value, fieldOffset)
+                    Int::class.java -> unsafe.getInt(value, fieldOffset)
+                    Long::class.java -> unsafe.getLong(value, fieldOffset)
+                    Float::class.java -> unsafe.getFloat(value, fieldOffset)
+                    Double::class.java -> unsafe.getDouble(value, fieldOffset)
+                    else -> throw IllegalArgumentException("Unsupported primitive type: " + field.type.name)
                 }
+            } else {
+                unsafe.getObject(value, fieldOffset)
             }
         }
     }

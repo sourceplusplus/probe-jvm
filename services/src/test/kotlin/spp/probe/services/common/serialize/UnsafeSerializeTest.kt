@@ -20,7 +20,8 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
 import com.sun.net.httpserver.HttpServer
 import io.vertx.core.json.JsonObject
-import junit.framework.Assert.assertEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
@@ -75,6 +76,19 @@ class UnsafeSerializeTest {
         val rawJson = ModelSerializer.INSTANCE.toExtendedJson(httpExchange)
         val json = JsonObject(rawJson)
         assertEquals(29, json.size())
+
+        //depth 3 (depth 1 = httpExchange, depth 2 = httpExchange.impl)
+        val req = json.getJsonObject("req")
+        assertEquals(11, req.size())
+        //depth 4
+        val os = req.getJsonObject("os")
+        assertEquals(7, os.size())
+        //depth 5 (default max depth)
+        val channel = os.getJsonObject("channel")
+        assertEquals(3, channel.size())
+        assertEquals("MAX_DEPTH_EXCEEDED", channel.getString("@skip"))
+        assertEquals("sun.nio.ch.SocketChannelImpl", channel.getString("@class"))
+        assertNotNull(channel.getString("@id"))
 
         //todo: add more assertions
     }
