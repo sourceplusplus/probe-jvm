@@ -38,12 +38,12 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import spp.protocol.SourceServices
-import spp.protocol.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
-import spp.protocol.extend.TCPServiceFrameParser
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
+import spp.protocol.service.SourceServices
+import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
+import spp.protocol.service.extend.TCPServiceFrameParser
 import java.io.IOException
 import java.util.*
 
