@@ -294,16 +294,7 @@ object SourceProbe {
             consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
 
-                //register remotes
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(),
-                    ProbeAddress.LIVE_INSTRUMENT_REMOTE,
-                    null,
-                    probeMessageHeaders,
-                    false,
-                    JsonObject(),
-                    tcpSocket
-                )
+                //register instrument remote
                 FrameHelper.sendFrame(
                     BridgeEventType.REGISTER.name.lowercase(),
                     ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,

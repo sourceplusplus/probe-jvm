@@ -118,7 +118,7 @@ object ContextReceiver {
         )
         activeSpan.tag(
             StringTag("spp.breakpoint:$breakpointId"),
-            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null))
+            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null, null))
         )
         ContextManager.stopSpan(activeSpan)
     }
