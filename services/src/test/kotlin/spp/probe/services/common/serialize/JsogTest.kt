@@ -20,7 +20,9 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
+import java.lang.instrument.Instrumentation
 
 class JsogTest {
 
@@ -30,6 +32,9 @@ class JsogTest {
 
     @Test
     fun testRootSelfRef() {
+        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
+        CappedTypeAdapterFactory.setMaxMemorySize(1024)
+
         val rootSelfRef = RootSelfRef()
         rootSelfRef.self = rootSelfRef
         val json = ModelSerializer.INSTANCE.toExtendedJson(rootSelfRef)
@@ -57,6 +62,9 @@ class JsogTest {
 
     @Test
     fun testInnerSelfRef() {
+        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
+        CappedTypeAdapterFactory.setMaxMemorySize(1024)
+
         val innerSelfRef = InnerSelfRef()
         innerSelfRef.self2 = InnerSelfRef.InnerSelfRef2().apply { this.selfRef = innerSelfRef }
         val json = ModelSerializer.INSTANCE.toExtendedJson(innerSelfRef)

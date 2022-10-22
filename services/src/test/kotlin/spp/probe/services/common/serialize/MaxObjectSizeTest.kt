@@ -33,24 +33,7 @@ class MaxObjectSizeTest {
         }
         CappedTypeAdapterFactory.setInstrumentation(instrumentation)
         CappedTypeAdapterFactory.setMaxMemorySize(0)
-        CappedTypeAdapterFactory.setUnsafeMode(false)
 
-        doTest()
-    }
-
-    @Test
-    fun `unsafe max size exceeded`() {
-        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
-            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
-        }
-        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
-        CappedTypeAdapterFactory.setMaxMemorySize(0)
-        CappedTypeAdapterFactory.setUnsafeMode(true)
-
-        doTest()
-    }
-
-    private fun doTest() {
         val twoMbArr = "fakeMaxSizeObject"
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))
 

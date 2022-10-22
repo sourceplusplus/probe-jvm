@@ -32,15 +32,17 @@ import java.lang.reflect.Modifier
 
 class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
-    override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T>? {
-        return if (instrumentation == null || maxMemorySize == -1L) null else object : TypeAdapter<T>() {
+    override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
+        return if (instrumentation == null || maxMemorySize == -1L) error("CappedTypeAdapterFactory is not initialized")
+        else object : TypeAdapter<T>() {
 
             @Throws(IOException::class)
             override fun write(jsonWriter: JsonWriter, value: T?) {
-                if (unsafeMode) {
-                    doWriteUnsafe(jsonWriter, value)
-                    return
-                } else if (value == null) {
+                doWrite(value, jsonWriter)
+            }
+
+            private fun doWrite(value: Any?, jsonWriter: JsonWriter) {
+                if (value == null) {
                     jsonWriter.nullValue()
                     return
                 } else if (value is Class<*>) {
@@ -57,56 +59,95 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 val objSize = instrumentation!!.getObjectSize(value)
-                if (objSize <= maxMemorySize) {
-                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+                if (objSize > maxMemorySize) {
+                    appendMaxSizeExceeded(jsonWriter, value, objSize)
+                    return
+                }
 
-                    if (value is Collection<*>) {
-                        writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                    } else if (value is Map<*, *> && value.size > maxArraySize) {
-                        jsonWriter.beginArray()
-                        value.onEachIndexed { i, entry ->
-                            if (i >= maxArraySize) return@onEachIndexed
-                            jsonWriter.beginObject()
-                            jsonWriter.name(entry.key.toString())
-                            if (entry.value == null) {
-                                jsonWriter.nullValue()
-                            } else {
-                                when (entry.value) {
-                                    is Boolean -> jsonWriter.value(entry.value as Boolean)
-                                    is Number -> jsonWriter.value(entry.value as Number)
-                                    is Char -> jsonWriter.value(entry.value.toString())
-                                    is String -> jsonWriter.value(entry.value as String)
-                                    else -> doWrite(jsonWriter, entry.value, objSize)
-                                }
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+
+                if (value is Collection<*>) {
+                    writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                } else if (value is Map<*, *> && value.size > maxArraySize) {
+                    jsonWriter.beginArray()
+                    value.onEachIndexed { i, entry ->
+                        if (i >= maxArraySize) return@onEachIndexed
+                        jsonWriter.beginObject()
+                        jsonWriter.name(entry.key.toString())
+                        if (entry.value == null) {
+                            jsonWriter.nullValue()
+                        } else {
+                            when (entry.value) {
+                                is Boolean -> jsonWriter.value(entry.value as Boolean)
+                                is Number -> jsonWriter.value(entry.value as Number)
+                                is Char -> jsonWriter.value(entry.value.toString())
+                                is String -> jsonWriter.value(entry.value as String)
+                                is Any -> doWrite(jsonWriter, entry.value!!, entry.value!!.javaClass, objSize)
+                                else -> jsonWriter.nullValue()
                             }
-                            jsonWriter.endObject()
                         }
-
-                        if (value.size > maxArraySize) {
-                            appendMaxCollectionSizeExceeded(jsonWriter, value.size)
-                        }
-                        jsonWriter.endArray()
-                    } else if (value!!::class.java.isArray) {
-                        when (value) {
-                            is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                            else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
-                        }
-                    } else {
-                        doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
+                        jsonWriter.endObject()
                     }
 
-                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
+                    if (value.size > maxArraySize) {
+                        appendMaxCollectionSizeExceeded(jsonWriter, value.size)
+                    }
+                    jsonWriter.endArray()
+                } else if (value::class.java.isArray) {
+                    when (value) {
+                        is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
+                    }
                 } else {
-                    appendMaxSizeExceeded(jsonWriter, value, objSize)
+                    if (isExported(value)) {
+                        doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
+                    } else {
+                        val sw = StringWriter()
+                        val innerJsonWriter = JsonWriter(sw)
+                        innerJsonWriter.beginObject()
+                        for (field in value::class.java.declaredFields) {
+                            val fieldValue = getFieldValue(field, value)
+                            if (fieldValue != null && JsogRegistry.get().geId(fieldValue) != null) {
+                                innerJsonWriter.name(field.name)
+                                innerJsonWriter.beginObject()
+                                innerJsonWriter.name("@ref")
+                                innerJsonWriter.value(JsogRegistry.get().geId(fieldValue))
+                                innerJsonWriter.name("@class")
+                                innerJsonWriter.value(fieldValue::class.java.name)
+                                innerJsonWriter.endObject()
+                                continue
+                            }
+                            fieldValue?.let { JsogRegistry.get().register(it) }
+
+                            innerJsonWriter.name("@id")
+                            innerJsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                            innerJsonWriter.name("@class")
+                            innerJsonWriter.value(value::class.java.name)
+                            innerJsonWriter.name(field.name)
+                            doWrite(fieldValue, innerJsonWriter)
+                        }
+                        innerJsonWriter.endObject()
+                        innerJsonWriter.close()
+                        if (jsonWriter is JsonTreeWriter) {
+                            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+                            jsonWriter.javaClass.getDeclaredField("product").apply {
+                                isAccessible = true
+                            }.set(jsonWriter, jsonObject)
+                        } else {
+                            jsonWriter.jsonValue(sw.toString())
+                        }
+                    }
                 }
+
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
             }
 
             private fun writeCollection(jsonWriter: JsonWriter, value: Iterator<*>, arrSize: Int, objSize: Long) {
@@ -126,169 +167,13 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 jsonWriter.endArray()
             }
 
-            private fun doWrite(jsonWriter: JsonWriter, value: Any?, objSize: Long) {
-                try {
-                    ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                        this@CappedTypeAdapterFactory, TypeToken.get(Any::class.java)
-                    ).write(jsonWriter, value)
-                } catch (e: Exception) {
-                    appendExceptionOccurred(jsonWriter, value, objSize, e)
-                }
-            }
-
             private fun <T> doWrite(jsonWriter: JsonWriter, value: T?, javaClazz: Class<T>, objSize: Long) {
                 try {
                     ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
                         this@CappedTypeAdapterFactory, TypeToken.get(javaClazz)
                     ).write(jsonWriter, value)
                 } catch (e: Exception) {
-                    if (e.toString().startsWith("java.lang.reflect.InaccessibleObjectException:")) {
-                        try {
-                            doWriteUnsafe(jsonWriter, value)
-                        } catch (e: Exception) {
-                            appendExceptionOccurred(jsonWriter, value, objSize, e)
-                        }
-                        return
-                    }
-
                     appendExceptionOccurred(jsonWriter, value, objSize, e)
-                }
-            }
-
-            private fun doWriteUnsafe(jsonWriter: JsonWriter, value: Any?) {
-                if (value != null && JsogRegistry.get().geId(value) != null) {
-                    jsonWriter.name("@ref")
-                    jsonWriter.value(JsogRegistry.get().geId(value))
-                    jsonWriter.name("@class")
-                    jsonWriter.value(value::class.java.name)
-                    return
-                }
-                value?.let { JsogRegistry.get().register(it) }
-
-                if (value == null) {
-                    jsonWriter.nullValue()
-                    return
-                }
-
-                JsogRegistry.get().userData.putIfAbsent("depth", 0)
-                if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
-                    appendMaxDepthExceeded(jsonWriter, value)
-                    return
-                }
-
-                val objSize = instrumentation!!.getObjectSize(value)
-                if (objSize > maxMemorySize) {
-                    appendMaxSizeExceeded(jsonWriter, value, objSize)
-                    return
-                }
-
-                if (value is Collection<*>) {
-                    writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                    return
-                } else if (value is Map<*, *> && value.size > maxArraySize) {
-                    jsonWriter.beginArray()
-                    value.onEachIndexed { i, entry ->
-                        if (i >= maxArraySize) return@onEachIndexed
-                        jsonWriter.beginObject()
-                        jsonWriter.name(entry.key.toString())
-                        if (entry.value == null) {
-                            jsonWriter.nullValue()
-                        } else {
-                            when (entry.value) {
-                                is Boolean -> jsonWriter.value(entry.value as Boolean)
-                                is Number -> jsonWriter.value(entry.value as Number)
-                                is Char -> jsonWriter.value(entry.value.toString())
-                                is String -> jsonWriter.value(entry.value as String)
-                                else -> doWrite(jsonWriter, entry.value, objSize)
-                            }
-                        }
-                        jsonWriter.endObject()
-                    }
-
-                    if (value.size > maxArraySize) {
-                        appendMaxCollectionSizeExceeded(jsonWriter, value.size)
-                    }
-                    jsonWriter.endArray()
-                    return
-                } else if (value!!::class.java.isArray) {
-                    when (value) {
-                        is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
-                    }
-                    return
-                }
-
-                for (field in value::class.java.declaredFields) {
-                    val fieldValue = getFieldValue(field, value)
-
-                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
-
-                    if (fieldValue == null) {
-                        jsonWriter.name(field.name)
-                        jsonWriter.nullValue()
-                    } else {
-                        //check if module is exported
-                        val module = Class::class.java.getDeclaredMethod("getModule").invoke(fieldValue::class.java)
-                        val isExported = fieldValue::class.java.`package` == null ||
-                                module::class.java.getDeclaredMethod("isExported", String::class.java)
-                                    .invoke(module, fieldValue::class.java.`package`.name) as Boolean
-                        if (isExported) {
-                            var closeObject = false
-                            try {
-                                jsonWriter.name(field.name)
-                            } catch (e: IllegalStateException) {
-                                //todo: shouldn't need to do this hack
-                                closeObject = true
-                                jsonWriter.beginObject()
-                                jsonWriter.name("@id")
-                                jsonWriter.value(JsogRegistry.get().geId(value))
-                                jsonWriter.name("@class")
-                                jsonWriter.value(value::class.java.name)
-                                jsonWriter.name(field.name)
-                            }
-                            try {
-                                ModelSerializer.INSTANCE.extendedGson.getDelegateAdapter(
-                                    this@CappedTypeAdapterFactory, TypeToken.get(fieldValue?.javaClass)
-                                ).write(jsonWriter, fieldValue)
-                            } catch (e: Exception) {
-                                appendExceptionOccurred(
-                                    jsonWriter,
-                                    fieldValue,
-                                    instrumentation!!.getObjectSize(fieldValue),
-                                    e
-                                )
-                            }
-                            if (closeObject) {
-                                jsonWriter.endObject()
-                            }
-                        } else {
-                            val sw = StringWriter()
-                            val innerJsonWriter = JsonWriter(sw)
-                            innerJsonWriter.beginObject()
-                            doWriteUnsafe(innerJsonWriter, fieldValue)
-                            innerJsonWriter.endObject()
-                            innerJsonWriter.close()
-                            if (jsonWriter is JsonTreeWriter) {
-                                val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
-                                jsonWriter.javaClass.getDeclaredField("product").apply {
-                                    isAccessible = true
-                                }.set(jsonWriter, jsonObject)
-                            } else {
-                                jsonWriter.name(field.name)
-                                jsonWriter.jsonValue(sw.toString())
-                            }
-                        }
-                    }
-
-                    JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
                 }
             }
 
@@ -346,17 +231,18 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         jsonWriter.endObject()
     }
 
+    private fun isExported(value: Any): Boolean {
+        val module = Class::class.java.getDeclaredMethod("getModule").invoke(value::class.java)
+        return value::class.java.`package` == null ||
+                module::class.java.getDeclaredMethod("isExported", String::class.java)
+                    .invoke(module, value::class.java.`package`.name) as Boolean
+    }
+
     @Suppress("unused")
     companion object {
         private var instrumentation: Instrumentation? = null
         private var maxMemorySize: Long = -1
         private var maxArraySize: Int = 100
-        private var unsafeMode: Boolean = false
-
-        @JvmStatic
-        fun setUnsafeMode(unsafeMode: Boolean) {
-            Companion.unsafeMode = unsafeMode
-        }
 
         @JvmStatic
         fun setInstrumentation(instrumentation: Instrumentation) {

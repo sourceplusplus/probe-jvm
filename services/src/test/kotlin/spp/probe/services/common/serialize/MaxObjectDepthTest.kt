@@ -30,21 +30,7 @@ class MaxObjectDepthTest {
     fun `max depth exceeded`() {
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
         CappedTypeAdapterFactory.setMaxMemorySize(1024)
-        CappedTypeAdapterFactory.setUnsafeMode(false)
 
-        doTest()
-    }
-
-    @Test
-    fun `unsafe max depth exceeded`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-        CappedTypeAdapterFactory.setUnsafeMode(true)
-
-        doTest()
-    }
-
-    private fun doTest() {
         val deepObject = DeepObject1()
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(deepObject))
 
@@ -53,14 +39,14 @@ class MaxObjectDepthTest {
         var deepObjectJson = json.getJsonObject("deepObject2")
         for (i in 3..6) {
             assertNotNull(deepObjectJson)
-//            assertNotNull(deepObjectJson.getString("@class"))
+            assertNotNull(deepObjectJson.getString("@class"))
             assertNotNull(deepObjectJson.getString("@id"))
             deepObjectJson = deepObjectJson.getJsonObject("deepObject$i")
         }
         assertNotNull(deepObjectJson)
-//        assertEquals("MAX_DEPTH_EXCEEDED", deepObjectJson.getString("@skip"))
-//        assertEquals(0, deepObjectJson.getInteger("@size"))
-//        assertNotNull(deepObjectJson.getString("@class"))
+        assertEquals("MAX_DEPTH_EXCEEDED", deepObjectJson.getString("@skip"))
+        assertEquals(0, deepObjectJson.getInteger("@size"))
+        assertNotNull(deepObjectJson.getString("@class"))
         assertNotNull(deepObjectJson.getString("@id"))
     }
 

@@ -29,21 +29,7 @@ class MaxCollectionSizeTest {
     fun `max size exceeded`() {
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
         CappedTypeAdapterFactory.setMaxMemorySize(1024)
-        CappedTypeAdapterFactory.setUnsafeMode(false)
 
-        doTest()
-    }
-
-    @Test
-    fun `unsafe max size exceeded`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-        CappedTypeAdapterFactory.setUnsafeMode(true)
-
-        doTest()
-    }
-
-    private fun doTest() {
         //array
         val maxArr = ByteArray(101)
         JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxArr)).let { json ->

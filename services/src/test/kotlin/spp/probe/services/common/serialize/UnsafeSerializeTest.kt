@@ -75,22 +75,45 @@ class UnsafeSerializeTest {
 
         val rawJson = ModelSerializer.INSTANCE.toExtendedJson(httpExchange)
         val json = JsonObject(rawJson)
-        assertEquals(29, json.size())
+        assertEquals(3, json.size())
+
+        val impl = json.getJsonObject("impl")
+        assertEquals(30, impl.size())
 
         //depth 3 (depth 1 = httpExchange, depth 2 = httpExchange.impl)
-        val req = json.getJsonObject("req")
-        assertEquals(11, req.size())
+        val req = impl.getJsonObject("req")
+        assertEquals(13, req.size())
         //depth 4
         val os = req.getJsonObject("os")
-        assertEquals(7, os.size())
+        assertEquals(9, os.size())
         //depth 5 (default max depth)
         val channel = os.getJsonObject("channel")
-        assertEquals(4, channel.size())
-        assertEquals("MAX_DEPTH_EXCEEDED", channel.getString("@skip"))
-        assertEquals("sun.nio.ch.SocketChannelImpl", channel.getString("@class"))
-        assertNotNull(channel.getString("@id"))
-        assertNotNull(channel.getNumber("@size"))
+        assertEquals(25, channel.size())
 
-        //todo: add more assertions
+        //depth 6 (max depth exceeded)
+        val family = channel.getJsonObject("family")
+        assertEquals("MAX_DEPTH_EXCEEDED", family.getString("@skip"))
+        assertEquals("java.net.StandardProtocolFamily", family.getString("@class"))
+        assertNotNull(family.getString("@id"))
+        assertNotNull(family.getNumber("@size"))
+
+        //ensure @ref works
+        val serverRef = impl.getJsonObject("server")
+        assertNotNull(serverRef.getString("@ref"))
+        assertEquals("sun.net.httpserver.ServerImpl", serverRef.getString("@class"))
+
+        //serialized depth first, so ref will be in req -> os -> server
+        val server = req.getJsonObject("os").getJsonObject("server")
+        assertEquals(41, server.size())
+        assertEquals("sun.net.httpserver.ServerImpl", server.getString("@class"))
+        assertEquals(serverRef.getString("@ref"), server.getString("@id"))
+
+        //ensure max size works
+        val buf = req.getJsonArray("buf")
+        assertEquals(101, buf.size())
+        val maxSizeError = buf.getJsonObject(100)
+        assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeError.getString("@skip"))
+        assertEquals(2048, maxSizeError.getInteger("@skip[size]"))
+        assertEquals(100, maxSizeError.getInteger("@skip[max]"))
     }
 }
