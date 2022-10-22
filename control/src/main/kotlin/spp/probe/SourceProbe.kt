@@ -1,5 +1,5 @@
 /*
- * Source++, the open-source live coding platform.
+ * Source++, the continuous feedback platform for developers.
  * Copyright (C) 2022 CodeBrig, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -294,16 +294,7 @@ object SourceProbe {
             consumer.handler {
                 if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
 
-                //register remotes
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(),
-                    ProbeAddress.LIVE_INSTRUMENT_REMOTE,
-                    null,
-                    probeMessageHeaders,
-                    false,
-                    JsonObject(),
-                    tcpSocket
-                )
+                //register instrument remote
                 FrameHelper.sendFrame(
                     BridgeEventType.REGISTER.name.lowercase(),
                     ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,

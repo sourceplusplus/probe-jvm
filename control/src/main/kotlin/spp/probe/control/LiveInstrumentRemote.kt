@@ -1,5 +1,5 @@
 /*
- * Source++, the open-source live coding platform.
+ * Source++, the continuous feedback platform for developers.
  * Copyright (C) 2022 CodeBrig, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,10 +90,8 @@ class LiveInstrumentRemote : AbstractVerticle() {
             throw RuntimeException(ex)
         }
 
-        vertx.eventBus() //global instrument remote
-            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE)
-            .handler { handleInstrumentationRequest(it) }
-        vertx.eventBus() //probe specific instrument remote
+        //probe instrument remote
+        vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + SourceProbe.PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
     }

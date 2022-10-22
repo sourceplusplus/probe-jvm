@@ -1,5 +1,5 @@
 /*
- * Source++, the open-source live coding platform.
+ * Source++, the continuous feedback platform for developers.
  * Copyright (C) 2022 CodeBrig, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -118,7 +118,7 @@ object ContextReceiver {
         )
         activeSpan.tag(
             StringTag("spp.breakpoint:$breakpointId"),
-            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null))
+            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null, null))
         )
         ContextManager.stopSpan(activeSpan)
     }
