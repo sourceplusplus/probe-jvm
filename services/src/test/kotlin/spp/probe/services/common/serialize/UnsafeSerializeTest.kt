@@ -31,7 +31,6 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
-//todo: tests for each exception type (max depth, etc)
 class UnsafeSerializeTest {
 
     class SunServer : HttpHandler {
