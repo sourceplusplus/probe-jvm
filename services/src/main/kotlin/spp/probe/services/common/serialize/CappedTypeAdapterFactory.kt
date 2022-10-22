@@ -52,9 +52,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
                 JsogRegistry.get().userData.putIfAbsent("depth", 0)
                 if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
-                    jsonWriter.beginObject()
                     appendMaxDepthExceeded(jsonWriter, value)
-                    jsonWriter.endObject()
                     return
                 }
 
@@ -184,6 +182,9 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         }
     }
 
+    /**
+     * @param newObject maps write exception to self, other collections create new object
+     */
     private fun appendMaxCollectionSizeExceeded(jsonWriter: JsonWriter, size: Int, newObject: Boolean = true) {
         if (newObject) jsonWriter.beginObject()
         jsonWriter.name("@skip")
@@ -209,6 +210,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
     }
 
     private fun appendMaxDepthExceeded(jsonWriter: JsonWriter, value: Any) {
+        jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("MAX_DEPTH_EXCEEDED")
         jsonWriter.name("@class")
@@ -217,6 +219,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         jsonWriter.value(instrumentation!!.getObjectSize(value))
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.endObject()
     }
 
     private fun appendExceptionOccurred(jsonWriter: JsonWriter, value: Any?, objSize: Long, e: Exception) {
