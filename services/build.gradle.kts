@@ -68,7 +68,6 @@ tasks {
         archiveClassifier.set("")
         exclude("META-INF/native-image/**")
         exclude("META-INF/vertx/**")
-        exclude("module-info.class")
         exclude("META-INF/maven/**")
         exclude("META-INF/services/com.fasterxml.jackson.core.JsonFactory")
         exclude("META-INF/services/com.fasterxml.jackson.core.ObjectCodec")

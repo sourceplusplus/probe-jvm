@@ -69,7 +69,7 @@ tasks.getByName<Test>("test") {
     failFast = true
     useJUnitPlatform()
     if (System.getProperty("test.profile") != "integration") {
-        exclude("integration/**")
+        exclude("integration/**", "**/*IntegrationTest.class", "**/*ITTest.class")
     }
 
     testLogging {
@@ -148,7 +148,6 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("")
-    exclude("module-info.class")
     exclude("META-INF/**")
     manifest {
         attributes(
