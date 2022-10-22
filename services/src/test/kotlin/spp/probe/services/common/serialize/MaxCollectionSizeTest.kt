@@ -17,7 +17,9 @@
 package spp.probe.services.common.serialize
 
 import io.vertx.core.json.JsonArray
+import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
@@ -62,16 +64,55 @@ class MaxCollectionSizeTest {
         val maxMap = mutableMapOf<String, Int>().apply {
             for (i in 0..100) put(i.toString(), i)
         }
-        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxMap)).let { json ->
-            assertEquals(101, json.size())
-            for (i in 0..99) {
-                assertEquals(i, json.getJsonObject(i).getInteger(i.toString()))
-            }
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(maxMap)).let { json ->
+            assertEquals(105, json.size())
+            assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", json.getString("@skip"))
+            assertEquals(maxList.size, json.getInteger("@skip[size]"))
+            assertEquals(100, json.getInteger("@skip[max]"))
+            assertNotNull(json.getString("@id"))
+            assertEquals("java.util.LinkedHashMap", json.getString("@class"))
 
-            val maxSizeOb = json.getJsonObject(100)
-            assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeOb.getString("@skip"))
-            assertEquals(maxList.size, maxSizeOb.getInteger("@skip[size]"))
-            assertEquals(100, maxSizeOb.getInteger("@skip[max]"))
+            for (i in 0..99) {
+                assertEquals(i, json.getString(i.toString()).toInt())
+            }
+        }
+    }
+
+    @Test
+    fun `less than max size`() {
+        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
+        CappedTypeAdapterFactory.setMaxMemorySize(1024)
+
+        //array
+        val unboundedArr = ByteArray(10)
+        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(unboundedArr)).let { json ->
+            assertEquals(10, json.size())
+            for (i in 0..9) {
+                assertEquals(0, json.getInteger(i))
+            }
+        }
+
+        //list
+        val unboundedList = List(10) { 0 }
+        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(unboundedList)).let { json ->
+            assertEquals(10, json.size())
+            for (i in 0..9) {
+                assertEquals(0, json.getInteger(i))
+            }
+        }
+
+        //map
+        val unboundedMap = mutableMapOf<String, Int>().apply {
+            for (i in 0..9) put(i.toString(), i)
+        }
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(unboundedMap)).let { json ->
+            assertEquals(12, json.size())
+            assertNotNull(json.getString("@id"))
+            assertEquals("java.util.LinkedHashMap", json.getString("@class"))
+
+            for (i in 0..9) {
+                assertEquals(i, json.getString(i.toString()).toInt())
+            }
         }
     }
 }

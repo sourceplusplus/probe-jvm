@@ -36,11 +36,13 @@ class MaxObjectDepthTest {
 
         assertNotNull(json.getString("@class"))
         assertNotNull(json.getString("@id"))
+        assertEquals(3, json.size())
         var deepObjectJson = json.getJsonObject("deepObject2")
         for (i in 3..6) {
             assertNotNull(deepObjectJson)
             assertNotNull(deepObjectJson.getString("@class"))
             assertNotNull(deepObjectJson.getString("@id"))
+            assertEquals(3, deepObjectJson.size())
             deepObjectJson = deepObjectJson.getJsonObject("deepObject$i")
         }
         assertNotNull(deepObjectJson)

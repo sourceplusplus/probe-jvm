@@ -68,11 +68,15 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
                 if (value is Collection<*>) {
                     writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                } else if (value is Map<*, *> && value.size > maxArraySize) {
-                    jsonWriter.beginArray()
+                } else if (value is Map<*, *>) {
+                    jsonWriter.beginObject()
+                    jsonWriter.name("@id")
+                    jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                    jsonWriter.name("@class")
+                    jsonWriter.value(value::class.java.name)
+
                     value.onEachIndexed { i, entry ->
                         if (i >= maxArraySize) return@onEachIndexed
-                        jsonWriter.beginObject()
                         jsonWriter.name(entry.key.toString())
                         if (entry.value == null) {
                             jsonWriter.nullValue()
@@ -86,13 +90,12 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                                 else -> jsonWriter.nullValue()
                             }
                         }
-                        jsonWriter.endObject()
                     }
 
                     if (value.size > maxArraySize) {
-                        appendMaxCollectionSizeExceeded(jsonWriter, value.size)
+                        appendMaxCollectionSizeExceeded(jsonWriter, value.size, false)
                     }
-                    jsonWriter.endArray()
+                    jsonWriter.endObject()
                 } else if (value::class.java.isArray) {
                     when (value) {
                         is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
@@ -181,15 +184,15 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         }
     }
 
-    private fun appendMaxCollectionSizeExceeded(jsonWriter: JsonWriter, size: Int) {
-        jsonWriter.beginObject()
+    private fun appendMaxCollectionSizeExceeded(jsonWriter: JsonWriter, size: Int, newObject: Boolean = true) {
+        if (newObject) jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
         jsonWriter.name("@skip[size]")
         jsonWriter.value(size)
         jsonWriter.name("@skip[max]")
         jsonWriter.value(maxArraySize)
-        jsonWriter.endObject()
+        if (newObject) jsonWriter.endObject()
     }
 
     private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long) {
