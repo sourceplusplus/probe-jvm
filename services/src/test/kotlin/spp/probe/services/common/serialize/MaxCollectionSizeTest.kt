@@ -22,6 +22,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
@@ -29,8 +30,8 @@ class MaxCollectionSizeTest {
 
     @Test
     fun `max size exceeded`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //array
         val maxArr = ByteArray(101)
@@ -81,7 +82,6 @@ class MaxCollectionSizeTest {
     @Test
     fun `less than max size`() {
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //array
         val unboundedArr = ByteArray(10)

@@ -55,6 +55,7 @@ dependencies {
     implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
+    implementation(projectDependency(":common"))
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
@@ -171,3 +172,11 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
 }
 tasks.getByName("jar").dependsOn("shadowJar")
 tasks.getByName("generatePomFileForMavenPublication").dependsOn("shadowJar")
+
+fun projectDependency(name: String): ProjectDependency {
+    return if (rootProject.name.contains("jvm")) {
+        DependencyHandlerScope.of(rootProject.dependencies).project(name)
+    } else {
+        DependencyHandlerScope.of(rootProject.dependencies).project(":probes:jvm$name")
+    }
+}

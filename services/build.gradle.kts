@@ -48,6 +48,7 @@ dependencies {
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.18")
+    compileOnly(projectDependency(":common"))
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
@@ -58,6 +59,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
+    testImplementation(projectDependency(":common"))
 }
 
 tasks {
@@ -98,5 +100,13 @@ tasks {
     test {
         failFast = true
         maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
+    }
+}
+
+fun projectDependency(name: String): ProjectDependency {
+    return if (rootProject.name.contains("jvm")) {
+        DependencyHandlerScope.of(rootProject.dependencies).project(name)
+    } else {
+        DependencyHandlerScope.of(rootProject.dependencies).project(":probes:jvm$name")
     }
 }

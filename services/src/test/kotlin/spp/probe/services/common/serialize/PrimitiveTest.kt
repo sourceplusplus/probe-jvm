@@ -20,6 +20,7 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
@@ -27,8 +28,8 @@ class PrimitiveTest {
 
     @Test
     fun `primitive types`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //int
         ModelSerializer.INSTANCE.toExtendedJson(1).let {
@@ -62,8 +63,8 @@ class PrimitiveTest {
 
     @Test
     fun `primitive arrays`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //int
         ModelSerializer.INSTANCE.toExtendedJson(intArrayOf(1, 2, 3)).let {
@@ -97,8 +98,8 @@ class PrimitiveTest {
 
     @Test
     fun `primitive lists`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //int
         ModelSerializer.INSTANCE.toExtendedJson(listOf(1, 2, 3)).let {
@@ -132,8 +133,8 @@ class PrimitiveTest {
 
     @Test
     fun `primitive maps`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         //int
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(mapOf("a" to 1, "b" to 2, "c" to 3))).let {

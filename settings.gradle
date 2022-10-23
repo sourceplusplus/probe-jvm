@@ -9,8 +9,6 @@ pluginManagement {
     }
 }
 
-rootProject.buildFileName = "build.gradle.kts"
-rootProject.name = 'probe-jvm'
-
+include 'common'
 include 'control'
 include 'services'

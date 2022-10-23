@@ -21,6 +21,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
@@ -28,11 +29,18 @@ class MaxObjectSizeTest {
 
     @Test
     fun `max size exceeded`() {
+        ProbeConfiguration.localProperties = JsonObject().put(
+            "spp", JsonObject().put(
+                "live_variable_control", JsonObject()
+                    .put("max_object_depth", -1)
+                    .put("max_object_size", 0)
+                    .put("max_collection_size", -1)
+            )
+        )
         val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
         CappedTypeAdapterFactory.setInstrumentation(instrumentation)
-        CappedTypeAdapterFactory.setMaxMemorySize(0)
 
         val twoMbArr = "fakeMaxSizeObject"
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))

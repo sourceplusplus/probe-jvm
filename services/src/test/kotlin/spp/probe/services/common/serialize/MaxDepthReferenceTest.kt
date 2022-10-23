@@ -20,6 +20,7 @@ import io.vertx.core.json.JsonObject
 import org.junit.Ignore
 import org.junit.Test
 import org.mockito.Mockito
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
@@ -33,8 +34,8 @@ class MaxDepthReferenceTest {
 
     @Test
     fun `ensure references under max depth serialize`() {
+        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
 
         val deepObject = DeepObject1()
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(deepObject))

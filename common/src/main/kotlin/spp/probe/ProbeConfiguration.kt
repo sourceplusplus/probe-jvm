@@ -19,16 +19,19 @@ package spp.probe
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import io.vertx.core.json.JsonObject
-import spp.probe.SourceProbe.PROBE_ID
 import java.io.File
 import java.io.FileInputStream
+import java.util.*
 import java.util.stream.Collectors
 import kotlin.system.exitProcess
 
 object ProbeConfiguration {
 
+    @JvmField
+    val PROBE_ID = UUID.randomUUID().toString()
+
     private var rawProperties: Map<String, Map<String, Any>>? = null
-    private var localProperties: JsonObject? = null
+    var localProperties: JsonObject? = null
     var customProbeFile: String? = null
 
     fun load() {
@@ -97,6 +100,35 @@ object ProbeConfiguration {
         get() = localProperties!!.getJsonObject("skywalking")
     val spp: JsonObject
         get() = localProperties!!.getJsonObject("spp")
+    val variableControl: JsonObject by lazy {
+        return@lazy spp.getJsonObject("live_variable_control")
+            ?: return@lazy JsonObject()
+                .put("max_object_depth", 5)
+                .put("max_object_size", 1024L * 1024L) //1MB
+                .put("max_collection_size", 100)
+    }
+    val variableControlByName: Map<String, JsonObject> by lazy {
+        val map = HashMap<String, JsonObject>()
+        val list = variableControl.getJsonArray("by_variable_name")
+        if (list != null) {
+            for (i in 0 until list.size()) {
+                val obj = list.getJsonObject(i)
+                map[obj.getString("name")] = obj
+            }
+        }
+        return@lazy map
+    }
+    val variableControlByType: Map<String, JsonObject> by lazy {
+        val map = HashMap<String, JsonObject>()
+        val list = variableControl.getJsonArray("by_variable_type")
+        if (list != null) {
+            for (i in 0 until list.size()) {
+                val obj = list.getJsonObject(i)
+                map[obj.getString("type")] = obj
+            }
+        }
+        return@lazy map
+    }
 
     fun getJsonObject(property: String): JsonObject? {
         return localProperties!!.getJsonObject("spp").getJsonObject(property)

@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 import java.io.StringWriter
@@ -33,7 +34,7 @@ import java.lang.reflect.Modifier
 class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
-        return if (instrumentation == null || maxMemorySize == -1L) error("CappedTypeAdapterFactory is not initialized")
+        return if (instrumentation == null) error("CappedTypeAdapterFactory is not initialized")
         else object : TypeAdapter<T>() {
 
             @Throws(IOException::class)
@@ -57,7 +58,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 val objSize = instrumentation!!.getObjectSize(value)
-                if (objSize > maxMemorySize) {
+                if (objSize > getMaxMemorySize("todo", value)) {
                     appendMaxSizeExceeded(jsonWriter, value, objSize)
                     return
                 }
@@ -247,17 +248,22 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
     @Suppress("unused")
     companion object {
         private var instrumentation: Instrumentation? = null
-        private var maxMemorySize: Long = -1
         private var maxArraySize: Int = 100
+
+        fun getMaxMemorySize(variableName: String, value: Any): Long {
+            val defaultMax = ProbeConfiguration.variableControl.getLong("max_object_size")
+            ProbeConfiguration.variableControlByName[variableName]?.let {
+                return it.getLong("max_object_size", defaultMax)
+            }
+            ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
+                return it.getLong("max_object_size", defaultMax)
+            }
+            return defaultMax
+        }
 
         @JvmStatic
         fun setInstrumentation(instrumentation: Instrumentation) {
             Companion.instrumentation = instrumentation
-        }
-
-        @JvmStatic
-        fun setMaxMemorySize(maxMemorySize: Long) {
-            Companion.maxMemorySize = maxMemorySize
         }
 
         fun getFieldValue(field: Field, value: Any?): Any? {
