@@ -105,7 +105,7 @@ object ProbeConfiguration {
             ?: return@lazy JsonObject()
                 .put("max_object_depth", 5)
                 .put("max_object_size", 1024L * 1024L) //1MB
-                .put("max_collection_size", 100)
+                .put("max_collection_length", 100)
     }
     val variableControlByName: Map<String, JsonObject> by lazy {
         val map = HashMap<String, JsonObject>()
