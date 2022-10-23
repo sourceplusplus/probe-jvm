@@ -99,7 +99,6 @@ tasks {
 
     test {
         failFast = true
-        useJUnitPlatform()
 
         testLogging {
             events("passed", "skipped", "failed")
