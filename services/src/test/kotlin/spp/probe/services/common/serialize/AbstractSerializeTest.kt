@@ -27,6 +27,8 @@ interface AbstractSerializeTest {
     @Before
     fun setup() {
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
+        ProbeConfiguration.variableControlByName.clear()
+        ProbeConfiguration.variableControlByType.clear()
         CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
     }
 }

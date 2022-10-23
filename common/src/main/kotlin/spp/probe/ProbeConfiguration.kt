@@ -107,7 +107,7 @@ object ProbeConfiguration {
                 .put("max_object_size", 1024L * 1024L) //1MB
                 .put("max_collection_length", 100)
     }
-    val variableControlByName: Map<String, JsonObject> by lazy {
+    val variableControlByName: MutableMap<String, JsonObject> by lazy {
         val map = HashMap<String, JsonObject>()
         val list = variableControl.getJsonArray("by_variable_name")
         if (list != null) {
@@ -118,7 +118,7 @@ object ProbeConfiguration {
         }
         return@lazy map
     }
-    val variableControlByType: Map<String, JsonObject> by lazy {
+    val variableControlByType: MutableMap<String, JsonObject> by lazy {
         val map = HashMap<String, JsonObject>()
         val list = variableControl.getJsonArray("by_variable_type")
         if (list != null) {

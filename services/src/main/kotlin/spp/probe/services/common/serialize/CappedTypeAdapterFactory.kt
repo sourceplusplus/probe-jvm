@@ -22,6 +22,7 @@ import com.google.gson.internal.bind.JsonTreeWriter
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import net.bytebuddy.jar.asm.Type
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
@@ -51,9 +52,10 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                     return
                 }
 
-                JsogRegistry.get().userData.putIfAbsent("depth", 0)
                 val maxDepth = getMaxDepth("todo", value)
-                if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
+                JsogRegistry.get().userData.putIfAbsent("depth", maxDepth)
+
+                if ((JsogRegistry.get().userData["depth"] as Int) == 0) {
                     appendMaxDepthExceeded(jsonWriter, value)
                     return
                 }
@@ -66,7 +68,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                 }
                 val maxLength = getMaxLength("todo", value)
 
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
 
                 if (value is Collection<*>) {
                     writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
@@ -152,7 +154,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                     }
                 }
 
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
             }
 
             private fun writeCollection(
@@ -265,7 +267,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
             ProbeConfiguration.variableControlByName[variableName]?.let {
                 return it.getLong("max_object_size", defaultMax)
             }
-            ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
+            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
                 return it.getLong("max_object_size", defaultMax)
             }
             return defaultMax
@@ -276,8 +278,14 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
             ProbeConfiguration.variableControlByName[variableName]?.let {
                 return it.getInteger("max_collection_length", defaultMax)
             }
-            ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
-                return it.getInteger("max_collection_length", defaultMax)
+            if (value::class.java.isArray) {
+                ProbeConfiguration.variableControlByType[Type.getType(value::class.java.name).className]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
+            } else {
+                ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
             }
             return defaultMax
         }
@@ -287,7 +295,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
             ProbeConfiguration.variableControlByName[variableName]?.let {
                 return it.getInteger("max_object_depth", defaultMax)
             }
-            ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
+            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
                 return it.getInteger("max_object_depth", defaultMax)
             }
             return defaultMax
