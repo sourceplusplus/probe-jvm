@@ -21,18 +21,12 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.Mockito
-import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 
-class MaxCollectionSizeTest {
+class MaxCollectionSizeTest : AbstractSerializeTest {
 
     @Test
     fun `max size exceeded`() {
-        ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-
         //array
         val maxArr = ByteArray(101)
         JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxArr)).let { json ->
@@ -81,8 +75,6 @@ class MaxCollectionSizeTest {
 
     @Test
     fun `less than max size`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-
         //array
         val unboundedArr = ByteArray(10)
         JsonArray(ModelSerializer.INSTANCE.toExtendedJson(unboundedArr)).let { json ->

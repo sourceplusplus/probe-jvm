@@ -25,7 +25,7 @@ import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
-class MaxObjectSizeTest {
+class MaxObjectSizeTest : AbstractSerializeTest {
 
     @Test
     fun `max size exceeded`() {
