@@ -99,7 +99,15 @@ tasks {
 
     test {
         failFast = true
-        maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
+        useJUnitPlatform()
+
+        testLogging {
+            events("passed", "skipped", "failed")
+            setExceptionFormat("full")
+
+            outputs.upToDateWhen { false }
+            showStandardStreams = true
+        }
     }
 }
 
