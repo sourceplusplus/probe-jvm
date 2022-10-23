@@ -4,8 +4,6 @@ plugins {
 
 val probeGroup: String by project
 val projectVersion: String by project
-val skywalkingAgentVersion: String by project
-val gsonVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 
