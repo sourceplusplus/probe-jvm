@@ -41,7 +41,7 @@ enum class ModelSerializer {
     val extendedGson: Gson = GsonBuilder()
         .serializeNulls()
         .setJsogPolicy(JsogPolicy.DEFAULT.withJsogAlwaysEnabled())
-        .registerTypeAdapterFactory(CappedTypeAdapterFactory(5))
+        .registerTypeAdapterFactory(CappedTypeAdapterFactory())
         .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (ignoredTypes.contains(typeToken.rawType.name)) {

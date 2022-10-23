@@ -31,7 +31,7 @@ import java.lang.instrument.Instrumentation
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 
-class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
+class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
         return if (instrumentation == null) error("CappedTypeAdapterFactory is not initialized")
@@ -52,6 +52,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 JsogRegistry.get().userData.putIfAbsent("depth", 0)
+                val maxDepth = getMaxDepth("todo", value)
                 if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
                     appendMaxDepthExceeded(jsonWriter, value)
                     return
@@ -277,6 +278,17 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
             }
             ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
                 return it.getInteger("max_collection_length", defaultMax)
+            }
+            return defaultMax
+        }
+
+        fun getMaxDepth(variableName: String, value: Any): Int {
+            val defaultMax = ProbeConfiguration.variableControl.getInteger("max_object_depth")
+            ProbeConfiguration.variableControlByName[variableName]?.let {
+                return it.getInteger("max_object_depth", defaultMax)
+            }
+            ProbeConfiguration.variableControlByType[value::javaClass.name]?.let {
+                return it.getInteger("max_object_depth", defaultMax)
             }
             return defaultMax
         }
