@@ -58,8 +58,9 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                 }
 
                 val objSize = instrumentation!!.getObjectSize(value)
-                if (objSize > getMaxMemorySize("todo", value)) {
-                    appendMaxSizeExceeded(jsonWriter, value, objSize)
+                val maxObjSize = getMaxMemorySize("todo", value)
+                if (objSize > maxObjSize) {
+                    appendMaxSizeExceeded(jsonWriter, value, objSize, maxObjSize)
                     return
                 }
 
@@ -197,14 +198,16 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
         if (newObject) jsonWriter.endObject()
     }
 
-    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long) {
+    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long, maxObjectSize: Long) {
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("MAX_SIZE_EXCEEDED")
         jsonWriter.name("@class")
         jsonWriter.value(value::class.java.name)
-        jsonWriter.name("@size")
+        jsonWriter.name("@skip[size]")
         jsonWriter.value(objSize)
+        jsonWriter.name("@skip[max]")
+        jsonWriter.value(maxObjectSize)
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.endObject()

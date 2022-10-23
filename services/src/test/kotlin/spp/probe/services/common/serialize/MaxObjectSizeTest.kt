@@ -43,12 +43,12 @@ class MaxObjectSizeTest : AbstractSerializeTest {
         CappedTypeAdapterFactory.setInstrumentation(instrumentation)
 
         val twoMbArr = "fakeMaxSizeObject"
-        error("twoMbArr: " + ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))
 
         assertEquals("MAX_SIZE_EXCEEDED", json.getString("@skip"))
         assertEquals("java.lang.String", json.getString("@class"))
-        assertEquals(1024, json.getInteger("@size"))
+        assertEquals(1024, json.getInteger("@skip[size]"))
+        assertEquals(0, json.getInteger("@skip[max]"))
         assertNotNull(json.getString("@id"))
     }
 }
