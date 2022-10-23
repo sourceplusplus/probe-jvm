@@ -8,7 +8,6 @@ val probeGroup: String by project
 val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
-val jacksonVersion: String by project
 val vertxVersion: String by project
 
 group = probeGroup
@@ -45,18 +44,17 @@ tasks.getByName<JavaCompile>("compileJava") {
 }
 
 dependencies {
-    implementation("plus.sourceplus:protocol:$projectVersion") {
-        isTransitive = false
-    }
-    implementation("io.vertx:vertx-core:$vertxVersion")
+    compileOnly("plus.sourceplus:protocol:$projectVersion")
+    compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.18")
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
     implementation("org.springframework:spring-expression:5.3.23")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion")
-    implementation("org.jetbrains:annotations:23.0.0")
+
+    testImplementation("plus.sourceplus:protocol:$projectVersion")
+    testImplementation("io.vertx:vertx-core:$vertxVersion")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
@@ -66,6 +64,9 @@ tasks {
     shadowJar {
         archiveBaseName.set("spp-skywalking-services")
         archiveClassifier.set("")
+        exclude("kotlin/**")
+        exclude("org/intellij/**")
+        exclude("org/jetbrains/**")
         exclude("META-INF/native-image/**")
         exclude("META-INF/vertx/**")
         exclude("META-INF/maven/**")
@@ -87,7 +88,10 @@ tasks {
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
-        relocate("io.vertx", "spp.probe.services.dependencies.io.vertx")
+        relocate("io", "spp.probe.common.io")
+        relocate("kotlin", "spp.probe.common.kotlin")
+        relocate("org.intellij", "spp.probe.common.org.intellij")
+        relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     }
     getByName("jar").dependsOn("shadowJar")
 
