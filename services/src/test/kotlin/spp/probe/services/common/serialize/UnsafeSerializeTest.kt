@@ -107,7 +107,7 @@ class UnsafeSerializeTest : AbstractSerializeTest {
         val buf = req.getJsonArray("buf")
         assertEquals(101, buf.size())
         val maxSizeError = buf.getJsonObject(100)
-        assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeError.getString("@skip"))
+        assertEquals("MAX_LENGTH_EXCEEDED", maxSizeError.getString("@skip"))
         assertEquals(2048, maxSizeError.getInteger("@skip[size]"))
         assertEquals(100, maxSizeError.getInteger("@skip[max]"))
     }
