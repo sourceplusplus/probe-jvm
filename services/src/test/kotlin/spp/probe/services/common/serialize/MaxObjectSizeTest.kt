@@ -29,14 +29,7 @@ class MaxObjectSizeTest : AbstractSerializeTest {
 
     @Test
     fun `max size exceeded`() {
-        ProbeConfiguration.localProperties = JsonObject().put(
-            "spp", JsonObject().put(
-                "live_variable_control", JsonObject()
-                    .put("max_object_depth", -1)
-                    .put("max_object_size", 0)
-                    .put("max_collection_size", -1)
-            )
-        )
+        ProbeConfiguration.variableControl.put("max_object_size", 0)
         val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
