@@ -92,9 +92,9 @@ tasks {
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
 
         //can't relocate these during testing
-        //if (System.getProperty("test.profile") != "integration") {
+        if (System.getProperty("test.profile") != "integration") {
             relocate("io", "spp.probe.common.io")
-        //}
+        }
 
         relocate("kotlin", "spp.probe.common.kotlin")
         relocate("org.intellij", "spp.probe.common.org.intellij")
