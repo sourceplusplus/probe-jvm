@@ -90,7 +90,12 @@ tasks {
         relocate("org.apache.commons", "spp.probe.services.dependencies.org.apache.commons")
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
-        //relocate("io", "spp.probe.common.io")
+
+        //can't relocate these during testing
+        if (System.getProperty("test.profile") != "integration") {
+            relocate("io", "spp.probe.common.io")
+        }
+
         relocate("kotlin", "spp.probe.common.kotlin")
         relocate("org.intellij", "spp.probe.common.org.intellij")
         relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
