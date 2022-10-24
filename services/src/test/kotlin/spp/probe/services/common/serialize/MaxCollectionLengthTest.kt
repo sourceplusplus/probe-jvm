@@ -21,17 +21,12 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 
-class MaxCollectionSizeTest {
+class MaxCollectionLengthTest : AbstractSerializeTest {
 
     @Test
-    fun `max size exceeded`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
+    fun `max length exceeded`() {
         //array
         val maxArr = ByteArray(101)
         JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxArr)).let { json ->
@@ -41,7 +36,7 @@ class MaxCollectionSizeTest {
             }
 
             val maxSizeOb = json.getJsonObject(100)
-            assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeOb.getString("@skip"))
+            assertEquals("MAX_LENGTH_EXCEEDED", maxSizeOb.getString("@skip"))
             assertEquals(maxArr.size, maxSizeOb.getInteger("@skip[size]"))
             assertEquals(100, maxSizeOb.getInteger("@skip[max]"))
         }
@@ -55,7 +50,7 @@ class MaxCollectionSizeTest {
             }
 
             val maxSizeOb = json.getJsonObject(100)
-            assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeOb.getString("@skip"))
+            assertEquals("MAX_LENGTH_EXCEEDED", maxSizeOb.getString("@skip"))
             assertEquals(maxList.size, maxSizeOb.getInteger("@skip[size]"))
             assertEquals(100, maxSizeOb.getInteger("@skip[max]"))
         }
@@ -66,7 +61,7 @@ class MaxCollectionSizeTest {
         }
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(maxMap)).let { json ->
             assertEquals(105, json.size())
-            assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", json.getString("@skip"))
+            assertEquals("MAX_LENGTH_EXCEEDED", json.getString("@skip"))
             assertEquals(maxList.size, json.getInteger("@skip[size]"))
             assertEquals(100, json.getInteger("@skip[max]"))
             assertNotNull(json.getString("@id"))
@@ -79,10 +74,7 @@ class MaxCollectionSizeTest {
     }
 
     @Test
-    fun `less than max size`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
+    fun `less than max length`() {
         //array
         val unboundedArr = ByteArray(10)
         JsonArray(ModelSerializer.INSTANCE.toExtendedJson(unboundedArr)).let { json ->

@@ -20,17 +20,12 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 
-class MaxObjectDepthTest {
+class MaxObjectDepthTest : AbstractSerializeTest {
 
     @Test
     fun `max depth exceeded`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         val deepObject = DeepObject1()
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(deepObject))
 

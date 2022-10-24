@@ -30,6 +30,7 @@ import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.logging.core.LogLevel
+import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
@@ -65,8 +66,6 @@ object SourceProbe {
     var tcpSocket: NetSocket? = null
     var instrumentRemote: LiveInstrumentRemote? = null
 
-    @JvmField
-    val PROBE_ID = UUID.randomUUID().toString()
     val isAgentInitialized: Boolean
         get() = instrumentation != null
     val probeMessageHeaders = JsonObject()
@@ -101,8 +100,6 @@ object SourceProbe {
             )
             sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
                 .invoke(null, instrumentation)
-            sizeCappedClass.getMethod("setMaxMemorySize", Long::class.javaPrimitiveType)
-                .invoke(null, 1024L * 1024L) //1MB
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)
@@ -147,8 +144,6 @@ object SourceProbe {
             )
             sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
                 .invoke(null, instrumentation)
-            sizeCappedClass.getMethod("setMaxMemorySize", Long::class.javaPrimitiveType)
-                .invoke(null, 1024L * 1024L) //1MB
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)

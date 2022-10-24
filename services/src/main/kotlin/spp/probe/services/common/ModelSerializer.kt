@@ -37,11 +37,12 @@ enum class ModelSerializer {
         }
     }
 
+    val rootVariableName = ThreadLocal<String?>()
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     val extendedGson: Gson = GsonBuilder()
         .serializeNulls()
         .setJsogPolicy(JsogPolicy.DEFAULT.withJsogAlwaysEnabled())
-        .registerTypeAdapterFactory(CappedTypeAdapterFactory(5))
+        .registerTypeAdapterFactory(CappedTypeAdapterFactory())
         .registerTypeAdapterFactory(object : TypeAdapterFactory {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (ignoredTypes.contains(typeToken.rawType.name)) {
@@ -78,7 +79,12 @@ enum class ModelSerializer {
         return gson.toJson(src)
     }
 
-    fun toExtendedJson(src: Any?): String {
-        return extendedGson.toJson(src)
+    fun toExtendedJson(src: Any?, varName: String? = null): String {
+        try {
+            rootVariableName.set(varName)
+            return extendedGson.toJson(src)
+        } finally {
+            rootVariableName.remove()
+        }
     }
 }

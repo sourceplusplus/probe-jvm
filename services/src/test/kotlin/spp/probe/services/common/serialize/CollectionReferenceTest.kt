@@ -21,16 +21,12 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 
-class CollectionReferenceTest {
+class CollectionReferenceTest : AbstractSerializeTest {
 
     @Test
     fun `collection references`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
         val refObject = RefObject()
 
         //array

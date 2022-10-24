@@ -21,25 +21,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.mockito.Mockito
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.lang.instrument.Instrumentation
 
-class MaxObjectSizeTest {
+class MaxObjectSizeTest : AbstractSerializeTest {
 
     @Test
     fun `max size exceeded`() {
+        ProbeConfiguration.variableControl.put("max_object_size", 0)
         val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
         CappedTypeAdapterFactory.setInstrumentation(instrumentation)
-        CappedTypeAdapterFactory.setMaxMemorySize(0)
 
         val twoMbArr = "fakeMaxSizeObject"
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))
 
         assertEquals("MAX_SIZE_EXCEEDED", json.getString("@skip"))
         assertEquals("java.lang.String", json.getString("@class"))
-        assertEquals(1024, json.getInteger("@size"))
+        assertEquals(1024, json.getInteger("@skip[size]"))
+        assertEquals(0, json.getInteger("@skip[max]"))
         assertNotNull(json.getString("@id"))
     }
 }

@@ -23,15 +23,13 @@ import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
-import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 import java.net.InetSocketAddress
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
-class UnsafeSerializeTest {
+class UnsafeSerializeTest : AbstractSerializeTest {
 
     class SunServer : HttpHandler {
         var server: HttpServer? = null
@@ -59,9 +57,6 @@ class UnsafeSerializeTest {
 
     @Test
     fun serializeHttpExchange() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         val sunServer = SunServer()
         sunServer.init()
         HttpClient.newHttpClient().send(
@@ -112,7 +107,7 @@ class UnsafeSerializeTest {
         val buf = req.getJsonArray("buf")
         assertEquals(101, buf.size())
         val maxSizeError = buf.getJsonObject(100)
-        assertEquals("MAX_COLLECTION_SIZE_EXCEEDED", maxSizeError.getString("@skip"))
+        assertEquals("MAX_LENGTH_EXCEEDED", maxSizeError.getString("@skip"))
         assertEquals(2048, maxSizeError.getInteger("@skip[size]"))
         assertEquals(100, maxSizeError.getInteger("@skip[max]"))
     }

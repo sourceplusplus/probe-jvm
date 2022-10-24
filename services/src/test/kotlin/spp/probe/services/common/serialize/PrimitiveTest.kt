@@ -19,17 +19,12 @@ package spp.probe.services.common.serialize
 import io.vertx.core.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import org.mockito.Mockito
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 
-class PrimitiveTest {
+class PrimitiveTest : AbstractSerializeTest {
 
     @Test
     fun `primitive types`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         //int
         ModelSerializer.INSTANCE.toExtendedJson(1).let {
             assertEquals("1", it)
@@ -62,9 +57,6 @@ class PrimitiveTest {
 
     @Test
     fun `primitive arrays`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         //int
         ModelSerializer.INSTANCE.toExtendedJson(intArrayOf(1, 2, 3)).let {
             assertEquals("[1,2,3]", it)
@@ -97,9 +89,6 @@ class PrimitiveTest {
 
     @Test
     fun `primitive lists`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         //int
         ModelSerializer.INSTANCE.toExtendedJson(listOf(1, 2, 3)).let {
             assertEquals("[1,2,3]", it)
@@ -132,9 +121,6 @@ class PrimitiveTest {
 
     @Test
     fun `primitive maps`() {
-        CappedTypeAdapterFactory.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-        CappedTypeAdapterFactory.setMaxMemorySize(1024)
-
         //int
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(mapOf("a" to 1, "b" to 2, "c" to 3))).let {
             assertEquals("java.util.LinkedHashMap", it.getString("@class"))

@@ -22,7 +22,9 @@ import com.google.gson.internal.bind.JsonTreeWriter
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
+import net.bytebuddy.jar.asm.Type
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 import java.io.StringWriter
@@ -30,10 +32,10 @@ import java.lang.instrument.Instrumentation
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 
-class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
+class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
-        return if (instrumentation == null || maxMemorySize == -1L) error("CappedTypeAdapterFactory is not initialized")
+        return if (instrumentation == null) error("CappedTypeAdapterFactory is not initialized")
         else object : TypeAdapter<T>() {
 
             @Throws(IOException::class)
@@ -50,22 +52,37 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     return
                 }
 
-                JsogRegistry.get().userData.putIfAbsent("depth", 0)
-                if ((JsogRegistry.get().userData["depth"] as Int) >= maxDepth) {
+                //get variable name (if avail)
+                val variableName = JsogRegistry.get().userData["variable_name"] as String?
+                    ?: ModelSerializer.INSTANCE.rootVariableName.get()
+
+                //set remaining depth using default
+                JsogRegistry.get().userData.putIfAbsent("depth", getDefaultMaxDepth())
+
+                //use custom max depth if available
+                val customMaxDepth = getCustomMaxDepth(variableName, value)
+                if (customMaxDepth != 0) {
+                    JsogRegistry.get().userData["reset_depth"] = JsogRegistry.get().userData["depth"] as Int
+                    JsogRegistry.get().userData["depth"] = customMaxDepth
+                }
+
+                if ((JsogRegistry.get().userData["depth"] as Int) == 0) {
                     appendMaxDepthExceeded(jsonWriter, value)
                     return
                 }
 
                 val objSize = instrumentation!!.getObjectSize(value)
-                if (objSize > maxMemorySize) {
-                    appendMaxSizeExceeded(jsonWriter, value, objSize)
+                val maxObjSize = getMaxSize(variableName, value)
+                if (objSize > maxObjSize) {
+                    appendMaxSizeExceeded(jsonWriter, value, objSize, maxObjSize)
                     return
                 }
+                val maxLength = getMaxLength(variableName, value)
 
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
 
                 if (value is Collection<*>) {
-                    writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                    writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
                 } else if (value is Map<*, *>) {
                     jsonWriter.beginObject()
                     jsonWriter.name("@id")
@@ -74,7 +91,7 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     jsonWriter.value(value::class.java.name)
 
                     value.onEachIndexed { i, entry ->
-                        if (i >= maxArraySize) return@onEachIndexed
+                        if (i >= maxLength) return@onEachIndexed
                         jsonWriter.name(entry.key.toString())
                         if (entry.value == null) {
                             jsonWriter.nullValue()
@@ -90,21 +107,21 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                         }
                     }
 
-                    if (value.size > maxArraySize) {
-                        appendMaxCollectionSizeExceeded(jsonWriter, value.size, false)
+                    if (value.size > maxLength) {
+                        appendMaxLengthExceeded(jsonWriter, value.size, maxLength, false)
                     }
                     jsonWriter.endObject()
                 } else if (value::class.java.isArray) {
                     when (value) {
-                        is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
-                        is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize)
+                        is BooleanArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is ByteArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is CharArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is ShortArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is IntArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is LongArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is FloatArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is DoubleArray -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
+                        is Array<*> -> writeCollection(jsonWriter, value.iterator(), value.size, objSize, maxLength)
                         else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                     }
                 } else {
@@ -148,13 +165,25 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     }
                 }
 
-                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
+                JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+
+                //reset remaining depth once we come out of the custom max depth
+                if (customMaxDepth != 0 && JsogRegistry.get().userData["depth"] == customMaxDepth) {
+                    JsogRegistry.get().userData["depth"] = JsogRegistry.get().userData["reset_depth"]
+                    JsogRegistry.get().userData.remove("reset_depth")
+                }
             }
 
-            private fun writeCollection(jsonWriter: JsonWriter, value: Iterator<*>, arrSize: Int, objSize: Long) {
+            private fun writeCollection(
+                jsonWriter: JsonWriter,
+                value: Iterator<*>,
+                arrSize: Int,
+                objSize: Long,
+                maxLength: Int
+            ) {
                 jsonWriter.beginArray()
                 value.withIndex().forEach { (i, it) ->
-                    if (i >= maxArraySize) return@forEach
+                    if (i >= maxLength) return@forEach
                     if (it == null) {
                         jsonWriter.nullValue()
                     } else {
@@ -162,8 +191,8 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
                     }
                 }
 
-                if (arrSize > maxArraySize) {
-                    appendMaxCollectionSizeExceeded(jsonWriter, arrSize)
+                if (arrSize > maxLength) {
+                    appendMaxLengthExceeded(jsonWriter, arrSize, maxLength)
                 }
                 jsonWriter.endArray()
             }
@@ -185,25 +214,27 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
     /**
      * @param newObject maps write exception to self, other collections create new object
      */
-    private fun appendMaxCollectionSizeExceeded(jsonWriter: JsonWriter, size: Int, newObject: Boolean = true) {
+    private fun appendMaxLengthExceeded(jsonWriter: JsonWriter, size: Int, maxLength: Int, newObject: Boolean = true) {
         if (newObject) jsonWriter.beginObject()
         jsonWriter.name("@skip")
-        jsonWriter.value("MAX_COLLECTION_SIZE_EXCEEDED")
+        jsonWriter.value("MAX_LENGTH_EXCEEDED")
         jsonWriter.name("@skip[size]")
         jsonWriter.value(size)
         jsonWriter.name("@skip[max]")
-        jsonWriter.value(maxArraySize)
+        jsonWriter.value(maxLength)
         if (newObject) jsonWriter.endObject()
     }
 
-    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long) {
+    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long, maxObjectSize: Long) {
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("MAX_SIZE_EXCEEDED")
         jsonWriter.name("@class")
         jsonWriter.value(value::class.java.name)
-        jsonWriter.name("@size")
+        jsonWriter.name("@skip[size]")
         jsonWriter.value(objSize)
+        jsonWriter.name("@skip[max]")
+        jsonWriter.value(maxObjectSize)
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.endObject()
@@ -247,17 +278,58 @@ class CappedTypeAdapterFactory(val maxDepth: Int) : TypeAdapterFactory {
     @Suppress("unused")
     companion object {
         private var instrumentation: Instrumentation? = null
-        private var maxMemorySize: Long = -1
-        private var maxArraySize: Int = 100
+
+        fun getMaxSize(variableName: String?, value: Any): Long {
+            val defaultMax = ProbeConfiguration.variableControl.getLong("max_object_size")
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getLong("max_object_size", defaultMax)
+                }
+            }
+            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
+                return it.getLong("max_object_size", defaultMax)
+            }
+            return defaultMax
+        }
+
+        fun getMaxLength(variableName: String?, value: Any): Int {
+            val defaultMax = ProbeConfiguration.variableControl.getInteger("max_collection_length")
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
+            }
+            if (value::class.java.isArray) {
+                ProbeConfiguration.variableControlByType[Type.getType(value::class.java.name).className]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
+            } else {
+                ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
+            }
+            return defaultMax
+        }
+
+        fun getDefaultMaxDepth(): Int {
+            return ProbeConfiguration.variableControl.getInteger("max_object_depth")
+        }
+
+        fun getCustomMaxDepth(variableName: String?, value: Any): Int {
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getInteger("max_object_depth", 0)
+                }
+            }
+            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
+                return it.getInteger("max_object_depth", 0)
+            }
+            return 0
+        }
 
         @JvmStatic
         fun setInstrumentation(instrumentation: Instrumentation) {
             Companion.instrumentation = instrumentation
-        }
-
-        @JvmStatic
-        fun setMaxMemorySize(maxMemorySize: Long) {
-            Companion.maxMemorySize = maxMemorySize
         }
 
         fun getFieldValue(field: Field, value: Any?): Any? {

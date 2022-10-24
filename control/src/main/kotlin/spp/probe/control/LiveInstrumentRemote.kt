@@ -24,6 +24,7 @@ import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
+import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.SourceProbe
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
@@ -92,7 +93,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
 
         //probe instrument remote
         vertx.eventBus()
-            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + SourceProbe.PROBE_ID)
+            .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
     }
 

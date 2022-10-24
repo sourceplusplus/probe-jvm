@@ -19,10 +19,12 @@ package spp.probe.services.common.serialize
 import com.google.gson.*
 import com.google.gson.internal.Streams
 import com.google.gson.internal.bind.JsogRegistry
+import com.google.gson.internal.bind.JsonTreeWriter
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
+import spp.probe.ProbeConfiguration
 import java.io.IOException
 
 /**
@@ -120,8 +122,6 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
 
     private val baseType: Class<*>
     private val typeFieldName: String
-    private val labelToSubtype: MutableMap<String, Class<*>> = LinkedHashMap()
-    private val subtypeToLabel: MutableMap<Class<*>, String> = LinkedHashMap()
 
     init {
         if (typeFieldName == null || baseType == null) {
@@ -130,49 +130,17 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
         this.baseType = baseType
         this.typeFieldName = typeFieldName
     }
-    /**
-     * Registers `type` identified by `label`. Labels are case
-     * sensitive.
-     *
-     * @throws IllegalArgumentException if either `type` or `label`
-     * have already been registered on this type adapter.
-     */
-    /**
-     * Registers `type` identified by its [simple][Class.getSimpleName]. Labels are case sensitive.
-     *
-     * @throws IllegalArgumentException if either `type` or its simple name
-     * have already been registered on this type adapter.
-     */
-    @JvmOverloads
-    fun registerSubtype(
-        type: Class<out T>?,
-        label: String? = type!!.simpleName
-    ): RuntimeClassNameTypeAdapterFactory<T> {
-        if (type == null || label == null) {
-            throw NullPointerException()
-        }
-        require(!(subtypeToLabel.containsKey(type) || labelToSubtype.containsKey(label))) { "types and labels must be unique" }
-        labelToSubtype[label] = type
-        subtypeToLabel[type] = label
-        return this
-    }
 
     override fun <R> create(gson: Gson, type: TypeToken<R>): TypeAdapter<R> {
         val labelToDelegate: MutableMap<String, TypeAdapter<*>> = LinkedHashMap()
         val subtypeToDelegate: MutableMap<Class<*>, TypeAdapter<*>> = LinkedHashMap()
 
-//    && !String.class.isAssignableFrom(type.getRawType())
         if (Any::class.java.isAssignableFrom(type.rawType)) {
             val delegate: TypeAdapter<*> = gson.getDelegateAdapter(this, type)
             labelToDelegate[type.rawType.name] = delegate
             subtypeToDelegate[type.rawType] = delegate
         }
 
-//    for (Map.Entry<String, Class<?>> entry : labelToSubtype.entrySet()) {
-//      TypeAdapter<?> delegate = gson.getDelegateAdapter(this, TypeToken.get(entry.getValue()));
-//      labelToDelegate.put(entry.getKey(), delegate);
-//      subtypeToDelegate.put(entry.getValue(), delegate);
-//    }
         return object : TypeAdapter<R>() {
             @Throws(IOException::class)
             override fun read(`in`: JsonReader): R? {
@@ -220,6 +188,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                         "cannot serialize " + srcType.name
                                 + "; did you forget to register a subtype?"
                     )
+                JsogRegistry.get().userData["variable_name"] = getPendingName(out)
                 val jsonTree = delegate.toJsonTree(value)
                 if (!jsonTree.isJsonObject) {
                     Streams.write(jsonTree, out)
@@ -274,13 +243,17 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
         }.nullSafe()
     }
 
-    companion object {
-        /**
-         * Creates a new runtime type adapter using for `baseType` using `typeFieldName` as the type field name. Type field names are case sensitive.
-         */
-        fun <T> of(baseType: Class<T>?, typeFieldName: String?): RuntimeClassNameTypeAdapterFactory<T> {
-            return RuntimeClassNameTypeAdapterFactory(baseType, typeFieldName)
+    fun getPendingName(jsonWriter: JsonWriter): String? {
+        if (ProbeConfiguration.variableControlByName.isNotEmpty() && jsonWriter is JsonTreeWriter) {
+            jsonWriter::class.java.getDeclaredField("pendingName").apply {
+                isAccessible = true
+                return get(jsonWriter) as String?
+            }
         }
+        return null
+    }
+
+    companion object {
 
         /**
          * Creates a new runtime type adapter for `baseType` using `"type"` as
