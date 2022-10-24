@@ -66,4 +66,48 @@ class CustomMaxCollectionLengthTest : AbstractSerializeTest {
             }
         }
     }
+
+    @Test
+    fun `custom max length by name`() {
+        ProbeConfiguration.variableControlByName.put(
+            "maxByteArr",
+            JsonObject().put("max_collection_length", 200)
+        )
+
+        val maxByteArr = ByteArray(200)
+
+        //try without name
+        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxByteArr)).let { json ->
+            assertEquals(101, json.size())
+            for (i in 0..99) {
+                assertEquals(0, json.getInteger(i))
+            }
+
+            val maxSizeOb = json.getJsonObject(100)
+            assertEquals("MAX_LENGTH_EXCEEDED", maxSizeOb.getString("@skip"))
+            assertEquals(maxByteArr.size, maxSizeOb.getInteger("@skip[size]"))
+            assertEquals(100, maxSizeOb.getInteger("@skip[max]"))
+        }
+
+        //try with wrong name
+        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxByteArr, "wrongName")).let { json ->
+            assertEquals(101, json.size())
+            for (i in 0..99) {
+                assertEquals(0, json.getInteger(i))
+            }
+
+            val maxSizeOb = json.getJsonObject(100)
+            assertEquals("MAX_LENGTH_EXCEEDED", maxSizeOb.getString("@skip"))
+            assertEquals(maxByteArr.size, maxSizeOb.getInteger("@skip[size]"))
+            assertEquals(100, maxSizeOb.getInteger("@skip[max]"))
+        }
+
+        //try with correct name
+        JsonArray(ModelSerializer.INSTANCE.toExtendedJson(maxByteArr, "maxByteArr")).let { json ->
+            assertEquals(200, json.size())
+            for (i in 0..199) {
+                assertEquals(0, json.getInteger(i))
+            }
+        }
+    }
 }

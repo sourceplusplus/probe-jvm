@@ -52,8 +52,19 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                     return
                 }
 
-                val maxDepth = getMaxDepth("todo", value)
-                JsogRegistry.get().userData.putIfAbsent("depth", maxDepth)
+                //get variable name (if avail)
+                val variableName = JsogRegistry.get().userData["variable_name"] as String?
+                    ?: ModelSerializer.INSTANCE.rootVariableName.get()
+
+                //set remaining depth using default
+                JsogRegistry.get().userData.putIfAbsent("depth", getDefaultMaxDepth())
+
+                //use custom max depth if available
+                val customMaxDepth = getCustomMaxDepth(variableName, value)
+                if (customMaxDepth != 0) {
+                    JsogRegistry.get().userData["reset_depth"] = JsogRegistry.get().userData["depth"] as Int
+                    JsogRegistry.get().userData["depth"] = customMaxDepth
+                }
 
                 if ((JsogRegistry.get().userData["depth"] as Int) == 0) {
                     appendMaxDepthExceeded(jsonWriter, value)
@@ -61,12 +72,12 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                 }
 
                 val objSize = instrumentation!!.getObjectSize(value)
-                val maxObjSize = getMaxSize("todo", value)
+                val maxObjSize = getMaxSize(variableName, value)
                 if (objSize > maxObjSize) {
                     appendMaxSizeExceeded(jsonWriter, value, objSize, maxObjSize)
                     return
                 }
-                val maxLength = getMaxLength("todo", value)
+                val maxLength = getMaxLength(variableName, value)
 
                 JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) - 1
 
@@ -155,6 +166,12 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                 }
 
                 JsogRegistry.get().userData["depth"] = (JsogRegistry.get().userData["depth"] as Int) + 1
+
+                //reset remaining depth once we come out of the custom max depth
+                if (customMaxDepth != 0 && JsogRegistry.get().userData["depth"] == customMaxDepth) {
+                    JsogRegistry.get().userData["depth"] = JsogRegistry.get().userData["reset_depth"]
+                    JsogRegistry.get().userData.remove("reset_depth")
+                }
             }
 
             private fun writeCollection(
@@ -262,10 +279,12 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
     companion object {
         private var instrumentation: Instrumentation? = null
 
-        fun getMaxSize(variableName: String, value: Any): Long {
+        fun getMaxSize(variableName: String?, value: Any): Long {
             val defaultMax = ProbeConfiguration.variableControl.getLong("max_object_size")
-            ProbeConfiguration.variableControlByName[variableName]?.let {
-                return it.getLong("max_object_size", defaultMax)
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getLong("max_object_size", defaultMax)
+                }
             }
             ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
                 return it.getLong("max_object_size", defaultMax)
@@ -273,10 +292,12 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
             return defaultMax
         }
 
-        fun getMaxLength(variableName: String, value: Any): Int {
+        fun getMaxLength(variableName: String?, value: Any): Int {
             val defaultMax = ProbeConfiguration.variableControl.getInteger("max_collection_length")
-            ProbeConfiguration.variableControlByName[variableName]?.let {
-                return it.getInteger("max_collection_length", defaultMax)
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getInteger("max_collection_length", defaultMax)
+                }
             }
             if (value::class.java.isArray) {
                 ProbeConfiguration.variableControlByType[Type.getType(value::class.java.name).className]?.let {
@@ -290,15 +311,20 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
             return defaultMax
         }
 
-        fun getMaxDepth(variableName: String, value: Any): Int {
-            val defaultMax = ProbeConfiguration.variableControl.getInteger("max_object_depth")
-            ProbeConfiguration.variableControlByName[variableName]?.let {
-                return it.getInteger("max_object_depth", defaultMax)
+        fun getDefaultMaxDepth(): Int {
+            return ProbeConfiguration.variableControl.getInteger("max_object_depth")
+        }
+
+        fun getCustomMaxDepth(variableName: String?, value: Any): Int {
+            if (variableName != null) {
+                ProbeConfiguration.variableControlByName[variableName]?.let {
+                    return it.getInteger("max_object_depth", 0)
+                }
             }
             ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
-                return it.getInteger("max_object_depth", defaultMax)
+                return it.getInteger("max_object_depth", 0)
             }
-            return defaultMax
+            return 0
         }
 
         @JvmStatic

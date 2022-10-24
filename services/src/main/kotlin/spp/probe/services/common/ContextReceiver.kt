@@ -259,7 +259,7 @@ object ContextReceiver {
             String.format(
                 "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
-                ModelSerializer.INSTANCE.toExtendedJson(value)
+                ModelSerializer.INSTANCE.toExtendedJson(value, varName)
             )
         } catch (ex: Exception) {
             try {

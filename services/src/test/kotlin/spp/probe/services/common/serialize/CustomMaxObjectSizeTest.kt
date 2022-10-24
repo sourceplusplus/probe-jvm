@@ -56,4 +56,78 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
             assertNotNull(it.getString("@id"))
         }
     }
+
+    @Test
+    fun `custom max size by name`() {
+        ProbeConfiguration.variableControl.put("max_object_size", 0)
+        ProbeConfiguration.variableControlByName.put(
+            "fakeMaxSizeString",
+            JsonObject().put("max_object_size", 1025)
+        )
+        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
+        }
+        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
+
+        val fakeMaxSizeString = "fakeMaxSizeObject"
+
+        //try without name
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString)).let {
+            assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
+            assertEquals("java.lang.String", it.getString("@class"))
+            assertEquals(1024, it.getInteger("@skip[size]"))
+            assertEquals(0, it.getInteger("@skip[max]"))
+            assertNotNull(it.getString("@id"))
+        }
+
+        //try with wrong name
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString, "fakeMaxSizeString2")).let {
+            assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
+            assertEquals("java.lang.String", it.getString("@class"))
+            assertEquals(1024, it.getInteger("@skip[size]"))
+            assertEquals(0, it.getInteger("@skip[max]"))
+            assertNotNull(it.getString("@id"))
+        }
+
+        //try with correct name
+        ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString, "fakeMaxSizeString").let {
+            assertEquals("\"fakeMaxSizeObject\"", it)
+        }
+    }
+
+    @Test
+    fun `custom max size by inner name`() {
+        ProbeConfiguration.variableControlByType.put(
+            "spp.probe.services.common.serialize.CustomMaxObjectSizeTest\$OuterObject",
+            JsonObject().put("max_object_size", 1025)
+        )
+        ProbeConfiguration.variableControl.put("max_object_size", 0)
+        ProbeConfiguration.variableControlByName.put(
+            "fakeMaxSizeString",
+            JsonObject().put("max_object_size", 1025)
+        )
+        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
+        }
+        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
+
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(OuterObject())).let {
+            assertEquals(4, it.size())
+            assertNotNull(it.getString("@class"))
+            assertNotNull(it.getString("@id"))
+            assertEquals("fakeMaxSizeString", it.getString("fakeMaxSizeString"))
+            it.getJsonObject("fakeMaxSizeString2").let {
+                assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
+                assertEquals("java.lang.String", it.getString("@class"))
+                assertEquals(1024, it.getInteger("@skip[size]"))
+                assertEquals(0, it.getInteger("@skip[max]"))
+                assertNotNull(it.getString("@id"))
+            }
+        }
+    }
+
+    inner class OuterObject {
+        var fakeMaxSizeString = "fakeMaxSizeString"
+        val fakeMaxSizeString2 = "fakeMaxSizeString2"
+    }
 }

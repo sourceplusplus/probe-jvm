@@ -37,6 +37,7 @@ enum class ModelSerializer {
         }
     }
 
+    val rootVariableName = ThreadLocal<String?>()
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     val extendedGson: Gson = GsonBuilder()
         .serializeNulls()
@@ -78,7 +79,12 @@ enum class ModelSerializer {
         return gson.toJson(src)
     }
 
-    fun toExtendedJson(src: Any?): String {
-        return extendedGson.toJson(src)
+    fun toExtendedJson(src: Any?, varName: String? = null): String {
+        try {
+            rootVariableName.set(varName)
+            return extendedGson.toJson(src)
+        } finally {
+            rootVariableName.remove()
+        }
     }
 }
