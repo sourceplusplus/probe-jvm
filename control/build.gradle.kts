@@ -59,7 +59,6 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
-    testImplementation("io.vertx:vertx-web-client:$vertxVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
