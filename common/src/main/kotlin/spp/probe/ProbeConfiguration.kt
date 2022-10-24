@@ -101,11 +101,17 @@ object ProbeConfiguration {
     val spp: JsonObject
         get() = localProperties!!.getJsonObject("spp")
     val variableControl: JsonObject by lazy {
-        return@lazy spp.getJsonObject("live_variable_control")
-            ?: return@lazy JsonObject()
-                .put("max_object_depth", 5)
-                .put("max_object_size", 1024L * 1024L) //1MB
-                .put("max_collection_length", 100)
+        val value = spp.getJsonObject("live_variable_control") ?: JsonObject()
+        if (!value.containsKey("max_object_depth")) {
+            value.put("max_object_depth", 5)
+        }
+        if (!value.containsKey("max_object_size")) {
+            value.put("max_object_size", 1024L * 1024L) //1MB
+        }
+        if (!value.containsKey("max_collection_length")) {
+            value.put("max_collection_length", 100)
+        }
+        return@lazy value
     }
     val variableControlByName: MutableMap<String, JsonObject> by lazy {
         val map = HashMap<String, JsonObject>()
