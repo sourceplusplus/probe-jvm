@@ -168,7 +168,7 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("org.intellij", "spp.probe.common.org.intellij")
     relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     relocate("org.yaml", "spp.probe.common.org.yaml")
-    relocate("io", "spp.probe.common.io")
+    //relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
 
     //need to move marshall package to allow probe to observe platform
