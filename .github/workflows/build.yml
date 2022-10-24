@@ -53,7 +53,7 @@ jobs:
           until $(curl --header "Authorization: Bearer ${{ env.SPP_JWT_TOKEN }}" --insecure --output /dev/null --silent --fail https://localhost:12800/health); do printf '.'; sleep 5; done
 
       #todo: create health for TraceSegmentServiceClient.statusChanged()
-      - run: sleep 30s
+      - run: sleep 45s
 
       - run: ./gradlew test -Dtest.profile=integration -PprobeVersion=$SPP_RELEASE_VERSION
 
