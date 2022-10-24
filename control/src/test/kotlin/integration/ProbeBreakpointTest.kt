@@ -16,7 +16,6 @@
  */
 package integration
 
-import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
@@ -34,6 +33,18 @@ import java.util.concurrent.TimeUnit
 
 class ProbeBreakpointTest : ProbeIntegrationTest() {
 
+    private fun doTest() {
+        val a = 1
+        val b = 'a'
+        val c = "a"
+        val d = true
+        val e = 1.0
+        val f = 1.0f
+        val g = 1L
+        val h: Short = 1
+        val i: Byte = 1
+    }
+
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
@@ -41,29 +52,30 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
         consumer.handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
-                log.trace("Received event: $event")
-
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = Json.decodeValue(event.data, LiveBreakpointHit::class.java)
+                    val item = LiveBreakpointHit(JsonObject(event.data))
                     val vars = item.stackTrace.first().variables
-                    assertEquals(9, vars.size)
+                    assertEquals(10, vars.size)
+
+                    consumer.unregister()
+                    testContext.completeNow()
                 }
-                consumer.unregister()
-                testContext.completeNow()
             }
-        }
+        }.completionHandler().await()
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation("VariableTests", 35),
+                    location = LiveSourceLocation("integration.ProbeBreakpointTest", 46),
                     applyImmediately = true
                 )
             ).await()
         )
 
-        callVariableTests()
-        if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {
+        //trigger breakpoint
+        doTest()
+
+        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw RuntimeException(testContext.causeOfFailure())
             }

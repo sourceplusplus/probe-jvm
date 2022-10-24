@@ -16,6 +16,7 @@
  */
 package integration
 
+import io.vertx.core.Future
 import io.vertx.core.Promise
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.MessageConsumer
@@ -25,26 +26,21 @@ import io.vertx.core.net.NetSocket
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
-import io.vertx.ext.web.client.WebClient
 import io.vertx.junit5.VertxExtension
 import io.vertx.kotlin.coroutines.await
 import io.vertx.serviceproxy.ServiceProxyBuilder
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
 import spp.protocol.service.SourceServices
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 import spp.protocol.service.extend.TCPServiceFrameParser
-import java.io.IOException
 import java.util.*
 
 @ExtendWith(VertxExtension::class)
@@ -52,7 +48,6 @@ abstract class ProbeIntegrationTest {
 
     companion object {
 
-        val log: Logger = LoggerFactory.getLogger(ProbeIntegrationTest::class.java)
         const val SYSTEM_JWT_TOKEN =
             "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ0ZW5hbnRfaWQiOiJ0ZW5hbnQxIiwiZGV2ZWxvcGVyX2lkIjoic3lzdGVtIiwiY3JlY" +
                     "XRlZF9hdCI6MTY2MDM4NzgwNjI2MSwiZXhwaXJlc19hdCI6MTY5MTkyMzgwNjI2MSwiaWF0IjoxNjYwMzg3ODA2fQ.e0lWdOmF" +
@@ -146,18 +141,11 @@ abstract class ProbeIntegrationTest {
             }
             return tcpSocket
         }
+    }
 
-        suspend fun callVariableTests() {
-            val e2eAppHost = if (System.getenv("E2E_APP_HOST") != null)
-                System.getenv("E2E_APP_HOST") else "localhost"
-            log.trace("E2E_APP_HOST: $e2eAppHost")
-
-            try {
-                val statusCode = WebClient.create(vertx).get(4000, e2eAppHost, "/").send().await().statusCode()
-                log.trace("Status code: $statusCode")
-                assertEquals(200, statusCode)
-            } catch (_: IOException) {
-            }
-        }
+    fun <T> MessageConsumer<T>.completionHandler(): Future<Void> {
+        val promise = Promise.promise<Void>()
+        completionHandler { promise.handle(it) }
+        return promise.future()
     }
 }

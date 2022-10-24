@@ -1,7 +1,9 @@
 spp:
-  platform_host: "spp-platform"
+  authentication:
+    client_id: "test-id"
+    client_secret: "test-secret"
+  platform_host: "localhost"
   platform_port: 12800
-  quiet_mode: false
   ssl_enabled: true
   platform_certificate: |
     MIIFLzCCAxegAwIBAgIGAYG9v8lfMA0GCSqGSIb3DQEBCwUAMBcxFTATBgNVBAMM
@@ -32,8 +34,11 @@ spp:
     +7VjhiWpBSNeUt7ENX9s2GGs0OjUCAoOFoOENDcZdu7u9hrzUIhHsFGTyL0DQ1lT
     Ip40RbmWHOunjHYEZRbJhB2Mo+hcIMGpARIq3WSYQFZnxBbchqnUnVvvo/bE5yB8
     g6TYnkFuMFHg/LvA7RX1v2Xha5YSEHBBV7V2emBmZc1Tpkk=
+  delete_probe_directory_on_boot: false
 skywalking:
   logging:
-    level: "INFO"
+    level: "DEBUG"
   agent:
-    service_name: "spp"
+    service_name: "spp-test-probe"
+  meter:
+    report_interval: 10

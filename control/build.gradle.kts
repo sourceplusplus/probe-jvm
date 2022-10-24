@@ -66,7 +66,15 @@ dependencies {
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
 }
 
-tasks.getByName<Test>("test") {
+tasks.test {
+    val probeJar = "${buildDir}/libs/spp-probe-$version.jar"
+    if (System.getProperty("test.profile") == "integration") {
+        jvmArgs = listOf(
+            //"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5105",
+            "-javaagent:$probeJar=${projectDir}/src/test/resources/spp-test-probe.yml"
+        )
+    }
+
     failFast = true
     useJUnitPlatform()
     if (System.getProperty("test.profile") != "integration") {
@@ -164,7 +172,7 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     relocate("org.intellij", "spp.probe.common.org.intellij")
     relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     relocate("org.yaml", "spp.probe.common.org.yaml")
-    relocate("io", "spp.probe.common.io")
+//    relocate("io", "spp.probe.common.io")
     relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
 
     //need to move marshall package to allow probe to observe platform
