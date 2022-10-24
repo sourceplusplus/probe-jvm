@@ -57,6 +57,9 @@ jobs:
 
       - run: ./gradlew test -Dtest.profile=integration -PprobeVersion=$SPP_RELEASE_VERSION
 
+      #have to rebuild to ensure all relocated dependencies are included
+      - run: ./gradlew clean assemble -Dbuild.profile=release -PprobeVersion=$SPP_RELEASE_VERSION
+
       - run: ./gradlew composeLogs
         if: ${{ always() }}
 
