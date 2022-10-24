@@ -55,7 +55,7 @@ jobs:
       #todo: create health for TraceSegmentServiceClient.statusChanged()
       - run: sleep 30s
 
-      - run: ./gradlew test -Dtest.profile=integration
+      - run: ./gradlew test -Dtest.profile=integration -PprobeVersion=$SPP_RELEASE_VERSION
 
       - run: ./gradlew composeLogs
         if: ${{ always() }}
