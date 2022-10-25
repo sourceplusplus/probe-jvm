@@ -34,8 +34,8 @@ class LiveInstrumentTransformer(
     private val className: String,
     methodName: String,
     desc: String,
-    access: Int,
-    classMetadata: ClassMetadata,
+    private val access: Int,
+    private val classMetadata: ClassMetadata,
     mv: MethodVisitor
 ) : MethodVisitor(Opcodes.ASM7, mv) {
 
@@ -51,18 +51,12 @@ class LiveInstrumentTransformer(
         private const val PUT_LOG_DESC = "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V"
     }
 
-    private val methodUniqueName: String
-    private val access: Int
-    private val classMetadata: ClassMetadata
+    private val methodUniqueName = methodName + desc
     private var currentBeginLabel: Label? = null
     private var inOriginalCode = true
     private var liveInstrument: LiveSpan? = null
 
     init {
-        methodUniqueName = methodName + desc
-        this.access = access
-        this.classMetadata = classMetadata
-
         val qualifiedArgs = mutableListOf<String>()
         val descArgs = StringBuilder(desc.substringAfter("(").substringBefore(")"))
         while (descArgs.isNotEmpty()) {
