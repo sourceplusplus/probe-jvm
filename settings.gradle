@@ -9,6 +9,6 @@ pluginManagement {
     }
 }
 
-include 'control'
-include 'probe'
+include 'boot'
+include 'common'
 include 'services'

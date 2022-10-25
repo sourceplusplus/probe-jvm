@@ -55,7 +55,7 @@ dependencies {
     implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
     }
-    implementation(projectDependency(":control"))
+    implementation(projectDependency(":common"))
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")

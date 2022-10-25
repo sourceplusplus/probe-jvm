@@ -18,6 +18,7 @@ package spp.probe
 
 import io.netty.util.internal.logging.InternalLogger
 import io.netty.util.internal.logging.InternalLoggerFactory
+import io.vertx.core.AbstractVerticle
 import io.vertx.core.AsyncResult
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
@@ -34,7 +35,6 @@ import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.ProbeConfiguration.instrumentation
 import spp.probe.ProbeConfiguration.probeMessageHeaders
 import spp.probe.ProbeConfiguration.tcpSocket
-import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.artifact.ArtifactLanguage
@@ -64,7 +64,7 @@ object SourceProbe {
     var vertx: Vertx? = null
     private val connected = AtomicBoolean()
 
-    var instrumentRemote: LiveInstrumentRemote? = null
+    var instrumentRemote: AbstractVerticle? = null
 
     val isAgentInitialized: Boolean
         get() = instrumentation != null
@@ -103,7 +103,7 @@ object SourceProbe {
             e.printStackTrace()
             throw RuntimeException(e)
         }
-        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
+//        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
     }
 
     @JvmStatic
@@ -147,7 +147,7 @@ object SourceProbe {
             e.printStackTrace()
             throw RuntimeException(e)
         }
-        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
+//        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
     }
 
     @JvmStatic

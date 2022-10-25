@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package spp.probe.control
+package spp.probe.services
 
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.eventbus.Message
