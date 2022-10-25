@@ -44,8 +44,8 @@ class LiveInstrumentTransformer(
         private val THROWABLE_INTERNAL_NAME = Type.getInternalName(Throwable::class.java)
         private val REMOTE_INTERNAL_NAME = Type.getInternalName(ILiveInstrumentRemote::class.java)
         private val REMOTE_DESCRIPTOR = Type.getDescriptor(ILiveInstrumentRemote::class.java)
+        private const val PROBE_INTERNAL_NAME = "spp/probe/SourceProbe"
         private const val REMOTE_FIELD = "instrumentRemote"
-        private const val PROBE_CLASS_LOCATION = "spp/probe/SourceProbe"
         private const val REMOTE_CHECK_DESC = "(Ljava/lang/String;)Z"
         private const val REMOTE_SAVE_VAR_DESC = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V"
         private const val PUT_LOG_DESC = "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V"
@@ -143,7 +143,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: Label) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
@@ -161,7 +161,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun isHit(instrumentId: String, instrumentLabel: Label) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
@@ -175,7 +175,7 @@ class LiveInstrumentTransformer(
     private fun addLocals(instrumentId: String, line: Int) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
             if (line >= local.start && line < local.end) {
-                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = Type.getType(local.desc)
                 mv.visitLdcInsn(instrumentId)
@@ -194,7 +194,7 @@ class LiveInstrumentTransformer(
 
     private fun addStaticFields(instrumentId: String) {
         for (staticField in classMetadata.staticFields) {
-            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
             val type = Type.getType(staticField.desc)
             mv.visitLdcInsn(instrumentId)
@@ -213,7 +213,7 @@ class LiveInstrumentTransformer(
     private fun addFields(instrumentId: String) {
         if (access and Opcodes.ACC_STATIC == 0) {
             for (field in classMetadata.fields) {
-                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = Type.getType(field.desc)
                 mv.visitLdcInsn(instrumentId)
@@ -232,7 +232,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun putBreakpoint(instrumentId: String, source: String, line: Int) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitLdcInsn(source)
@@ -252,7 +252,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun putLog(log: LiveLog) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(log.id)
         mv.visitLdcInsn(log.logFormat)
@@ -272,7 +272,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun putMeter(meter: LiveMeter) {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         ProbeMemory.put("spp.live-meter:" + meter.id, meter)
         mv.visitLdcInsn(meter.id)
@@ -317,7 +317,7 @@ class LiveInstrumentTransformer(
                     inOriginalCode = true
                 }
             } else if (inOriginalCode && opcode == Opcodes.ATHROW) {
-                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 visitLdcInsn(liveInstrument!!.id)
                 visitMethodInsn(
@@ -360,7 +360,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         ProbeMemory.put("spp.live-span:" + liveInstrument!!.id, liveInstrument)
         visitLdcInsn(liveInstrument!!.id)
@@ -372,7 +372,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitFinallyBlock() {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_CLASS_LOCATION, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
