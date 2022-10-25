@@ -53,8 +53,8 @@ class ProbeInstrumentTest {
     @Test
     fun addBreakpoint() {
         val liveBreakpoint = LiveBreakpoint(
-            LiveSourceLocation("com.example.Test", 5),
-            "1==1",
+            location = LiveSourceLocation("com.example.Test", 5),
+            condition = "1==1",
             id = "id"
         )
         LiveInstrumentService.applyInstrument(liveBreakpoint)
@@ -73,15 +73,15 @@ class ProbeInstrumentTest {
     @Test
     fun duplicateBreakpoint() {
         val liveBreakpoint1 = LiveBreakpoint(
-            LiveSourceLocation("com.example.Test", 5),
-            "1==1",
+            location = LiveSourceLocation("com.example.Test", 5),
+            condition = "1==1",
             id = "id"
         )
         val bp1 = LiveInstrumentService.applyInstrument(liveBreakpoint1)
 
         val liveBreakpoint2 = LiveBreakpoint(
-            LiveSourceLocation("com.example.Test", 5),
-            "1==1",
+            location = LiveSourceLocation("com.example.Test", 5),
+            condition = "1==1",
             id = "id"
         )
         val bp2 = LiveInstrumentService.applyInstrument(liveBreakpoint2)
@@ -100,15 +100,15 @@ class ProbeInstrumentTest {
     @Test
     fun multipleBreakpointsSameLine() {
         val liveBp1 = LiveBreakpoint(
-            LiveSourceLocation("java.lang.Object", 5),
-            "1==1",
+            location = LiveSourceLocation("java.lang.Object", 5),
+            condition = "1==1",
             id = "id1"
         )
         val bp1 = LiveInstrumentService.applyInstrument(liveBp1)
 
         val liveBp2 = LiveBreakpoint(
-            LiveSourceLocation("java.lang.Object", 5),
-            "1==2",
+            location = LiveSourceLocation("java.lang.Object", 5),
+            condition = "1==2",
             id = "id2"
         )
         val bp2 = LiveInstrumentService.applyInstrument(liveBp2)

@@ -66,8 +66,9 @@ subprojects {
 tasks {
     register("downloadSkywalkingAgent") {
         doLast {
-            val f = File(projectDir, "e2e/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz")
+            val f = File(buildDir, "agent/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz")
             if (!f.exists()) {
+                f.parentFile.mkdirs()
                 println("Downloading Apache SkyWalking - Java agent")
                 URL("https://downloads.apache.org/skywalking/java-agent/$skywalkingAgentVersion/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz")
                     .openStream().use { input ->
@@ -90,7 +91,6 @@ tasks {
 }
 
 dockerCompose {
-    dockerComposeWorkingDirectory.set(File("./e2e"))
     removeVolumes.set(true)
     waitForTcpPorts.set(false)
 }

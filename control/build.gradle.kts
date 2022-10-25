@@ -114,8 +114,8 @@ tasks.register<Copy>("untarSkywalkingAgent") {
     } else {
         dependsOn(":downloadSkywalkingAgent")
     }
-    from(tarTree(resources.gzip(File(projectDir.parentFile, "e2e/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
-    into(File(projectDir.parentFile, "e2e"))
+    from(tarTree(resources.gzip(File(projectDir.parentFile, "build/agent/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
+    into(File(projectDir.parentFile, "build/agent/extracted"))
 }
 
 tasks.register<Zip>("zipSppSkywalkingAgent") {
@@ -132,7 +132,7 @@ tasks.register<Zip>("zipSppSkywalkingAgent") {
     resourcesDir.mkdirs()
     destinationDirectory.set(resourcesDir)
 
-    from(File(projectDir.parentFile, "e2e/skywalking-agent"))
+    from(File(projectDir.parentFile, "build/agent/extracted/skywalking-agent"))
     into("plugins") {
         doFirst {
             if (!File(projectDir, "../services/build/libs/spp-skywalking-services-${project.version}.jar").exists()) {

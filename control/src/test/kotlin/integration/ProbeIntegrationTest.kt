@@ -48,17 +48,6 @@ abstract class ProbeIntegrationTest {
 
     companion object {
 
-        const val SYSTEM_JWT_TOKEN =
-            "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ0ZW5hbnRfaWQiOiJ0ZW5hbnQxIiwiZGV2ZWxvcGVyX2lkIjoic3lzdGVtIiwiY3JlY" +
-                    "XRlZF9hdCI6MTY2MDM4NzgwNjI2MSwiZXhwaXJlc19hdCI6MTY5MTkyMzgwNjI2MSwiaWF0IjoxNjYwMzg3ODA2fQ.e0lWdOmF" +
-                    "PY_Bi9tE4wp_SUmv4GKuMInrs8oWlacd5pvbGryAj4pFbOhstj0-Nc-DIXbuTp5VKTqSpwgSrFMtNjFTQTJ9q2182Wjlh7g19H" +
-                    "ZipCL-Qjuy2Oh-hLkbm1KZKY8DymYKYkDUZjO8Owb97_BbBewKRCfCqqFKABnMcAhyOJ5PLs61xG0uBe9IVvjzlXz8Uwx9ObE1" +
-                    "N74cDsm1arCbDyVnSYMOIm9ilOBjUynastAyybYEDRp5jjyXhHwzcZ4vlKp65AUd1Jw2QZBBgTCT-U01tIAjDujGejarEgcGed" +
-                    "M31y44sS3kaJwHQIS01mb2RpaZQzMlp1HtBJS3QtT3M8OUDlOSnT4_cc0lp2y4xXI26W66q-M0KBlFisCJPR0lvP1njg_jMspy" +
-                    "n0YBbu4zMEQtSy2L6NIMAaEj7lVLu_mMisaD33pbORW0QsGFjq-krPo6FfulCSYdxNNyUrlh93f6Qy3KQlM8Kp47INfoV6AJGc" +
-                    "kpEGzeVrCiKCYq2MaCbENh2Eu4EpBkLawuBid8RgQ-Kp-tlv9rxYdbQp8R8HA4lF9bMK-hM3-akkWzENqEof6e_gE2xdk-e-6-" +
-                    "jJGQpouEiVCaA81f4CswRYHdAVgsSwVfWEqP072CULplI_KhgFhQ1YBQ_ku_jxTkGSfvub2bkeAHZdqyrMQwu7o"
-
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
 
@@ -75,7 +64,7 @@ abstract class ProbeIntegrationTest {
             val replyAddress = UUID.randomUUID().toString()
             val pc = InstanceConnection(UUID.randomUUID().toString(), System.currentTimeMillis())
             val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
-            val headers = JsonObject().put("auth-token", SYSTEM_JWT_TOKEN)
+            val headers = JsonObject()
 
             val promise = Promise.promise<Void>()
             consumer.handler {
@@ -98,7 +87,6 @@ abstract class ProbeIntegrationTest {
 
             promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
-                .setToken(SYSTEM_JWT_TOKEN)
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
         }
@@ -134,8 +122,6 @@ abstract class ProbeIntegrationTest {
                 System.getenv("SPP_PLATFORM_HOST") else "localhost"
             val options = NetClientOptions()
                 .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
-                .setSsl(true)
-                .setTrustAll(true)
             val tcpSocket = withTimeout(5000) {
                 vertx.createNetClient(options).connect(12800, serviceHost).await()
             }
