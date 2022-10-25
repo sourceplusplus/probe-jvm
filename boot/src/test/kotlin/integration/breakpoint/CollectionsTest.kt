@@ -119,55 +119,45 @@ class CollectionsTest : ProbeIntegrationTest() {
                         topFrame.variables.find { it.name == "doubleMap" }!!.liveClazz
                     )
 
-                    //todo: throws MAX_DEPTH_EXCEEDED
-//                //arrOfArrays
-//                assertEquals(
-//                    listOf(
-//                        listOf(1, 2, 3),
-//                        listOf(4, 5, 6)
-//                    ),
-//                    topFrame.variables.find { it.name == "arrOfArrays" }!!.value.let {
-//                        (it as List<Map<String, *>>).map { it["value"] }
-//                    }
-//                )
-//                assertEquals(
-//                    "int[][]",
-//                    topFrame.variables.find { it.name == "arrOfArrays" }!!.liveClazz
-//                )
-
-                    //todo: returns invalid map
-//                //mapOfMaps
-//                assertEquals(
-//                    listOf(
-//                        "a" to mapOf("a" to 1, "b" to 2, "c" to 3),
-//                        "b" to mapOf("a" to 4, "b" to 5, "c" to 6)
-//                    ),
-//                    topFrame.variables.find { it.name == "mapOfMaps" }!!.value.let {
-//                        (it as List<Map<String, *>>).map {
-//                            it["name"] to (it["value"] as List<Map<String, *>>).map { it["name"] to it["value"] }
-//                        }
-//                    }
-//                )
+                    //arrOfArrays
                     assertEquals(
-                        "java.util.LinkedHashMap",
-                        topFrame.variables.find { it.name == "mapOfMaps" }!!.liveClazz
+                        listOf(
+                            listOf(1, 2, 3),
+                            listOf(4, 5, 6)
+                        ),
+                        topFrame.variables.find { it.name == "arrOfArrays" }!!.value.let {
+                            (it as JsonArray).map { JsonObject.mapFrom(it) }.map {
+                                (it.getJsonArray("value") as JsonArray).map { it as Int }
+                            }
+                        }
                     )
 
-                    //todo: throws MAX_DEPTH_EXCEEDED
-//                //listOfLists
-//                assertEquals(
-//                    listOf(
-//                        listOf(1, 2, 3),
-//                        listOf(4, 5, 6)
-//                    ),
-//                    topFrame.variables.find { it.name == "listOfLists" }!!.value.let {
-//                        (it as List<Map<String, *>>).map { it["value"] }
-//                    }
-//                )
-//                assertEquals(
-//                    "java.util.LinkedList",
-//                    topFrame.variables.find { it.name == "listOfLists" }!!.liveClazz
-//                )
+                    //mapOfMaps
+                    assertEquals(
+                        listOf(
+                            listOf("a" to 1, "b" to 2, "c" to 3),
+                            listOf("a" to 4, "b" to 5, "c" to 6)
+                        ),
+                        topFrame.variables.find { it.name == "mapOfMaps" }!!.value.let {
+                            (it as JsonArray).map { JsonObject.mapFrom(it) }.map {
+                                (it.getJsonArray("value") as JsonArray).map { JsonObject.mapFrom(it) }
+                                    .map { it.getString("name") to it.getInteger("value") }
+                            }
+                        }
+                    )
+
+                    //listOfLists
+                    assertEquals(
+                        listOf(
+                            listOf(1, 2, 3),
+                            listOf(4, 5, 6)
+                        ),
+                        topFrame.variables.find { it.name == "listOfLists" }!!.value.let {
+                            (it as JsonArray).map { JsonObject.mapFrom(it) }.map {
+                                (it.getJsonArray("value") as JsonArray).map { it as Int }
+                            }
+                        }
+                    )
 
                     consumer.unregister()
                     testContext.completeNow()
