@@ -22,6 +22,7 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import spp.probe.services.common.serialize.CappedTypeAdapterFactory
 import spp.probe.services.common.serialize.RuntimeClassNameTypeAdapterFactory
+import spp.protocol.instrument.LiveBreakpoint
 import java.io.IOException
 import java.io.OutputStream
 import java.util.*
@@ -38,6 +39,7 @@ enum class ModelSerializer {
     }
 
     val rootVariableName = ThreadLocal<String?>()
+    val rootBreakpoint = ThreadLocal<LiveBreakpoint?>()
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     val extendedGson: Gson = GsonBuilder()
         .serializeNulls()
@@ -79,12 +81,14 @@ enum class ModelSerializer {
         return gson.toJson(src)
     }
 
-    fun toExtendedJson(src: Any?, varName: String? = null): String {
+    fun toExtendedJson(src: Any?, varName: String? = null, breakpoint: LiveBreakpoint? = null): String {
         try {
             rootVariableName.set(varName)
+            rootBreakpoint.set(breakpoint)
             return extendedGson.toJson(src)
         } finally {
             rootVariableName.remove()
+            rootBreakpoint.remove()
         }
     }
 }

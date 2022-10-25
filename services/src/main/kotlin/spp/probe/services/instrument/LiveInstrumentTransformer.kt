@@ -22,7 +22,6 @@ import net.bytebuddy.jar.asm.Opcodes
 import net.bytebuddy.jar.asm.Type.*
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
-import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.transform.LiveTransformer
 import spp.protocol.instrument.LiveBreakpoint
@@ -263,7 +262,6 @@ class LiveInstrumentTransformer(
     private fun putMeter(meter: LiveMeter) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-        ProbeMemory.put("spp.live-meter:" + meter.id, meter)
         mv.visitLdcInsn(meter.id)
         mv.visitMethodInsn(
             Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
@@ -349,7 +347,6 @@ class LiveInstrumentTransformer(
     private fun execVisitBeforeFirstTryCatchBlock() {
         mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-        ProbeMemory.put("spp.live-span:" + liveInstrument!!.id, liveInstrument)
         visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
             Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,

@@ -223,7 +223,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         if (newObject) jsonWriter.endObject()
     }
 
-    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long, maxObjectSize: Long) {
+    private fun appendMaxSizeExceeded(jsonWriter: JsonWriter, value: Any, objSize: Long, maxObjectSize: Int) {
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("MAX_SIZE_EXCEEDED")
@@ -275,34 +275,56 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     @Suppress("unused")
     companion object {
-        fun getMaxSize(variableName: String?, value: Any): Long {
-            val defaultMax = ProbeConfiguration.variableControl.getLong("max_object_size")
+        fun getMaxSize(variableName: String?, value: Any): Int {
+            //check live breakpoint config
+            ModelSerializer.INSTANCE.rootBreakpoint.get()?.variableControl?.let {
+                if (variableName != null) {
+                    it.variableNameConfig[variableName]?.let {
+                        it.maxObjectSize?.let { return it }
+                    }
+                }
+                it.variableTypeConfig[getTypeName(value)]?.let {
+                    it.maxObjectSize?.let { return it }
+                }
+                it.maxObjectSize?.let { return it }
+            }
+
+            //check spp-probe.yml config
+            val defaultMax = ProbeConfiguration.variableControl.getInteger("max_object_size")
             if (variableName != null) {
                 ProbeConfiguration.variableControlByName[variableName]?.let {
-                    return it.getLong("max_object_size", defaultMax)
+                    return it.getInteger("max_object_size", defaultMax)
                 }
             }
-            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
-                return it.getLong("max_object_size", defaultMax)
+            ProbeConfiguration.variableControlByType[getTypeName(value)]?.let {
+                return it.getInteger("max_object_size", defaultMax)
             }
             return defaultMax
         }
 
         fun getMaxLength(variableName: String?, value: Any): Int {
+            //check live breakpoint config
+            ModelSerializer.INSTANCE.rootBreakpoint.get()?.variableControl?.let {
+                if (variableName != null) {
+                    it.variableNameConfig[variableName]?.let {
+                        it.maxCollectionLength?.let { return it }
+                    }
+                }
+                it.variableTypeConfig[getTypeName(value)]?.let {
+                    it.maxCollectionLength?.let { return it }
+                }
+                it.maxCollectionLength?.let { return it }
+            }
+
+            //check spp-probe.yml config
             val defaultMax = ProbeConfiguration.variableControl.getInteger("max_collection_length")
             if (variableName != null) {
                 ProbeConfiguration.variableControlByName[variableName]?.let {
                     return it.getInteger("max_collection_length", defaultMax)
                 }
             }
-            if (value::class.java.isArray) {
-                ProbeConfiguration.variableControlByType[Type.getType(value::class.java.name).className]?.let {
-                    return it.getInteger("max_collection_length", defaultMax)
-                }
-            } else {
-                ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
-                    return it.getInteger("max_collection_length", defaultMax)
-                }
+            ProbeConfiguration.variableControlByType[getTypeName(value)]?.let {
+                return it.getInteger("max_collection_length", defaultMax)
             }
             return defaultMax
         }
@@ -312,15 +334,36 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         }
 
         fun getCustomMaxDepth(variableName: String?, value: Any): Int {
+            //check live breakpoint config
+            ModelSerializer.INSTANCE.rootBreakpoint.get()?.variableControl?.let {
+                if (variableName != null) {
+                    it.variableNameConfig[variableName]?.let {
+                        it.maxObjectDepth?.let { return it }
+                    }
+                }
+                it.variableTypeConfig[getTypeName(value)]?.let {
+                    it.maxObjectDepth?.let { return it }
+                }
+                it.maxObjectDepth?.let { return it }
+            }
+
+            //check spp-probe.yml config
             if (variableName != null) {
                 ProbeConfiguration.variableControlByName[variableName]?.let {
                     return it.getInteger("max_object_depth", 0)
                 }
             }
-            ProbeConfiguration.variableControlByType[value::class.java.name]?.let {
+            ProbeConfiguration.variableControlByType[getTypeName(value)]?.let {
                 return it.getInteger("max_object_depth", 0)
             }
             return 0
+        }
+
+        private fun getTypeName(value: Any): String {
+            if (value::class.java.isArray) {
+                return Type.getType(value::class.java.name).className
+            }
+            return value::class.java.name
         }
 
         fun getFieldValue(field: Field, value: Any?): Any? {

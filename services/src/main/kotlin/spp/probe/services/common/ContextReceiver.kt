@@ -30,9 +30,7 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
-import spp.protocol.instrument.LiveMeter
-import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.LiveSpan
+import spp.protocol.instrument.*
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
 import java.io.ByteArrayInputStream
@@ -89,20 +87,21 @@ object ContextReceiver {
 
     @JvmStatic
     fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) = executor.submit {
+        val liveBreakpoint = ProbeMemory.remove("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return@submit
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
         localVariables.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
-                StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(key, value)
+                StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
         fields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
-                StringTag("spp.field:$breakpointId:$key"), encodeObject(key, value)
+                StringTag("spp.field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
         staticFields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
-                StringTag("spp.static-field:$breakpointId:$key"), encodeObject(key, value)
+                StringTag("spp.static-field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
         activeSpan.tag(
@@ -118,6 +117,7 @@ object ContextReceiver {
 
     @JvmStatic
     fun putLog(logId: String?, logFormat: String?, vararg logArguments: String?) = executor.submit {
+        ProbeMemory.remove("spp.live-instrument:$logId") as LiveLog? ?: return@submit
         val localVars = localVariables.remove(logId)
         val localFields = fields.remove(logId)
         val localStaticFields = staticFields.remove(logId)
@@ -173,7 +173,7 @@ object ContextReceiver {
 
     @JvmStatic
     fun putMeter(meterId: String) = executor.submit {
-        val liveMeter = ProbeMemory["spp.live-meter:$meterId"] as LiveMeter? ?: return@submit
+        val liveMeter = ProbeMemory.remove("spp.live-instrument:$meterId") as LiveMeter? ?: return@submit
         val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             log.info("Initial trigger of live meter: $meterId")
             when (liveMeter.meterType) {
@@ -230,7 +230,7 @@ object ContextReceiver {
 
     @JvmStatic
     fun openLocalSpan(spanId: String) {
-        val liveSpan = ProbeMemory["spp.live-span:$spanId"] as LiveSpan? ?: return
+        val liveSpan = ProbeMemory.remove("spp.live-instrument:$spanId") as LiveSpan? ?: return
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
         ProbeMemory.put("spp.active-span:$spanId", activeSpan)
@@ -243,7 +243,7 @@ object ContextReceiver {
         ContextManager.stopSpan(activeSpan)
     }
 
-    private fun encodeObject(varName: String, varData: Pair<String, Any?>): String? {
+    private fun encodeObject(breakpoint: LiveBreakpoint, varName: String, varData: Pair<String, Any?>): String? {
         val value = varData.second ?: return String.format(
             "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s}", varData.first, null
         )
@@ -252,7 +252,7 @@ object ContextReceiver {
             String.format(
                 "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
-                ModelSerializer.INSTANCE.toExtendedJson(value, varName)
+                ModelSerializer.INSTANCE.toExtendedJson(value, varName, breakpoint)
             )
         } catch (ex: Throwable) {
             log.error("Failed to encode object: $varName", ex)

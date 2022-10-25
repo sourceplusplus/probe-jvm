@@ -27,6 +27,7 @@ import spp.probe.ProbeConfiguration
 import spp.probe.services.LiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ModelSerializer
+import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
 import spp.probe.services.error.LiveInstrumentException
@@ -273,6 +274,10 @@ object LiveInstrumentService {
             if (instrument.isFinished) {
                 _removeInstrument(instrument.instrument, null)
             }
+
+            //store instrument in probe memory, removed on ContextReceiver.put
+            ProbeMemory.put("spp.live-instrument:$instrumentId", instrument.instrument)
+
             return true
         }
         return try {
@@ -280,6 +285,10 @@ object LiveInstrumentService {
                 if (instrument.isFinished) {
                     _removeInstrument(instrument.instrument, null)
                 }
+
+                //store instrument in probe memory, removed on ContextReceiver.put
+                ProbeMemory.put("spp.live-instrument:$instrumentId", instrument.instrument)
+
                 true
             } else {
                 ContextReceiver.clear(instrumentId)
