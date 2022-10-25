@@ -39,8 +39,24 @@ import java.util.function.BiConsumer
 @Suppress("unused")
 class LiveInstrumentRemote : ILiveInstrumentRemote() {
 
+    companion object {
+        private val log = LogManager.getLogger(LiveInstrumentRemote::class.java)
+
+        var EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
+            if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
+            FrameHelper.sendFrame(
+                BridgeEventType.PUBLISH.name.lowercase(),
+                address,
+                null,
+                ProbeConfiguration.probeMessageHeaders,
+                false,
+                JsonObject(json),
+                ProbeConfiguration.tcpSocket
+            )
+        })
+    }
+
     override fun start() {
-        LiveInstrumentService.setInstrumentEventConsumer(EVENT_CONSUMER)
         vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
@@ -187,21 +203,5 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         for (location in command.locations) {
             LiveInstrumentService.removeInstrument(location.source, location.line, null)
         }
-    }
-
-    companion object {
-        private val log = LogManager.getLogger(LiveInstrumentRemote::class.java)
-        private val EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
-            if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
-            FrameHelper.sendFrame(
-                BridgeEventType.PUBLISH.name.lowercase(),
-                address,
-                null,
-                ProbeConfiguration.probeMessageHeaders,
-                false,
-                JsonObject(json),
-                ProbeConfiguration.tcpSocket
-            )
-        })
     }
 }
