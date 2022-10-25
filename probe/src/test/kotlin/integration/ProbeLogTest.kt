@@ -23,15 +23,14 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
-import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
+import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
-import java.util.concurrent.TimeUnit
 
-class ProbeBreakpointTest : ProbeIntegrationTest() {
+class ProbeLogTest : ProbeIntegrationTest() {
 
     private fun doTest() {
         val a = 1
@@ -52,10 +51,9 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
         consumer.handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
-                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
-                    val vars = item.stackTrace.first().variables
-                    assertEquals(10, vars.size)
+                if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
+                    val item = LiveLogHit(JsonObject(event.data))
+                    assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
 
                     consumer.unregister()
                     testContext.completeNow()
@@ -65,22 +63,18 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
 
         assertNotNull(
             instrumentService.addLiveInstrument(
-                LiveBreakpoint(
-                    location = LiveSourceLocation("integration.ProbeBreakpointTest", 46),
+                LiveLog(
+                    logFormat = "{} {} {}",
+                    logArguments = listOf("a", "b", "c"),
+                    location = LiveSourceLocation("integration.ProbeLogTest", 45),
                     applyImmediately = true
                 )
             ).await()
         )
 
-        //trigger breakpoint
+        //trigger log
         doTest()
 
-        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
-            if (testContext.failed()) {
-                throw RuntimeException(testContext.causeOfFailure())
-            }
-        } else {
-            throw RuntimeException("Test timed out")
-        }
+        errorOnTimeout(testContext)
     }
 }

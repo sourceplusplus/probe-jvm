@@ -25,7 +25,6 @@ import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.ProbeConfiguration.PROBE_ID
-import spp.probe.SourceProbe
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
@@ -52,7 +51,7 @@ class LiveInstrumentRemote : AbstractVerticle() {
             )
             serviceClass.getMethod("setInstrumentEventConsumer", BiConsumer::class.java).invoke(null, EVENT_CONSUMER)
             serviceClass.getMethod("setInstrumentation", Instrumentation::class.java)
-                .invoke(null, SourceProbe.instrumentation)
+                .invoke(null, ProbeConfiguration.instrumentation)
             applyInstrument = serviceClass.getMethod("applyInstrument", LiveInstrument::class.java)
             removeInstrument = serviceClass.getMethod(
                 "removeInstrument",
@@ -126,10 +125,10 @@ class LiveInstrumentRemote : AbstractVerticle() {
             BridgeEventType.PUBLISH.name.lowercase(),
             ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
             null,
-            SourceProbe.probeMessageHeaders,
+            ProbeConfiguration.probeMessageHeaders,
             false,
             JsonObject.mapFrom(map),
-            SourceProbe.tcpSocket
+            ProbeConfiguration.tcpSocket
         )
     }
 
@@ -157,10 +156,10 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 BridgeEventType.PUBLISH.name.lowercase(),
                 address,
                 null,
-                SourceProbe.probeMessageHeaders,
+                ProbeConfiguration.probeMessageHeaders,
                 false,
                 JsonObject(json),
-                SourceProbe.tcpSocket
+                ProbeConfiguration.tcpSocket
             )
         })
         private var putBreakpoint: Method? = null

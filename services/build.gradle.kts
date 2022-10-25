@@ -48,7 +48,7 @@ dependencies {
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.18")
-    compileOnly(projectDependency(":common"))
+    compileOnly(projectDependency(":control"))
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
@@ -59,7 +59,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    testImplementation(projectDependency(":common"))
+    testImplementation(projectDependency(":control"))
 }
 
 tasks {

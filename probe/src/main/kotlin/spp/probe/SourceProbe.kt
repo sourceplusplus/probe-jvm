@@ -31,6 +31,9 @@ import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.logging.core.LogLevel
 import spp.probe.ProbeConfiguration.PROBE_ID
+import spp.probe.ProbeConfiguration.instrumentation
+import spp.probe.ProbeConfiguration.probeMessageHeaders
+import spp.probe.ProbeConfiguration.tcpSocket
 import spp.probe.control.LiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
@@ -56,19 +59,15 @@ object SourceProbe {
         if (System.getProperty("os.name").lowercase().startsWith("mac"))
             "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
     )
-    var instrumentation: Instrumentation? = null
 
     @JvmField
     var vertx: Vertx? = null
     private val connected = AtomicBoolean()
 
-    @JvmField
-    var tcpSocket: NetSocket? = null
     var instrumentRemote: LiveInstrumentRemote? = null
 
     val isAgentInitialized: Boolean
         get() = instrumentation != null
-    val probeMessageHeaders = JsonObject()
 
     @JvmStatic
     fun bootAsPlugin(inst: Instrumentation) {

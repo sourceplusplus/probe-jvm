@@ -9,6 +9,6 @@ pluginManagement {
     }
 }
 
-include 'common'
 include 'control'
+include 'probe'
 include 'services'

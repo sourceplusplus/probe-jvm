@@ -27,6 +27,7 @@ import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import io.vertx.junit5.VertxExtension
+import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import io.vertx.serviceproxy.ServiceProxyBuilder
 import kotlinx.coroutines.runBlocking
@@ -42,6 +43,7 @@ import spp.protocol.service.SourceServices
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 import spp.protocol.service.extend.TCPServiceFrameParser
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 @ExtendWith(VertxExtension::class)
 abstract class ProbeIntegrationTest {
@@ -133,5 +135,15 @@ abstract class ProbeIntegrationTest {
         val promise = Promise.promise<Void>()
         completionHandler { promise.handle(it) }
         return promise.future()
+    }
+
+    fun errorOnTimeout(testContext: VertxTestContext, waitTime: Long = 15) {
+        if (testContext.awaitCompletion(waitTime, TimeUnit.SECONDS)) {
+            if (testContext.failed()) {
+                throw testContext.causeOfFailure()
+            }
+        } else {
+            throw RuntimeException("Test timed out")
+        }
     }
 }
