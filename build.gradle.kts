@@ -83,9 +83,9 @@ tasks {
 
     register("assembleUp") {
         if (findProject(":probes:jvm") != null) {
-            dependsOn(":probes:jvm:control:build", "composeUp")
+            dependsOn(":probes:jvm:boot:build", "composeUp")
         } else {
-            dependsOn(":control:build", "composeUp")
+            dependsOn(":boot:build", "composeUp")
         }
     }
 }

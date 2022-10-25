@@ -23,6 +23,8 @@ import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
 import org.springframework.expression.spel.support.StandardEvaluationContext
+import spp.probe.ProbeConfiguration
+import spp.probe.services.LiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ModelSerializer
 import spp.probe.services.common.model.ActiveLiveInstrument
@@ -34,7 +36,6 @@ import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.function.BiConsumer
 import java.util.stream.Collectors
 
 object LiveInstrumentService {
@@ -45,9 +46,9 @@ object LiveInstrumentService {
     private val parser = SpelExpressionParser(
         SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
     )
-    private var instrumentEventConsumer: BiConsumer<String, String>? = null
     private val timer = Timer("LiveInstrumentScheduler", true)
-    private var instrumentation: Instrumentation? = null
+    val instrumentsMap: Map<String?, ActiveLiveInstrument>
+        get() = HashMap(instruments)
 
     init {
         timer.schedule(object : TimerTask() {
@@ -129,7 +130,7 @@ object LiveInstrumentService {
                     if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument)
                 } else {
                     if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument)
-                    instrumentEventConsumer!!.accept(
+                    LiveInstrumentRemote.EVENT_CONSUMER.accept(
                         ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
                         ModelSerializer.INSTANCE.toJson(instrument.instrument)
                     )
@@ -154,29 +155,11 @@ object LiveInstrumentService {
         }
     }
 
-    @JvmStatic
-    fun setInstrumentEventConsumer(instrumentEventConsumer: BiConsumer<*, *>) {
-        LiveInstrumentService.instrumentEventConsumer = instrumentEventConsumer as BiConsumer<String, String>
-    }
-
-    fun setInstrumentApplier(liveInstrumentApplier: LiveInstrumentApplier) {
-        LiveInstrumentService.liveInstrumentApplier = liveInstrumentApplier
-    }
-
-    @JvmStatic
-    fun setInstrumentation(instrumentation: Instrumentation?) {
-        LiveInstrumentService.instrumentation = instrumentation
-    }
-
-    val instrumentsMap: Map<String?, ActiveLiveInstrument>
-        get() = HashMap(instruments)
-
     fun clearAll() {
         instruments.clear()
         applyingInstruments.clear()
     }
 
-    @JvmStatic
     fun applyInstrument(liveInstrument: LiveInstrument): String {
         var existingInstrument = applyingInstruments[liveInstrument.id]
         if (existingInstrument == null) existingInstrument = instruments[liveInstrument.id]
@@ -195,20 +178,19 @@ object LiveInstrumentService {
             } else {
                 ActiveLiveInstrument(liveInstrument)
             }
-            liveInstrumentApplier.apply(instrumentation!!, activeInstrument)
+            liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, activeInstrument)
             instruments[liveInstrument.id] = activeInstrument
             ModelSerializer.INSTANCE.toJson(activeInstrument.instrument)
         }
     }
 
-    @JvmStatic
     fun removeInstrument(source: String?, line: Int, instrumentId: String?): Collection<String> {
         if (instrumentId != null) {
             val removedInstrument = instruments.remove(instrumentId)
             if (removedInstrument != null) {
                 removedInstrument.isRemoval = true
                 if (removedInstrument.isLive) {
-                    liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                    liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
             }
@@ -219,7 +201,7 @@ object LiveInstrumentService {
                 if (removedInstrument != null) {
                     removedInstrument.isRemoval = true
                     if (removedInstrument.isLive) {
-                        liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                        liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
                 }
@@ -244,7 +226,7 @@ object LiveInstrumentService {
             map["cause"] = ThrowableTransformer.INSTANCE.convert2String(ex, 4000)
         }
 
-        instrumentEventConsumer!!.accept(
+        LiveInstrumentRemote.EVENT_CONSUMER.accept(
             ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
             ModelSerializer.INSTANCE.toJson(map)
         )
@@ -272,7 +254,6 @@ object LiveInstrumentService {
         return ArrayList(instruments)
     }
 
-    @JvmStatic
     fun isInstrumentEnabled(instrumentId: String): Boolean {
         val applied = instruments.containsKey(instrumentId)
         return if (applied) {
@@ -282,7 +263,6 @@ object LiveInstrumentService {
         }
     }
 
-    @JvmStatic
     fun isHit(instrumentId: String): Boolean {
         val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle?.isRateLimited() == true) {

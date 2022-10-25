@@ -26,10 +26,13 @@ import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
+import spp.probe.ProbeConfiguration
+import spp.probe.services.LiveInstrumentRemote
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
 import java.lang.instrument.Instrumentation
+import java.util.function.BiConsumer
 
 @RunWith(JUnit4::class)
 class ProbeInstrumentTest {
@@ -39,9 +42,9 @@ class ProbeInstrumentTest {
         )
 
         init {
-            LiveInstrumentService.setInstrumentation(Mockito.mock(Instrumentation::class.java))
-            LiveInstrumentService.setInstrumentApplier { _, _ -> }
-            LiveInstrumentService.setInstrumentEventConsumer { _, _ -> }
+            ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
+            LiveInstrumentService.liveInstrumentApplier = LiveInstrumentApplier { _, _ -> }
+            LiveInstrumentRemote.EVENT_CONSUMER = BiConsumer<String?, String?> { _, _ -> }
         }
     }
 

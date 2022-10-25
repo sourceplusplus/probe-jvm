@@ -28,15 +28,13 @@ import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 import java.io.StringWriter
-import java.lang.instrument.Instrumentation
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 
 class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
-        return if (instrumentation == null) error("CappedTypeAdapterFactory is not initialized")
-        else object : TypeAdapter<T>() {
+        return object : TypeAdapter<T>() {
 
             @Throws(IOException::class)
             override fun write(jsonWriter: JsonWriter, value: T?) {
@@ -71,7 +69,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                     return
                 }
 
-                val objSize = instrumentation!!.getObjectSize(value)
+                val objSize = ProbeConfiguration.instrumentation!!.getObjectSize(value)
                 val maxObjSize = getMaxSize(variableName, value)
                 if (objSize > maxObjSize) {
                     appendMaxSizeExceeded(jsonWriter, value, objSize, maxObjSize)
@@ -247,7 +245,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         jsonWriter.name("@class")
         jsonWriter.value(value.javaClass.name)
         jsonWriter.name("@size")
-        jsonWriter.value(instrumentation!!.getObjectSize(value))
+        jsonWriter.value(ProbeConfiguration.instrumentation!!.getObjectSize(value))
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.endObject()
@@ -277,8 +275,6 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     @Suppress("unused")
     companion object {
-        private var instrumentation: Instrumentation? = null
-
         fun getMaxSize(variableName: String?, value: Any): Long {
             val defaultMax = ProbeConfiguration.variableControl.getLong("max_object_size")
             if (variableName != null) {
@@ -325,11 +321,6 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                 return it.getInteger("max_object_depth", 0)
             }
             return 0
-        }
-
-        @JvmStatic
-        fun setInstrumentation(instrumentation: Instrumentation) {
-            Companion.instrumentation = instrumentation
         }
 
         fun getFieldValue(field: Field, value: Any?): Any? {

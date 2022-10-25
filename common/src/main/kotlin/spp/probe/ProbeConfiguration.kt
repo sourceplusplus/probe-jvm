@@ -19,8 +19,10 @@ package spp.probe
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import io.vertx.core.json.JsonObject
+import io.vertx.core.net.NetSocket
 import java.io.File
 import java.io.FileInputStream
+import java.lang.instrument.Instrumentation
 import java.util.*
 import java.util.stream.Collectors
 import kotlin.system.exitProcess
@@ -29,6 +31,11 @@ object ProbeConfiguration {
 
     @JvmField
     val PROBE_ID = UUID.randomUUID().toString()
+    var instrumentation: Instrumentation? = null
+    val probeMessageHeaders = JsonObject()
+
+    @JvmField
+    var tcpSocket: NetSocket? = null
 
     private var rawProperties: Map<String, Map<String, Any>>? = null
     var localProperties: JsonObject? = null

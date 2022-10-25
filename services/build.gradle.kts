@@ -46,6 +46,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 dependencies {
     compileOnly("plus.sourceplus:protocol:$projectVersion")
     compileOnly("io.vertx:vertx-core:$vertxVersion")
+    compileOnly("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     compileOnly("net.bytebuddy:byte-buddy:1.12.18")
     compileOnly(projectDependency(":common"))

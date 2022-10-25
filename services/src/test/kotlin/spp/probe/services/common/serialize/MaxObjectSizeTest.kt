@@ -30,10 +30,9 @@ class MaxObjectSizeTest : AbstractSerializeTest {
     @Test
     fun `max size exceeded`() {
         ProbeConfiguration.variableControl.put("max_object_size", 0)
-        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
-        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
 
         val twoMbArr = "fakeMaxSizeObject"
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(twoMbArr))
