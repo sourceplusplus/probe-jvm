@@ -43,7 +43,7 @@ object LiveInstrumentService {
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
     private val applyingInstruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
-    val parser = SpelExpressionParser(
+    private val parser = SpelExpressionParser(
         SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
     )
     private val timer = Timer("LiveInstrumentScheduler", true)
