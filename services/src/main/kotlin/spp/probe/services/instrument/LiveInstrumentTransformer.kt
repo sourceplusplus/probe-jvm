@@ -49,10 +49,6 @@ class LiveInstrumentTransformer(
         private const val REMOTE_CHECK_DESC = "(Ljava/lang/String;)Z"
         private const val REMOTE_SAVE_VAR_DESC = "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ljava/lang/String;)V"
         private const val PUT_LOG_DESC = "(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)V"
-
-        fun isXRETURN(opcode: Int): Boolean {
-            return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN
-        }
     }
 
     private val methodUniqueName: String
@@ -394,5 +390,9 @@ class LiveInstrumentTransformer(
             'D' -> "double"
             else -> null
         }
+    }
+
+    private fun isXRETURN(opcode: Int): Boolean {
+        return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN
     }
 }
