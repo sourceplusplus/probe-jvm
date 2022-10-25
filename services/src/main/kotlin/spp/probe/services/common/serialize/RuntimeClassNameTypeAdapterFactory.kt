@@ -25,6 +25,7 @@ import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
+import spp.probe.services.common.ModelSerializer
 import java.io.IOException
 
 /**
@@ -244,7 +245,15 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
     }
 
     fun getPendingName(jsonWriter: JsonWriter): String? {
-        if (ProbeConfiguration.variableControlByName.isNotEmpty() && jsonWriter is JsonTreeWriter) {
+        //check if variable name is necessary
+        val liveBreakpoint = ModelSerializer.INSTANCE.rootBreakpoint.get()
+        val usesBreakpointByName = liveBreakpoint?.variableControl?.variableNameConfig?.isNotEmpty() == true
+        val usesConfigByName = ProbeConfiguration.variableControlByName.isNotEmpty()
+        if (!usesBreakpointByName && !usesConfigByName) {
+            return null
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
             jsonWriter::class.java.getDeclaredField("pendingName").apply {
                 isAccessible = true
                 return get(jsonWriter) as String?
