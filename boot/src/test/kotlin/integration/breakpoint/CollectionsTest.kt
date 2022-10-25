@@ -131,6 +131,10 @@ class CollectionsTest : ProbeIntegrationTest() {
                             }
                         }
                     )
+                    assertEquals(
+                        "int[][]",
+                        topFrame.variables.find { it.name == "arrOfArrays" }!!.liveClazz
+                    )
 
                     //mapOfMaps
                     assertEquals(
@@ -145,6 +149,10 @@ class CollectionsTest : ProbeIntegrationTest() {
                             }
                         }
                     )
+                    assertEquals(
+                        "java.util.LinkedHashMap",
+                        topFrame.variables.find { it.name == "mapOfMaps" }!!.liveClazz
+                    )
 
                     //listOfLists
                     assertEquals(
@@ -157,6 +165,10 @@ class CollectionsTest : ProbeIntegrationTest() {
                                 (it.getJsonArray("value") as JsonArray).map { it as Int }
                             }
                         }
+                    )
+                    assertEquals(
+                        "java.util.Arrays\$ArrayList",
+                        topFrame.variables.find { it.name == "listOfLists" }!!.liveClazz
                     )
 
                     consumer.unregister()
