@@ -16,7 +16,6 @@
  */
 package integration
 
-import io.vertx.core.json.Json
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
@@ -34,6 +33,18 @@ import java.util.concurrent.TimeUnit
 
 class ProbeLogTest : ProbeIntegrationTest() {
 
+    private fun doTest() {
+        val a = 1
+        val b = 'a'
+        val c = "a"
+        val d = true
+        val e = 1.0
+        val f = 1.0f
+        val g = 1L
+        val h: Short = 1
+        val i: Byte = 1
+    }
+
     @Test
     fun testPrimitives() = runBlocking {
         val testContext = VertxTestContext()
@@ -41,30 +52,31 @@ class ProbeLogTest : ProbeIntegrationTest() {
         consumer.handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
-                log.trace("Received event: $event")
-
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                    val item = Json.decodeValue(event.data, LiveLogHit::class.java)
+                    val item = LiveLogHit(JsonObject(event.data))
                     assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
+
+                    consumer.unregister()
+                    testContext.completeNow()
                 }
-                consumer.unregister()
-                testContext.completeNow()
             }
-        }
+        }.completionHandler().await()
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveLog(
                     logFormat = "{} {} {}",
                     logArguments = listOf("a", "b", "c"),
-                    location = LiveSourceLocation("VariableTests", 35),
+                    location = LiveSourceLocation("integration.ProbeLogTest", 46),
                     applyImmediately = true
                 )
             ).await()
         )
 
-        callVariableTests()
-        if (testContext.awaitCompletion(60, TimeUnit.SECONDS)) {
+        //trigger log
+        doTest()
+
+        if (testContext.awaitCompletion(30, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw RuntimeException(testContext.causeOfFailure())
             }

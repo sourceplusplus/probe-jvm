@@ -1,14 +1,5 @@
 version: '3.3'
 services:
-  e2e-test:
-    container_name: e2e-test
-    build:
-      context: .
-      dockerfile: Dockerfile-e2e-test
-    ports:
-      - "4000:4000"
-      - "4001:4001"
-      - "5105:5105"
   spp-platform:
     image: sourceplusplus/spp-platform:latest
     container_name: spp-platform

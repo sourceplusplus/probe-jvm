@@ -80,21 +80,13 @@ tasks {
         }
     }
 
-    register<Copy>("updateDockerFiles") {
-        if (findProject(":probes:jvm") != null) {
-            dependsOn(":probes:jvm:control:build")
-        } else {
-            dependsOn(":control:build")
-        }
-
-        from("control/build/libs/spp-probe-${project.version}.jar")
-        into(File(projectDir, "e2e"))
-    }
-
     register("assembleUp") {
-        dependsOn("updateDockerFiles", "composeUp")
+        if (findProject(":probes:jvm") != null) {
+            dependsOn(":probes:jvm:control:build", "composeUp")
+        } else {
+            dependsOn(":control:build", "composeUp")
+        }
     }
-    getByName("composeUp").mustRunAfter("updateDockerFiles")
 }
 
 dockerCompose {

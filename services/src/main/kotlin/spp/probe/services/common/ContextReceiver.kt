@@ -261,7 +261,9 @@ object ContextReceiver {
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
                 ModelSerializer.INSTANCE.toExtendedJson(value, varName)
             )
-        } catch (ex: Exception) {
+        } catch (ex: Throwable) {
+            log.error("Failed to encode object: $varName", ex)
+
             try {
                 val map: MutableMap<String, Any?> = HashMap()
                 map[varName] = value.javaClass.name + "@" + Integer.toHexString(System.identityHashCode(value))
