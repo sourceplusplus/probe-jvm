@@ -230,7 +230,7 @@ object ContextReceiver {
 
     @JvmStatic
     fun openLocalSpan(spanId: String) {
-        val liveSpan = ProbeMemory.remove("spp.live-span:$spanId") as LiveSpan? ?: return
+        val liveSpan = ProbeMemory.remove("spp.live-instrument:$spanId") as LiveSpan? ?: return
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
         ProbeMemory.put("spp.active-span:$spanId", activeSpan)
