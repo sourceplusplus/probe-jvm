@@ -84,14 +84,7 @@ object ContextReceiver {
         instrumentId: String, key: String, value: Any?, type: String,
         variableMap: MutableMap<String?, MutableMap<String, Pair<String, Any?>>>
     ) {
-        var copyValue = value
-        when (copyValue) {
-            is Map<*, *> -> copyValue = copyValue.toMap()
-            is LinkedHashSet<*> -> copyValue = LinkedHashSet(copyValue)
-            is HashSet<*> -> copyValue = HashSet(copyValue)
-            is Collection<*> -> copyValue = copyValue.toList()
-        }
-        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = Pair(type, copyValue)
+        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = Pair(type, value)
     }
 
     @JvmStatic
