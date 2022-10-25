@@ -99,7 +99,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.createDraft.outputs.upload_url }}
-          asset_path: ./e2e/spp-probe-${{ env.SPP_RELEASE_VERSION }}.jar
+          asset_path: ./control/build/libs/spp-probe-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_name: spp-probe-${{ env.SPP_RELEASE_VERSION }}.jar
           asset_content_type: application/java-archive
 
