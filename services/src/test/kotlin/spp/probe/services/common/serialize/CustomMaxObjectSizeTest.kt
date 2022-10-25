@@ -37,10 +37,9 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
             "java.lang.Character",
             JsonObject().put("max_object_size", 0)
         )
-        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
-        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
 
         val fakeMaxSizeString = "fakeMaxSizeObject"
         ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString).let {
@@ -64,10 +63,9 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
             "fakeMaxSizeString",
             JsonObject().put("max_object_size", 1025)
         )
-        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
-        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
 
         val fakeMaxSizeString = "fakeMaxSizeObject"
 
@@ -106,10 +104,9 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
             "fakeMaxSizeString",
             JsonObject().put("max_object_size", 1025)
         )
-        val instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
-        CappedTypeAdapterFactory.setInstrumentation(instrumentation)
 
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(OuterObject())).let {
             assertEquals(4, it.size())

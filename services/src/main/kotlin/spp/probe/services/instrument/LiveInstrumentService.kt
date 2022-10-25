@@ -23,6 +23,7 @@ import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
 import org.springframework.expression.spel.support.StandardEvaluationContext
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ModelSerializer
 import spp.probe.services.common.model.ActiveLiveInstrument
@@ -47,7 +48,6 @@ object LiveInstrumentService {
     )
     private var instrumentEventConsumer: BiConsumer<String, String>? = null
     private val timer = Timer("LiveInstrumentScheduler", true)
-    private var instrumentation: Instrumentation? = null
 
     init {
         timer.schedule(object : TimerTask() {
@@ -163,11 +163,6 @@ object LiveInstrumentService {
         LiveInstrumentService.liveInstrumentApplier = liveInstrumentApplier
     }
 
-    @JvmStatic
-    fun setInstrumentation(instrumentation: Instrumentation?) {
-        LiveInstrumentService.instrumentation = instrumentation
-    }
-
     val instrumentsMap: Map<String?, ActiveLiveInstrument>
         get() = HashMap(instruments)
 
@@ -195,7 +190,7 @@ object LiveInstrumentService {
             } else {
                 ActiveLiveInstrument(liveInstrument)
             }
-            liveInstrumentApplier.apply(instrumentation!!, activeInstrument)
+            liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, activeInstrument)
             instruments[liveInstrument.id] = activeInstrument
             ModelSerializer.INSTANCE.toJson(activeInstrument.instrument)
         }
@@ -208,7 +203,7 @@ object LiveInstrumentService {
             if (removedInstrument != null) {
                 removedInstrument.isRemoval = true
                 if (removedInstrument.isLive) {
-                    liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                    liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
             }
@@ -219,7 +214,7 @@ object LiveInstrumentService {
                 if (removedInstrument != null) {
                     removedInstrument.isRemoval = true
                     if (removedInstrument.isLive) {
-                        liveInstrumentApplier.apply(instrumentation!!, removedInstrument)
+                        liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
                 }

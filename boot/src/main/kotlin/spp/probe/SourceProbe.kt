@@ -18,7 +18,6 @@ package spp.probe
 
 import io.netty.util.internal.logging.InternalLogger
 import io.netty.util.internal.logging.InternalLoggerFactory
-import io.vertx.core.AbstractVerticle
 import io.vertx.core.AsyncResult
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
@@ -35,6 +34,7 @@ import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.ProbeConfiguration.instrumentation
 import spp.probe.ProbeConfiguration.probeMessageHeaders
 import spp.probe.ProbeConfiguration.tcpSocket
+import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.artifact.ArtifactLanguage
@@ -64,7 +64,8 @@ object SourceProbe {
     var vertx: Vertx? = null
     private val connected = AtomicBoolean()
 
-    var instrumentRemote: AbstractVerticle? = null
+    @JvmField
+    var instrumentRemote: ILiveInstrumentRemote? = null
 
     val isAgentInitialized: Boolean
         get() = instrumentation != null
@@ -94,16 +95,15 @@ object SourceProbe {
             val agentClassLoader = Class.forName(
                 "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
             ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
-            val sizeCappedClass = Class.forName(
-                "spp.probe.services.common.serialize.CappedTypeAdapterFactory", true, agentClassLoader
+            val instrumentRemoteClass = Class.forName(
+                "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
             )
-            sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
-                .invoke(null, instrumentation)
+            instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
+            vertx!!.deployVerticle(instrumentRemote)
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)
         }
-//        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
     }
 
     @JvmStatic
@@ -138,16 +138,15 @@ object SourceProbe {
             val agentClassLoader = Class.forName(
                 "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
             ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
-            val sizeCappedClass = Class.forName(
-                "spp.probe.services.common.serialize.CappedTypeAdapterFactory", true, agentClassLoader
+            val instrumentRemoteClass = Class.forName(
+                "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
             )
-            sizeCappedClass.getMethod("setInstrumentation", Instrumentation::class.java)
-                .invoke(null, instrumentation)
+            instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
+            vertx!!.deployVerticle(instrumentRemote)
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)
         }
-//        vertx!!.deployVerticle(LiveInstrumentRemote().also { instrumentRemote = it })
     }
 
     @JvmStatic

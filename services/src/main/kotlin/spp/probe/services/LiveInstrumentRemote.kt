@@ -16,7 +16,6 @@
  */
 package spp.probe.services
 
-import io.vertx.core.AbstractVerticle
 import io.vertx.core.eventbus.Message
 import io.vertx.core.json.JsonObject
 import io.vertx.ext.bridge.BridgeEventType
@@ -25,75 +24,117 @@ import org.apache.skywalking.apm.agent.core.context.util.ThrowableTransformer
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.ProbeConfiguration.PROBE_ID
+import spp.probe.remotes.ILiveInstrumentRemote
+import spp.probe.services.common.ContextReceiver
+import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
-import java.lang.instrument.Instrumentation
 import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Method
 import java.util.*
 import java.util.function.BiConsumer
 
 @Suppress("unused")
-class LiveInstrumentRemote : AbstractVerticle() {
-
-    private var applyInstrument: Method? = null
-    private var removeInstrument: Method? = null
+class LiveInstrumentRemote : ILiveInstrumentRemote() {
 
     override fun start() {
-        try {
-            val agentClassLoader = Class.forName("org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader")
-                .getMethod("getDefault").invoke(null) as ClassLoader
-            val serviceClass = Class.forName(
-                "spp.probe.services.instrument.LiveInstrumentService", false, agentClassLoader
-            )
-            serviceClass.getMethod("setInstrumentEventConsumer", BiConsumer::class.java).invoke(null, EVENT_CONSUMER)
-            serviceClass.getMethod("setInstrumentation", Instrumentation::class.java)
-                .invoke(null, ProbeConfiguration.instrumentation)
-            applyInstrument = serviceClass.getMethod("applyInstrument", LiveInstrument::class.java)
-            removeInstrument = serviceClass.getMethod(
-                "removeInstrument",
-                String::class.java, Int::class.javaPrimitiveType, String::class.java
-            )
-            isInstrumentEnabled = serviceClass.getMethod("isInstrumentEnabled", String::class.java)
-            isHit = serviceClass.getMethod("isHit", String::class.java)
-            val contextClass = Class.forName(
-                "spp.probe.services.common.ContextReceiver", false, agentClassLoader
-            )
-            putLocalVariable = contextClass.getMethod(
-                "putLocalVariable",
-                String::class.java, String::class.java, Any::class.java, String::class.java
-            )
-            putField = contextClass.getMethod(
-                "putField",
-                String::class.java, String::class.java, Any::class.java, String::class.java
-            )
-            putStaticField = contextClass.getMethod(
-                "putStaticField",
-                String::class.java, String::class.java, Any::class.java, String::class.java
-            )
-            putBreakpoint = contextClass.getMethod(
-                "putBreakpoint",
-                String::class.java, String::class.java, Int::class.javaPrimitiveType, Throwable::class.java
-            )
-            putLog = contextClass.getMethod(
-                "putLog",
-                String::class.java, String::class.java, Array<String>::class.java
-            )
-            putMeter = contextClass.getMethod("putMeter", String::class.java)
-            openLocalSpan = contextClass.getMethod("openLocalSpan", String::class.java)
-            closeLocalSpan = contextClass.getMethod("closeLocalSpan", String::class.java, Throwable::class.java)
-        } catch (ex: Throwable) {
-            log.error("Failed to initialize live instrument remote", ex)
-            throw RuntimeException(ex)
-        }
-
-        //probe instrument remote
+        LiveInstrumentService.setInstrumentEventConsumer(EVENT_CONSUMER)
         vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
+    }
+
+    override fun isInstrumentEnabled(instrumentId: String): Boolean {
+        return try {
+            LiveInstrumentService.isInstrumentEnabled(instrumentId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    override fun isHit(breakpointId: String): Boolean {
+        return try {
+            LiveInstrumentService.isHit(breakpointId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    override fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable) {
+        try {
+            ContextReceiver.putBreakpoint(breakpointId, source, line, ex)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
+        try {
+            ContextReceiver.putLog(logId, logFormat, *logArguments)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun putMeter(meterId: String) {
+        try {
+            ContextReceiver.putMeter(meterId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun openLocalSpan(spanId: String) {
+        try {
+            ContextReceiver.openLocalSpan(spanId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun closeLocalSpan(spanId: String) {
+        try {
+            ContextReceiver.closeLocalSpan(spanId, null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable {
+        try {
+            ContextReceiver.closeLocalSpan(spanId, throwable)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        throw throwable
+    }
+
+    override fun putLocalVariable(breakpointId: String, key: String, value: Any?, type: String) {
+        try {
+            ContextReceiver.putLocalVariable(breakpointId, key, value, type)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun putField(breakpointId: String, key: String, value: Any?, type: String?) {
+        try {
+            ContextReceiver.putField(breakpointId, key, value, type!!)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun putStaticField(breakpointId: String, key: String, value: Any?, type: String) {
+        try {
+            ContextReceiver.putStaticField(breakpointId, key, value, type)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {
@@ -134,17 +175,17 @@ class LiveInstrumentRemote : AbstractVerticle() {
 
     private fun addInstrument(command: LiveInstrumentCommand) {
         if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
-        applyInstrument!!.invoke(null, command.instruments.first()) //todo: check for multiple
+        LiveInstrumentService.applyInstrument(command.instruments.first()) //todo: check for multiple
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
         for (breakpoint in command.instruments) {
             val breakpointId = breakpoint.id
             val location = breakpoint.location
-            removeInstrument!!.invoke(null, location.source, location.line, breakpointId)
+            LiveInstrumentService.removeInstrument(location.source, location.line, breakpointId)
         }
         for (location in command.locations) {
-            removeInstrument!!.invoke(null, location.source, location.line, null)
+            LiveInstrumentService.removeInstrument(location.source, location.line, null)
         }
     }
 
@@ -162,117 +203,5 @@ class LiveInstrumentRemote : AbstractVerticle() {
                 ProbeConfiguration.tcpSocket
             )
         })
-        private var putBreakpoint: Method? = null
-        private var putLog: Method? = null
-        private var putMeter: Method? = null
-        private var openLocalSpan: Method? = null
-        private var closeLocalSpan: Method? = null
-        private var isInstrumentEnabled: Method? = null
-        private var putLocalVariable: Method? = null
-        private var putField: Method? = null
-        private var putStaticField: Method? = null
-        private var isHit: Method? = null
-
-        @JvmStatic
-        fun isInstrumentEnabled(instrumentId: String): Boolean {
-            return try {
-                isInstrumentEnabled!!.invoke(null, instrumentId) as Boolean
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
-
-        @JvmStatic
-        fun isHit(breakpointId: String): Boolean {
-            return try {
-                isHit!!.invoke(null, breakpointId) as Boolean
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        }
-
-        @JvmStatic
-        fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable?) {
-            try {
-                putBreakpoint!!.invoke(null, breakpointId, source, line, ex)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
-            try {
-                putLog!!.invoke(null, logId, logFormat, logArguments)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun putMeter(meterId: String) {
-            try {
-                putMeter!!.invoke(null, meterId)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun openLocalSpan(spanId: String) {
-            try {
-                openLocalSpan!!.invoke(null, spanId)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun closeLocalSpan(spanId: String) {
-            try {
-                closeLocalSpan!!.invoke(null, spanId, null)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable {
-            try {
-                closeLocalSpan!!.invoke(null, spanId, throwable)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            throw throwable
-        }
-
-        @JvmStatic
-        fun putLocalVariable(breakpointId: String, key: String, value: Any?, type: String) {
-            try {
-                putLocalVariable!!.invoke(null, breakpointId, key, value, type)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun putField(breakpointId: String, key: String, value: Any?, type: String?) {
-            try {
-                putField!!.invoke(null, breakpointId, key, value, type)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        @JvmStatic
-        fun putStaticField(breakpointId: String, key: String, value: Any?, type: String) {
-            try {
-                putStaticField!!.invoke(null, breakpointId, key, value, type)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
     }
 }

@@ -124,7 +124,7 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String) = executor.submit {
+    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String?) = executor.submit {
         val localVars = localVariables.remove(logId)
         val localFields = fields.remove(logId)
         val localStaticFields = staticFields.remove(logId)

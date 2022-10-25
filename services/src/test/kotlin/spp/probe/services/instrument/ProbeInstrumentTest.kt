@@ -26,6 +26,7 @@ import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
+import spp.probe.ProbeConfiguration
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveSourceLocation
@@ -39,7 +40,7 @@ class ProbeInstrumentTest {
         )
 
         init {
-            LiveInstrumentService.setInstrumentation(Mockito.mock(Instrumentation::class.java))
+            ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
             LiveInstrumentService.setInstrumentApplier { _, _ -> }
             LiveInstrumentService.setInstrumentEventConsumer { _, _ -> }
         }
