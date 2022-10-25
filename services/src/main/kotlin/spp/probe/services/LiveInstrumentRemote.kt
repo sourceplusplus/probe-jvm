@@ -66,7 +66,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         return try {
             LiveInstrumentService.isInstrumentEnabled(instrumentId)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to check if instrument is enabled", e)
             false
         }
     }
@@ -75,7 +75,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         return try {
             LiveInstrumentService.isHit(breakpointId)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to check if breakpoint is hit", e)
             false
         }
     }
@@ -84,7 +84,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putBreakpoint(breakpointId, source, line, ex)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put breakpoint", e)
         }
     }
 
@@ -92,7 +92,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putLog(logId, logFormat, *logArguments)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put log", e)
         }
     }
 
@@ -100,7 +100,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putMeter(meterId)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put meter", e)
         }
     }
 
@@ -108,7 +108,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.openLocalSpan(spanId)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to open local span", e)
         }
     }
 
@@ -116,7 +116,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.closeLocalSpan(spanId, null)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to close local span", e)
         }
     }
 
@@ -124,7 +124,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.closeLocalSpan(spanId, throwable)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to close local span", e)
         }
         throw throwable
     }
@@ -133,7 +133,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putLocalVariable(breakpointId, key, value, type)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put local variable", e)
         }
     }
 
@@ -141,7 +141,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putField(breakpointId, key, value, type!!)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put field", e)
         }
     }
 
@@ -149,7 +149,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         try {
             ContextReceiver.putStaticField(breakpointId, key, value, type)
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("Failed to put static field", e)
         }
     }
 
