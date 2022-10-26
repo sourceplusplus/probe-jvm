@@ -31,6 +31,7 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.variable.LiveVariableControl
+import spp.protocol.instrument.variable.LiveVariableControlBase
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
@@ -125,12 +126,12 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                     variableControl = LiveVariableControl(
                         maxCollectionLength = 200,
                         variableNameConfig = mapOf(
-                            "maxByteArr300" to LiveVariableControl(
+                            "maxByteArr300" to LiveVariableControlBase(
                                 maxCollectionLength = 300
                             )
                         ),
                         variableTypeConfig = mapOf(
-                            "int[]" to LiveVariableControl(
+                            "int[]" to LiveVariableControlBase(
                                 maxCollectionLength = 400
                             )
                         )

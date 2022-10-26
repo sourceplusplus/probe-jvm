@@ -31,6 +31,7 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.variable.LiveVariableControl
+import spp.protocol.instrument.variable.LiveVariableControlBase
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxObjectDepthControlTest : ProbeIntegrationTest() {
@@ -84,7 +85,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     variableControl = LiveVariableControl(
                         variableNameConfig = mapOf(
-                            "deepObject11" to LiveVariableControl(
+                            "deepObject11" to LiveVariableControlBase(
                                 maxObjectDepth = 8
                             )
                         )

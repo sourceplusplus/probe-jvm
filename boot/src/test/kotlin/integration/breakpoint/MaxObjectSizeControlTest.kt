@@ -30,6 +30,7 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.variable.LiveVariableControl
+import spp.protocol.instrument.variable.LiveVariableControlBase
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxObjectSizeControlTest : ProbeIntegrationTest() {
@@ -93,12 +94,12 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                     variableControl = LiveVariableControl(
                         maxObjectSize = 16,
                         variableNameConfig = mapOf(
-                            "fakeMaxSizeChar" to LiveVariableControl(
+                            "fakeMaxSizeChar" to LiveVariableControlBase(
                                 maxObjectSize = 8
                             )
                         ),
                         variableTypeConfig = mapOf(
-                            "java.lang.String" to LiveVariableControl(
+                            "java.lang.String" to LiveVariableControlBase(
                                 maxObjectSize = 4
                             )
                         )
