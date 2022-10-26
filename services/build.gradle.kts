@@ -92,8 +92,10 @@ tasks {
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
 
-        //can't relocate these during testing
-        if (System.getProperty("test.profile") != "integration") {
+        val isIntegrationProfile = System.getProperty("test.profile") == "integration"
+        val runningSpecificTests = gradle.startParameter.taskNames.contains("--tests")
+        if (!isIntegrationProfile && !runningSpecificTests) {
+            //can't relocate these during self probe style testing
             relocate("io", "spp.probe.common.io")
         }
 

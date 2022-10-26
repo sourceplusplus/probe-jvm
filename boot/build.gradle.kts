@@ -67,15 +67,22 @@ dependencies {
 
 tasks.test {
     val probeJar = "${buildDir}/libs/spp-probe-$version.jar"
-    if (System.getProperty("test.profile") == "integration") {
+
+    //todo: should have way to distinguish tests that just need platform and tests that attach to self
+    val isIntegrationProfile = System.getProperty("test.profile") == "integration"
+    val runningSpecificTests = gradle.startParameter.taskNames.contains("--tests")
+
+    //exclude attaching probe to self unless requested
+    if (isIntegrationProfile || runningSpecificTests) {
         jvmArgs = listOf("-javaagent:$probeJar=${projectDir}/src/test/resources/spp-test-probe.yml")
+    }
+    //exclude integration tests unless requested
+    if (!isIntegrationProfile && !runningSpecificTests) {
+        exclude("integration/**", "**/*IntegrationTest.class", "**/*ITTest.class")
     }
 
     failFast = true
     useJUnitPlatform()
-    if (System.getProperty("test.profile") != "integration") {
-        exclude("integration/**", "**/*IntegrationTest.class", "**/*ITTest.class")
-    }
 
     testLogging {
         events("passed", "skipped", "failed")
