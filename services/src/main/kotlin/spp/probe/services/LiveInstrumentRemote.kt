@@ -43,7 +43,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         private val log = LogManager.getLogger(LiveInstrumentRemote::class.java)
 
         var EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
-            if (ProbeConfiguration.isNotQuite) println("Publishing event: $address, $json")
+            if (log.isTraceEnabled) log.trace("Publishing event: $address, $json")
             FrameHelper.sendFrame(
                 BridgeEventType.PUBLISH.name.lowercase(),
                 address,
@@ -190,7 +190,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     }
 
     private fun addInstrument(command: LiveInstrumentCommand) {
-        if (ProbeConfiguration.isNotQuite) println("Adding instrument: $command")
+        if (log.isInfoEnable) log.info("Adding instrument: $command")
         LiveInstrumentService.applyInstrument(command.instruments.first()) //todo: check for multiple
     }
 
