@@ -73,10 +73,10 @@ object SourceProbe {
     @JvmStatic
     fun bootAsPlugin(inst: Instrumentation) {
         if (isAgentInitialized) {
-            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            if (ProbeConfiguration.isNotQuiet) println("SourceProbe is already initialized")
             return
         }
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via plugin")
+        if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via plugin")
 
         //todo: pipe data if in debug mode
         System.setProperty("vertx.logger-delegate-factory-class-name", NopLogDelegateFactory::class.java.canonicalName)
@@ -110,12 +110,12 @@ object SourceProbe {
     fun premain(args: String?, inst: Instrumentation) {
         ProbeConfiguration.customProbeFile = args
         ProbeConfiguration.load()
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via premain. args: $args")
+        if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via premain. args: $args")
         if (isAgentInitialized) {
-            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            if (ProbeConfiguration.isNotQuiet) println("SourceProbe is already initialized")
             return
         }
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe initiated via agent")
+        if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via agent")
 
         //todo: pipe data if in debug mode
         System.setProperty("vertx.logger-delegate-factory-class-name", NopLogDelegateFactory::class.java.canonicalName)
@@ -183,15 +183,15 @@ object SourceProbe {
             ProbeConfiguration.getString("platform_host")
         ) { socket: AsyncResult<NetSocket> ->
             if (socket.failed()) {
-                if (ProbeConfiguration.isNotQuite) System.err.println("Failed to connect to Source++ Platform")
-                if (ProbeConfiguration.isNotQuite) socket.cause().printStackTrace()
+                if (ProbeConfiguration.isNotQuiet) System.err.println("Failed to connect to Source++ Platform")
+                if (ProbeConfiguration.isNotQuiet) socket.cause().printStackTrace()
                 connectToPlatform()
                 return@connect
             } else {
                 tcpSocket = socket.result()
                 connected.set(true)
             }
-            if (ProbeConfiguration.isNotQuite) println("Connected to Source++ Platform")
+            if (ProbeConfiguration.isNotQuiet) println("Connected to Source++ Platform")
             socket.result().exceptionHandler {
                 connected.set(false)
                 connectToPlatform()
@@ -242,7 +242,7 @@ object SourceProbe {
                     }
                 } else if ("err" == frame.getString("type")) {
                     val errorMessage = frame.getString("message")
-                    if (ProbeConfiguration.isNotQuite) {
+                    if (ProbeConfiguration.isNotQuiet) {
                         if (errorMessage == "blocked by bridgeEvent handler") {
                             System.err.println("Probe authentication failed")
                         } else {
@@ -285,7 +285,7 @@ object SourceProbe {
             val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
             val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)
             consumer.handler {
-                if (ProbeConfiguration.isNotQuite) println("Received probe connection confirmation")
+                if (ProbeConfiguration.isNotQuiet) println("Received probe connection confirmation")
 
                 //register instrument remote
                 FrameHelper.sendFrame(
@@ -312,7 +312,7 @@ object SourceProbe {
     }
 
     private fun invokeAgent() {
-        if (ProbeConfiguration.isNotQuite) println("SourceProbe finished setup")
+        if (ProbeConfiguration.isNotQuiet) println("SourceProbe finished setup")
         try {
             val skywalkingPremain = Class.forName("org.apache.skywalking.apm.agent.SkyWalkingAgent")
                 .getMethod("premain", String::class.java, Instrumentation::class.java)

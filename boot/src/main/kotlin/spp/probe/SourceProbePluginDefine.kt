@@ -40,7 +40,7 @@ class SourceProbePluginDefine : ClassInstanceMethodsEnhancePluginDefine() {
 
     override fun enhanceClass(): ClassMatch {
         if (SourceProbe.isAgentInitialized) {
-            if (ProbeConfiguration.isNotQuite) println("SourceProbe is already initialized")
+            if (ProbeConfiguration.isNotQuiet) println("SourceProbe is already initialized")
             return NameMatch.byName("") //ignore
         }
 

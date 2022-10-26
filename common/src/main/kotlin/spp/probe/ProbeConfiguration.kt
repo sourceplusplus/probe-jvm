@@ -208,16 +208,11 @@ object ProbeConfiguration {
         get() = toProperties(rawProperties).stream()
             .filter { it[0].startsWith("spp.") }
             .collect(Collectors.toList())
-    val isNotQuite: Boolean
+    val isNotQuiet: Boolean
         get() {
             val quiteMode = getString("quiet_mode") ?: return false
             return "false".equals(quiteMode, ignoreCase = true)
         }
-
-    @JvmStatic
-    fun setQuietMode(quiet: Boolean) {
-        setString("quiet_mode", java.lang.Boolean.toString(quiet))
-    }
 
     val skyWalkingLoggingLevel: String
         get() {
