@@ -113,5 +113,8 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
     }
 }

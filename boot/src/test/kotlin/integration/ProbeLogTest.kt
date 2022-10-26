@@ -76,5 +76,8 @@ class ProbeLogTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
     }
 }
