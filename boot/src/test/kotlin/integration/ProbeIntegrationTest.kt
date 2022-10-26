@@ -39,8 +39,10 @@ import org.junit.jupiter.api.extension.ExtendWith
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
+import spp.protocol.service.LiveViewService
 import spp.protocol.service.SourceServices
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
+import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.service.extend.TCPServiceFrameParser
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -52,6 +54,7 @@ abstract class ProbeIntegrationTest {
 
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
+        lateinit var viewService: LiveViewService
 
         @BeforeAll
         @JvmStatic
@@ -61,6 +64,7 @@ abstract class ProbeIntegrationTest {
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
             setupHandler(socket, vertx, SourceServices.LIVE_INSTRUMENT)
+            setupHandler(socket, vertx, SourceServices.LIVE_VIEW)
 
             //setup connection
             val replyAddress = UUID.randomUUID().toString()
@@ -80,6 +84,11 @@ abstract class ProbeIntegrationTest {
                     toLiveInstrumentSubscriberAddress("system"), null,
                     headers, null, null, socket
                 )
+                FrameHelper.sendFrame(
+                    BridgeEventType.REGISTER.name.lowercase(),
+                    toLiveViewSubscriberAddress("system"), null,
+                    headers, null, null, socket
+                )
             }
             FrameHelper.sendFrame(
                 BridgeEventType.SEND.name.lowercase(),
@@ -91,6 +100,9 @@ abstract class ProbeIntegrationTest {
             instrumentService = ServiceProxyBuilder(vertx)
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
+            viewService = ServiceProxyBuilder(vertx)
+                .setAddress(SourceServices.LIVE_VIEW)
+                .build(LiveViewService::class.java)
         }
 
         @AfterAll

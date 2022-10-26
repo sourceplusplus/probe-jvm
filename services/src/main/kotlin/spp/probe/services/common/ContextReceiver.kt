@@ -38,6 +38,7 @@ import java.io.ObjectInputStream
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.function.Supplier
 
 @Suppress("unused")
 object ContextReceiver {
@@ -187,9 +188,9 @@ object ContextReceiver {
                         val decoded = Base64.getDecoder().decode(liveMeter.metricValue.value)
 
                         @Suppress("UNCHECKED_CAST")
-                        val supplier: () -> Double = ObjectInputStream(
+                        val supplier = ObjectInputStream(
                             ByteArrayInputStream(decoded)
-                        ).readObject() as () -> Double
+                        ).readObject() as Supplier<Double>
                         return@computeIfAbsent MeterFactory.gauge(
                             "gauge_" + meterId.replace("-", "_"), supplier
                         ).build()
