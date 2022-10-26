@@ -75,5 +75,8 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
     }
 }

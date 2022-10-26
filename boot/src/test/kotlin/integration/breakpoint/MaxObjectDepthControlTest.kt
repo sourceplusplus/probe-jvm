@@ -99,6 +99,9 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
     }
 
     class DeepObject1 {
