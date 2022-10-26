@@ -55,7 +55,7 @@ jobs:
       #todo: create health for TraceSegmentServiceClient.statusChanged()
       - run: sleep 45s
 
-      - run: ./gradlew test -Dtest.profile=integration -PprobeVersion=$SPP_RELEASE_VERSION
+      - run: ./gradlew test -Dtest.profile=integration -PprobeVersion=$SPP_RELEASE_VERSION --refresh-dependencies
 
       #have to rebuild to ensure all relocated dependencies are included
       - run: ./gradlew clean assemble -Dbuild.profile=release -PprobeVersion=$SPP_RELEASE_VERSION
