@@ -39,10 +39,11 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
     private fun doTest() {
         val deepObject1 = DeepObject1()
         val deepObject11 = DeepObject1()
+        val deeperObject1 = DeeperObject1()
     }
 
     @Test
-    fun testVariableControl() = runBlocking {
+    fun `max depth variable control`(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
@@ -51,7 +52,57 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                     val item = LiveBreakpointHit(JsonObject(event.data))
                     val vars = item.stackTrace.first().variables
-                    assertEquals(3, vars.size)
+                    assertEquals(4, vars.size)
+
+                    //deeperObject1 is full depth
+                    var deeperObject1 = (vars.first { it.name == "deeperObject1" }.value as JsonArray)
+                        .first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
+                    assertEquals(0, deeperObject1.getJsonArray("value").size())
+
+                    consumer.unregister()
+                    testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    variableControl = LiveVariableControl(
+                        maxObjectDepth = 8
+                    ),
+                    location = LiveSourceLocation(MaxObjectDepthControlTest::class.qualifiedName!!, 43),
+                    applyImmediately = true
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+    }
+
+    @Test
+    fun `max depth variable control by name`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(4, vars.size)
 
                     //deepObject1 is not full depth
                     var deepObject1 = (vars.first { it.name == "deepObject1" }.value as JsonArray)
@@ -90,7 +141,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxObjectDepthControlTest::class.qualifiedName!!, 41),
+                    location = LiveSourceLocation(MaxObjectDepthControlTest::class.qualifiedName!!, 43),
                     applyImmediately = true
                 )
             ).await()
@@ -121,6 +172,37 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                         val deepObject6 = DeepObject6()
 
                         class DeepObject6 {
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    class DeeperObject1 {
+        val deeperObject2 = DeeperObject2()
+
+        class DeeperObject2 {
+            val deeperObject3 = DeeperObject3()
+
+            class DeeperObject3 {
+                val deeperObject4 = DeeperObject4()
+
+                class DeeperObject4 {
+                    val deeperObject5 = DeeperObject5()
+
+                    class DeeperObject5 {
+                        val deeperObject6 = DeeperObject6()
+
+                        class DeeperObject6 {
+                            val deeperObject7 = DeeperObject7()
+
+                            class DeeperObject7 {
+                                val deeperObject8 = DeeperObject8()
+
+                                class DeeperObject8 {
+                                }
+                            }
                         }
                     }
                 }

@@ -330,11 +330,16 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         }
 
         fun getDefaultMaxDepth(): Int {
+            //check live breakpoint config (only default max depth)
+            ModelSerializer.INSTANCE.rootBreakpoint.get()?.variableControl?.let {
+                it.maxObjectDepth?.let { return it }
+            }
+
             return ProbeConfiguration.variableControl.getInteger("max_object_depth")
         }
 
         fun getCustomMaxDepth(variableName: String?, value: Any): Int {
-            //check live breakpoint config
+            //check live breakpoint config (minus default max depth)
             ModelSerializer.INSTANCE.rootBreakpoint.get()?.variableControl?.let {
                 if (variableName != null) {
                     it.variableNameConfig[variableName]?.let {
@@ -344,7 +349,6 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                 it.variableTypeConfig[getTypeName(value)]?.let {
                     it.maxObjectDepth?.let { return it }
                 }
-                it.maxObjectDepth?.let { return it }
             }
 
             //check spp-probe.yml config
