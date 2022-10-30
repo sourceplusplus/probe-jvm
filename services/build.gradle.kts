@@ -37,7 +37,8 @@ configure<PublishingExtension> {
                 artifactId = "probe-jvm-services"
                 version = project.version.toString()
 
-                from(components["kotlin"])
+                // Ship shadow jar
+                artifact("$buildDir/libs/spp-skywalking-services-${project.version}.jar")
 
                 // Ship the sources jar
                 artifact(sourcesJar)

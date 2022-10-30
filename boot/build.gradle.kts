@@ -42,6 +42,7 @@ configure<PublishingExtension> {
                 artifactId = "probe-jvm"
                 version = project.version.toString()
 
+                // Ship shadow jar
                 artifact("$buildDir/libs/spp-probe-${project.version}.jar")
 
                 // Ship the sources jar
