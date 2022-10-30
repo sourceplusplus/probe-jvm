@@ -18,6 +18,11 @@ val logbackVersion: String by project
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
 
+val sourcesJar = tasks.register<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
+    from(project.the<SourceSetContainer>()["main"].allSource)
+}
+
 configure<PublishingExtension> {
     repositories {
         maven {
@@ -38,6 +43,9 @@ configure<PublishingExtension> {
                 version = project.version.toString()
 
                 artifact("$buildDir/libs/spp-probe-${project.version}.jar")
+
+                // Ship the sources jar
+                artifact(sourcesJar)
             }
         }
     }
