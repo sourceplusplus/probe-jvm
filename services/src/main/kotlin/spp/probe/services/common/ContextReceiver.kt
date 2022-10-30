@@ -79,6 +79,11 @@ object ContextReceiver {
         addInstrumentVariable(instrumentId, key, value, type, staticFields)
     }
 
+    @JvmStatic
+    fun putReturn(instrumentId: String, value: Any?, type: String) {
+        addInstrumentVariable(instrumentId, "@return", value, type, localVariables)
+    }
+
     private fun addInstrumentVariable(
         instrumentId: String, key: String, value: Any?, type: String,
         variableMap: MutableMap<String?, MutableMap<String, Pair<String, Any?>>>

@@ -20,14 +20,15 @@ import io.vertx.core.AbstractVerticle
 
 abstract class ILiveInstrumentRemote : AbstractVerticle() {
     abstract fun isInstrumentEnabled(instrumentId: String): Boolean
-    abstract fun isHit(breakpointId: String): Boolean
+    abstract fun isHit(instrumentId: String): Boolean
     abstract fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable)
     abstract fun putLog(logId: String, logFormat: String, vararg logArguments: String?)
     abstract fun putMeter(meterId: String)
     abstract fun openLocalSpan(spanId: String)
     abstract fun closeLocalSpan(spanId: String)
     abstract fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable
-    abstract fun putLocalVariable(breakpointId: String, key: String, value: Any?, type: String)
-    abstract fun putField(breakpointId: String, key: String, value: Any?, type: String?)
-    abstract fun putStaticField(breakpointId: String, key: String, value: Any?, type: String)
+    abstract fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String)
+    abstract fun putField(instrumentId: String, key: String, value: Any?, type: String?)
+    abstract fun putStaticField(instrumentId: String, key: String, value: Any?, type: String)
+    abstract fun putReturn(instrumentId: String, value: Any?, type: String)
 }

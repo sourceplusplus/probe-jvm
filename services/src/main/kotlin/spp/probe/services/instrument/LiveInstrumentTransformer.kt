@@ -23,7 +23,6 @@ import net.bytebuddy.jar.asm.Type.*
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.model.ClassMetadata
-import spp.probe.services.common.transform.LiveTransformer
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
@@ -48,6 +47,7 @@ class LiveInstrumentTransformer(
         private val THROWABLE_INTERNAL_NAME = getInternalName(Throwable::class.java)
         private val REMOTE_CHECK_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "isHit" })
         private val REMOTE_SAVE_VAR_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putField" })
+        private val REMOTE_PUT_RETURN_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putReturn" })
         private val PUT_BREAKPOINT_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putBreakpoint" })
         private val PUT_LOG_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putLog" })
         private val PUT_METER_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putMeter" })
@@ -61,6 +61,7 @@ class LiveInstrumentTransformer(
     private var currentBeginLabel: Label? = null
     private var inOriginalCode = true
     private var liveInstrument: LiveSpan? = null
+    private var line = 0
 
     init {
         val qualifiedArgs = mutableListOf<String>()
@@ -100,6 +101,8 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitLineNumber(line: Int, start: Label) {
+        this.line = line
+
         mv.visitLineNumber(line, start)
         for (instrument in LiveInstrumentService.getInstruments(className.replace("/", "."), line)) {
             if (log.isInfoEnable) {
@@ -175,7 +178,7 @@ class LiveInstrumentTransformer(
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(local.name)
                 mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), local.index)
-                LiveTransformer.boxIfNecessary(mv, local.desc)
+                boxIfNecessary(mv, local.desc)
                 mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
@@ -193,7 +196,7 @@ class LiveInstrumentTransformer(
             mv.visitLdcInsn(instrumentId)
             mv.visitLdcInsn(staticField.name)
             mv.visitFieldInsn(Opcodes.GETSTATIC, className, staticField.name, staticField.desc)
-            LiveTransformer.boxIfNecessary(mv, staticField.desc)
+            boxIfNecessary(mv, staticField.desc)
             mv.visitLdcInsn(type.className)
             mv.visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
@@ -212,7 +215,7 @@ class LiveInstrumentTransformer(
                 mv.visitLdcInsn(field.name)
                 mv.visitVarInsn(Opcodes.ALOAD, 0)
                 mv.visitFieldInsn(Opcodes.GETFIELD, className, field.name, field.desc)
-                LiveTransformer.boxIfNecessary(mv, field.desc)
+                boxIfNecessary(mv, field.desc)
                 mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
@@ -288,6 +291,105 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitInsn(opcode: Int) {
+        if (isXRETURN(opcode)) {
+            //check for live instruments added after the return
+            val instrumentsAfterReturn = LiveInstrumentService.getInstruments(className.replace("/", "."), line + 1)
+            if (instrumentsAfterReturn.isNotEmpty()) {
+                for (instrument in instrumentsAfterReturn) {
+                    if (log.isInfoEnable) {
+                        log.info(
+                            "Injecting live instrument {} after return on line {} of {}",
+                            instrument.instrument, line, className
+                        )
+                    }
+
+                    val instrumentLabel = Label()
+                    isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
+
+                    when (instrument.instrument) {
+                        is LiveBreakpoint -> {
+                            //copy return value to top of stack
+                            mv.visitInsn(Opcodes.DUP)
+
+                            captureSnapshot(instrument.instrument.id!!, line)
+
+                            //use putReturn to capture return value
+                            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                            mv.visitInsn(Opcodes.SWAP)
+
+                            val type = getMethodType(methodUniqueName).returnType
+                            mv.visitLdcInsn(instrument.instrument.id!!)
+                            mv.visitInsn(Opcodes.SWAP)
+                            boxIfNecessary(mv, type.descriptor)
+                            mv.visitLdcInsn(type.className)
+                            mv.visitMethodInsn(
+                                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                "putReturn", REMOTE_PUT_RETURN_DESC, false
+                            )
+
+                            isHit(instrument.instrument.id!!, instrumentLabel)
+                            putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
+                        }
+
+                        is LiveLog -> {
+                            val log = instrument.instrument
+                            if (log.logArguments.isNotEmpty() || instrument.expression != null) {
+                                //copy return value to top of stack
+                                mv.visitInsn(Opcodes.DUP)
+
+                                captureSnapshot(instrument.instrument.id!!, line)
+
+                                //use putReturn to capture return value
+                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitInsn(Opcodes.SWAP)
+
+                                val type = getMethodType(methodUniqueName).returnType
+                                mv.visitLdcInsn(instrument.instrument.id!!)
+                                mv.visitInsn(Opcodes.SWAP)
+                                boxIfNecessary(mv, type.descriptor)
+                                mv.visitLdcInsn(type.className)
+                                mv.visitMethodInsn(
+                                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                    "putReturn", REMOTE_PUT_RETURN_DESC, false
+                                )
+                            }
+                            isHit(log.id!!, instrumentLabel)
+                            putLog(log)
+                        }
+
+                        is LiveMeter -> {
+                            val meter = instrument.instrument
+                            if (instrument.expression != null) {
+                                //copy return value to top of stack
+                                mv.visitInsn(Opcodes.DUP)
+
+                                captureSnapshot(instrument.instrument.id!!, line)
+
+                                //use putReturn to capture return value
+                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitInsn(Opcodes.SWAP)
+
+                                val type = getMethodType(methodUniqueName).returnType
+                                mv.visitLdcInsn(instrument.instrument.id!!)
+                                mv.visitInsn(Opcodes.SWAP)
+                                boxIfNecessary(mv, type.descriptor)
+                                mv.visitLdcInsn(type.className)
+                                mv.visitMethodInsn(
+                                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                    "putReturn", REMOTE_PUT_RETURN_DESC, false
+                                )
+                            }
+                            isHit(meter.id!!, instrumentLabel)
+                            putMeter(meter)
+                        }
+                    }
+
+                    mv.visitLabel(Label())
+                    mv.visitLabel(instrumentLabel)
+                }
+            }
+        }
+
         if (liveInstrument is LiveSpan) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
@@ -379,6 +481,74 @@ class LiveInstrumentTransformer(
     }
 
     private fun isXRETURN(opcode: Int): Boolean {
-        return opcode >= Opcodes.IRETURN && opcode <= Opcodes.RETURN
+        return opcode in Opcodes.IRETURN..Opcodes.RETURN
+    }
+
+    private fun boxIfNecessary(mv: MethodVisitor, desc: String) {
+        when (getType(desc).sort) {
+            BOOLEAN -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Boolean",
+                "valueOf",
+                "(Z)Ljava/lang/Boolean;",
+                false
+            )
+
+            BYTE -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Byte",
+                "valueOf",
+                "(B)Ljava/lang/Byte;",
+                false
+            )
+
+            CHAR -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Character",
+                "valueOf",
+                "(C)Ljava/lang/Character;",
+                false
+            )
+
+            DOUBLE -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Double",
+                "valueOf",
+                "(D)Ljava/lang/Double;",
+                false
+            )
+
+            FLOAT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Float",
+                "valueOf",
+                "(F)Ljava/lang/Float;",
+                false
+            )
+
+            INT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Integer",
+                "valueOf",
+                "(I)Ljava/lang/Integer;",
+                false
+            )
+
+            LONG -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Long",
+                "valueOf",
+                "(J)Ljava/lang/Long;",
+                false
+            )
+
+            SHORT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Short",
+                "valueOf",
+                "(S)Ljava/lang/Short;",
+                false
+            )
+        }
     }
 }

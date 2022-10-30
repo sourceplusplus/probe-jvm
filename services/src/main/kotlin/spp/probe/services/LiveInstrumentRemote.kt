@@ -72,9 +72,9 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         }
     }
 
-    override fun isHit(breakpointId: String): Boolean {
+    override fun isHit(instrumentId: String): Boolean {
         return try {
-            LiveInstrumentService.isHit(breakpointId)
+            LiveInstrumentService.isHit(instrumentId)
         } catch (e: Exception) {
             log.error("Failed to check if breakpoint is hit", e)
             false
@@ -130,27 +130,35 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         throw throwable
     }
 
-    override fun putLocalVariable(breakpointId: String, key: String, value: Any?, type: String) {
+    override fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
         try {
-            ContextReceiver.putLocalVariable(breakpointId, key, value, type)
+            ContextReceiver.putLocalVariable(instrumentId, key, value, type)
         } catch (e: Exception) {
             log.error("Failed to put local variable", e)
         }
     }
 
-    override fun putField(breakpointId: String, key: String, value: Any?, type: String?) {
+    override fun putField(instrumentId: String, key: String, value: Any?, type: String?) {
         try {
-            ContextReceiver.putField(breakpointId, key, value, type!!)
+            ContextReceiver.putField(instrumentId, key, value, type!!)
         } catch (e: Exception) {
             log.error("Failed to put field", e)
         }
     }
 
-    override fun putStaticField(breakpointId: String, key: String, value: Any?, type: String) {
+    override fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
         try {
-            ContextReceiver.putStaticField(breakpointId, key, value, type)
+            ContextReceiver.putStaticField(instrumentId, key, value, type)
         } catch (e: Exception) {
             log.error("Failed to put static field", e)
+        }
+    }
+
+    override fun putReturn(instrumentId: String, value: Any?, type: String) {
+        try {
+            ContextReceiver.putReturn(instrumentId, value, type)
+        } catch (e: Exception) {
+            log.error("Failed to put return", e)
         }
     }
 
