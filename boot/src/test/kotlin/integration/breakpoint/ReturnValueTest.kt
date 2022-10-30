@@ -33,12 +33,12 @@ import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberA
 
 class ReturnValueTest : ProbeIntegrationTest() {
 
-    private fun doTest(): String {
+    private fun doStringTest(): String {
         return "Hello World"
     }
 
     @Test
-    fun `return value`(): Unit = runBlocking {
+    fun `string return value`(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
@@ -70,7 +70,97 @@ class ReturnValueTest : ProbeIntegrationTest() {
         )
 
         //trigger breakpoint
-        doTest()
+        doStringTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+    }
+
+    private fun doIntegerTest(): Integer {
+        return 200 as Integer
+    }
+
+    @Test
+    fun `integer return value`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(2, vars.size)
+
+                    //@return
+                    val returnValue = vars.first { it.name == "@return" }
+                    assertNotNull(returnValue)
+                    assertEquals(200, returnValue.value)
+
+                    consumer.unregister()
+                    testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation(ReturnValueTest::class.qualifiedName!!, 83),
+                    applyImmediately = true
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doIntegerTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+    }
+
+    private fun doIntTest(): Int {
+        return 200
+    }
+
+    @Test
+    fun `int return value`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(2, vars.size)
+
+                    //@return
+                    val returnValue = vars.first { it.name == "@return" }
+                    assertNotNull(returnValue)
+                    assertEquals(200, returnValue.value)
+
+                    consumer.unregister()
+                    testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation(ReturnValueTest::class.qualifiedName!!, 128),
+                    applyImmediately = true
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doIntTest()
 
         errorOnTimeout(testContext)
 

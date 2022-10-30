@@ -18,12 +18,11 @@ package spp.probe.services.instrument
 
 import net.bytebuddy.jar.asm.Label
 import net.bytebuddy.jar.asm.MethodVisitor
-import net.bytebuddy.jar.asm.Opcodes.*
+import net.bytebuddy.jar.asm.Opcodes
 import net.bytebuddy.jar.asm.Type.*
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.model.ClassMetadata
-import spp.probe.services.common.transform.LiveTransformer
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
@@ -36,7 +35,7 @@ class LiveInstrumentTransformer(
     private val access: Int,
     private val classMetadata: ClassMetadata,
     mv: MethodVisitor
-) : MethodVisitor(ASM7, mv) {
+) : MethodVisitor(Opcodes.ASM7, mv) {
 
     companion object {
         private val log = LogManager.getLogger(LiveInstrumentTransformer::class.java)
@@ -143,14 +142,14 @@ class LiveInstrumentTransformer(
     }
 
     private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: Label) {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "isInstrumentEnabled", REMOTE_CHECK_DESC, false
         )
-        mv.visitJumpInsn(IFEQ, instrumentLabel)
+        mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
     }
 
     private fun captureSnapshot(instrumentId: String, line: Int) {
@@ -160,29 +159,29 @@ class LiveInstrumentTransformer(
     }
 
     private fun isHit(instrumentId: String, instrumentLabel: Label) {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "isHit", REMOTE_CHECK_DESC, false
         )
-        mv.visitJumpInsn(IFEQ, instrumentLabel)
+        mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
     }
 
     private fun addLocals(instrumentId: String, line: Int) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
             if (line >= local.start && line < local.end) {
-                mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = getType(local.desc)
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(local.name)
-                mv.visitVarInsn(type.getOpcode(ILOAD), local.index)
-                LiveTransformer.boxIfNecessary(mv, local.desc)
+                mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), local.index)
+                boxIfNecessary(mv, local.desc)
                 mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
-                    INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "putLocalVariable", REMOTE_SAVE_VAR_DESC, false
                 )
             }
@@ -191,35 +190,35 @@ class LiveInstrumentTransformer(
 
     private fun addStaticFields(instrumentId: String) {
         for (staticField in classMetadata.staticFields) {
-            mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
             val type = getType(staticField.desc)
             mv.visitLdcInsn(instrumentId)
             mv.visitLdcInsn(staticField.name)
-            mv.visitFieldInsn(GETSTATIC, className, staticField.name, staticField.desc)
-            LiveTransformer.boxIfNecessary(mv, staticField.desc)
+            mv.visitFieldInsn(Opcodes.GETSTATIC, className, staticField.name, staticField.desc)
+            boxIfNecessary(mv, staticField.desc)
             mv.visitLdcInsn(type.className)
             mv.visitMethodInsn(
-                INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "putStaticField", REMOTE_SAVE_VAR_DESC, false
             )
         }
     }
 
     private fun addFields(instrumentId: String) {
-        if (access and ACC_STATIC == 0) {
+        if (access and Opcodes.ACC_STATIC == 0) {
             for (field in classMetadata.fields) {
-                mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = getType(field.desc)
                 mv.visitLdcInsn(instrumentId)
                 mv.visitLdcInsn(field.name)
-                mv.visitVarInsn(ALOAD, 0)
-                mv.visitFieldInsn(GETFIELD, className, field.name, field.desc)
-                LiveTransformer.boxIfNecessary(mv, field.desc)
+                mv.visitVarInsn(Opcodes.ALOAD, 0)
+                mv.visitFieldInsn(Opcodes.GETFIELD, className, field.name, field.desc)
+                boxIfNecessary(mv, field.desc)
                 mv.visitLdcInsn(type.className)
                 mv.visitMethodInsn(
-                    INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "putField", REMOTE_SAVE_VAR_DESC, false
                 )
             }
@@ -227,48 +226,48 @@ class LiveInstrumentTransformer(
     }
 
     private fun putBreakpoint(instrumentId: String, source: String, line: Int) {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
         mv.visitLdcInsn(source)
         mv.visitLdcInsn(line)
-        mv.visitTypeInsn(NEW, THROWABLE_INTERNAL_NAME)
-        mv.visitInsn(DUP)
+        mv.visitTypeInsn(Opcodes.NEW, THROWABLE_INTERNAL_NAME)
+        mv.visitInsn(Opcodes.DUP)
         mv.visitMethodInsn(
-            INVOKESPECIAL, THROWABLE_INTERNAL_NAME,
+            Opcodes.INVOKESPECIAL, THROWABLE_INTERNAL_NAME,
             "<init>", "()V", false
         )
         mv.visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "putBreakpoint", PUT_BREAKPOINT_DESC, false
         )
     }
 
     private fun putLog(log: LiveLog) {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(log.id)
         mv.visitLdcInsn(log.logFormat)
-        mv.visitIntInsn(BIPUSH, log.logArguments.size)
-        mv.visitTypeInsn(ANEWARRAY, "java/lang/String")
+        mv.visitIntInsn(Opcodes.BIPUSH, log.logArguments.size)
+        mv.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/String")
         for (i in log.logArguments.indices) {
-            mv.visitInsn(DUP)
-            mv.visitIntInsn(BIPUSH, i)
+            mv.visitInsn(Opcodes.DUP)
+            mv.visitIntInsn(Opcodes.BIPUSH, i)
             mv.visitLdcInsn(log.logArguments[i])
-            mv.visitInsn(AASTORE)
+            mv.visitInsn(Opcodes.AASTORE)
         }
         mv.visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "putLog", PUT_LOG_DESC, false
         )
     }
 
     private fun putMeter(meter: LiveMeter) {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(meter.id)
         mv.visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "putMeter", PUT_METER_DESC, false
         )
     }
@@ -298,7 +297,10 @@ class LiveInstrumentTransformer(
             if (instrumentsAfterReturn.isNotEmpty()) {
                 for (instrument in instrumentsAfterReturn) {
                     if (log.isInfoEnable) {
-                        log.info("Injecting live instrument {} after return on line {} of {}", instrument.instrument, line, className)
+                        log.info(
+                            "Injecting live instrument {} after return on line {} of {}",
+                            instrument.instrument, line, className
+                        )
                     }
 
                     val instrumentLabel = Label()
@@ -307,21 +309,21 @@ class LiveInstrumentTransformer(
                     when (instrument.instrument) {
                         is LiveBreakpoint -> {
                             //copy return value to top of stack
-                            mv.visitInsn(DUP)
+                            mv.visitInsn(Opcodes.DUP)
 
                             captureSnapshot(instrument.instrument.id!!, line)
 
                             //use putReturn to capture return value
-                            mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
-                            mv.visitInsn(SWAP)
+                            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                            mv.visitInsn(Opcodes.SWAP)
 
-                            val type = getType(Any::class.java) //todo: get return type
+                            val type = getMethodType(methodUniqueName).returnType
                             mv.visitLdcInsn(instrument.instrument.id!!)
-                            mv.visitInsn(SWAP)
-                            //LiveTransformer.boxIfNecessary(mv, staticField.desc)
+                            mv.visitInsn(Opcodes.SWAP)
+                            boxIfNecessary(mv, type.descriptor)
                             mv.visitLdcInsn(type.className)
                             mv.visitMethodInsn(
-                                INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                                 "putReturn", REMOTE_PUT_RETURN_DESC, false
                             )
 
@@ -350,12 +352,12 @@ class LiveInstrumentTransformer(
                 } finally {
                     inOriginalCode = true
                 }
-            } else if (inOriginalCode && opcode == ATHROW) {
-                mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+            } else if (inOriginalCode && opcode == Opcodes.ATHROW) {
+                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 visitLdcInsn(liveInstrument!!.id)
                 visitMethodInsn(
-                    INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "closeLocalSpanAndThrowException", CLOSE_AND_THROW_DESC, false
                 )
 
@@ -382,32 +384,32 @@ class LiveInstrumentTransformer(
         val endLabel = Label()
         visitTryCatchBlock(currentBeginLabel, endLabel, endLabel, null)
         val l2 = Label()
-        visitJumpInsn(GOTO, l2)
+        visitJumpInsn(Opcodes.GOTO, l2)
         visitLabel(endLabel)
-        visitVarInsn(ASTORE, 1)
+        visitVarInsn(Opcodes.ASTORE, 1)
         execVisitFinallyBlock()
-        visitVarInsn(ALOAD, 1)
-        visitInsn(ATHROW)
+        visitVarInsn(Opcodes.ALOAD, 1)
+        visitInsn(Opcodes.ATHROW)
         visitLabel(l2)
         execVisitFinallyBlock()
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
         )
     }
 
     private fun execVisitFinallyBlock() {
-        mv.visitFieldInsn(GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         visitLdcInsn(liveInstrument!!.id)
         visitMethodInsn(
-            INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
             "closeLocalSpan", OPEN_CLOSE_SPAN_DESC, false
         )
     }
@@ -427,6 +429,74 @@ class LiveInstrumentTransformer(
     }
 
     private fun isXRETURN(opcode: Int): Boolean {
-        return opcode >= IRETURN && opcode <= RETURN
+        return opcode in Opcodes.IRETURN..Opcodes.RETURN
+    }
+
+    private fun boxIfNecessary(mv: MethodVisitor, desc: String) {
+        when (getType(desc).sort) {
+            BOOLEAN -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Boolean",
+                "valueOf",
+                "(Z)Ljava/lang/Boolean;",
+                false
+            )
+
+            BYTE -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Byte",
+                "valueOf",
+                "(B)Ljava/lang/Byte;",
+                false
+            )
+
+            CHAR -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Character",
+                "valueOf",
+                "(C)Ljava/lang/Character;",
+                false
+            )
+
+            DOUBLE -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Double",
+                "valueOf",
+                "(D)Ljava/lang/Double;",
+                false
+            )
+
+            FLOAT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Float",
+                "valueOf",
+                "(F)Ljava/lang/Float;",
+                false
+            )
+
+            INT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Integer",
+                "valueOf",
+                "(I)Ljava/lang/Integer;",
+                false
+            )
+
+            LONG -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Long",
+                "valueOf",
+                "(J)Ljava/lang/Long;",
+                false
+            )
+
+            SHORT -> mv.visitMethodInsn(
+                Opcodes.INVOKESTATIC,
+                "java/lang/Short",
+                "valueOf",
+                "(S)Ljava/lang/Short;",
+                false
+            )
+        }
     }
 }
