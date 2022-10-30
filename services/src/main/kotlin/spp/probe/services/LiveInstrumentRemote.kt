@@ -57,6 +57,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     }
 
     override fun start() {
+        if (log.isTraceEnabled) log.trace("Starting LiveInstrumentRemote")
         vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
