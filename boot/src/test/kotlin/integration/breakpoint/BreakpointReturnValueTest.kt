@@ -31,7 +31,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
-class ReturnValueTest : ProbeIntegrationTest() {
+class BreakpointReturnValueTest : ProbeIntegrationTest() {
 
     private fun doStringTest(): String {
         return "Hello World"
@@ -63,7 +63,7 @@ class ReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(ReturnValueTest::class.qualifiedName!!, 38),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 38),
                     applyImmediately = true
                 )
             ).await()
@@ -108,7 +108,7 @@ class ReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(ReturnValueTest::class.qualifiedName!!, 83),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 83),
                     applyImmediately = true
                 )
             ).await()
@@ -153,7 +153,7 @@ class ReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(ReturnValueTest::class.qualifiedName!!, 128),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 128),
                     applyImmediately = true
                 )
             ).await()

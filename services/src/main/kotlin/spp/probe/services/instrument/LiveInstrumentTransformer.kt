@@ -330,6 +330,58 @@ class LiveInstrumentTransformer(
                             isHit(instrument.instrument.id!!, instrumentLabel)
                             putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
                         }
+
+                        is LiveLog -> {
+                            val log = instrument.instrument
+                            if (log.logArguments.isNotEmpty() || instrument.expression != null) {
+                                //copy return value to top of stack
+                                mv.visitInsn(Opcodes.DUP)
+
+                                captureSnapshot(instrument.instrument.id!!, line)
+
+                                //use putReturn to capture return value
+                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitInsn(Opcodes.SWAP)
+
+                                val type = getMethodType(methodUniqueName).returnType
+                                mv.visitLdcInsn(instrument.instrument.id!!)
+                                mv.visitInsn(Opcodes.SWAP)
+                                boxIfNecessary(mv, type.descriptor)
+                                mv.visitLdcInsn(type.className)
+                                mv.visitMethodInsn(
+                                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                    "putReturn", REMOTE_PUT_RETURN_DESC, false
+                                )
+                            }
+                            isHit(log.id!!, instrumentLabel)
+                            putLog(log)
+                        }
+
+                        is LiveMeter -> {
+                            val meter = instrument.instrument
+                            if (instrument.expression != null) {
+                                //copy return value to top of stack
+                                mv.visitInsn(Opcodes.DUP)
+
+                                captureSnapshot(instrument.instrument.id!!, line)
+
+                                //use putReturn to capture return value
+                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitInsn(Opcodes.SWAP)
+
+                                val type = getMethodType(methodUniqueName).returnType
+                                mv.visitLdcInsn(instrument.instrument.id!!)
+                                mv.visitInsn(Opcodes.SWAP)
+                                boxIfNecessary(mv, type.descriptor)
+                                mv.visitLdcInsn(type.className)
+                                mv.visitMethodInsn(
+                                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                                    "putReturn", REMOTE_PUT_RETURN_DESC, false
+                                )
+                            }
+                            isHit(meter.id!!, instrumentLabel)
+                            putMeter(meter)
+                        }
                     }
 
                     mv.visitLabel(Label())
