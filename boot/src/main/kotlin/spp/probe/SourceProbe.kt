@@ -197,6 +197,7 @@ object SourceProbe {
                 connectToPlatform()
             }
             socket.result().closeHandler {
+                if (ProbeConfiguration.isNotQuiet) println("Disconnected from Source++ Platform")
                 connected.set(false)
                 vertx!!.setTimer(5000) {
                     connectToPlatform()
