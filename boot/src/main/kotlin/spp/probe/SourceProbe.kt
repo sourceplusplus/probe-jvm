@@ -397,8 +397,11 @@ object SourceProbe {
             if (ProbeConfiguration.getString("platform_certificate") != null) {
                 val myCaAsABuffer = Buffer.buffer(
                     "-----BEGIN CERTIFICATE-----\n" +
-                            ProbeConfiguration.getString("platform_certificate") +
-                            "-----END CERTIFICATE-----"
+                            ProbeConfiguration.getString("platform_certificate").let {
+                                val formatted = it!!.replace(" ", "")
+                                    .chunked(64).joinToString("\n")
+                                if (formatted.endsWith("\n")) formatted else formatted + "\n"
+                            } + "-----END CERTIFICATE-----"
                 )
 
                 caCertFile.parentFile.mkdirs()
