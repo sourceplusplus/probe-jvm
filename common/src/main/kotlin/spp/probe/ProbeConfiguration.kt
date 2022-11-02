@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
+import org.apache.commons.text.StringSubstitutor
+import org.apache.commons.text.lookup.StringLookupFactory
 import java.io.File
 import java.io.FileInputStream
 import java.lang.instrument.Instrumentation
@@ -37,11 +39,19 @@ object ProbeConfiguration {
     @JvmField
     var tcpSocket: NetSocket? = null
 
-    private var rawProperties: Map<String, Map<String, Any>>? = null
+    internal var rawProperties: Map<String, Map<String, Any>>? = null
     var localProperties: JsonObject? = null
     var customProbeFile: String? = null
 
     fun load() {
+        loadConfigProperties(customProbeFile).let {
+            rawProperties = it.first
+            localProperties = it.second
+        }
+    }
+
+    internal fun loadConfigProperties(customProbeFile: String?): Pair<Map<String, Map<String, Any>>?, JsonObject> {
+        var rawProperties: Map<String, Map<String, Any>>? = null
         var localFile = File("spp-probe.yml")
         customProbeFile?.let { localFile = File(it) }
         try {
@@ -95,7 +105,14 @@ object ProbeConfiguration {
                     ProbeConfiguration::class.java.getResourceAsStream("/spp-probe.yml"), MutableMap::class.java
                 ) as Map<String, Map<String, Any>>?
             }
-            localProperties = JsonObject.mapFrom(rawProperties)
+
+            return Pair(
+                rawProperties,
+                JsonObject(
+                    StringSubstitutor(StringLookupFactory.INSTANCE.environmentVariableStringLookup())
+                        .replace(JsonObject.mapFrom(rawProperties).toString())
+                )
+            )
         } catch (e: Exception) {
             System.err.println("Failed to read properties file: $localFile")
             e.printStackTrace()

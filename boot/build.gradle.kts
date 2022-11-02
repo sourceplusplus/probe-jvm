@@ -65,6 +65,7 @@ dependencies {
         isTransitive = false
     }
     implementation(projectDependency(":common"))
+    implementation("org.apache.commons:commons-text:1.10.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
@@ -181,6 +182,7 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
     }
 
     relocate("kotlin", "spp.probe.common.kotlin")
+    relocate("org.apache.commons", "spp.probe.common.org.apache.commons")
     relocate("org.intellij", "spp.probe.common.org.intellij")
     relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     relocate("org.yaml", "spp.probe.common.org.yaml")

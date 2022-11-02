@@ -22,4 +22,10 @@ dependencies {
     compileOnly("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
+    compileOnly("org.apache.commons:commons-text:1.10.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("io.vertx:vertx-core:$vertxVersion")
+    testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
+    testImplementation("org.apache.commons:commons-text:1.10.0")
 }
