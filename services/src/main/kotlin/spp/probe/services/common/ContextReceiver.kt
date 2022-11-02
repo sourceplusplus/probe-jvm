@@ -93,7 +93,10 @@ object ContextReceiver {
 
     @JvmStatic
     fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) = executor.submit {
+        if (log.isDebugEnable) log.debug("Breakpoint hit: $breakpointId")
         val liveBreakpoint = ProbeMemory.remove("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return@submit
+        if (log.isDebugEnable) log.debug("Live breakpoint: $liveBreakpoint")
+
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
         localVariables.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
@@ -123,7 +126,10 @@ object ContextReceiver {
 
     @JvmStatic
     fun putLog(logId: String?, logFormat: String?, vararg logArguments: String?) = executor.submit {
-        ProbeMemory.remove("spp.live-instrument:$logId") as LiveLog? ?: return@submit
+        if (log.isDebugEnable) log.debug("Log hit: $logId")
+        val liveLog = ProbeMemory.remove("spp.live-instrument:$logId") as LiveLog? ?: return@submit
+        if (log.isDebugEnable) log.debug("Live log: $liveLog")
+
         val localVars = localVariables.remove(logId)
         val localFields = fields.remove(logId)
         val localStaticFields = staticFields.remove(logId)
@@ -179,7 +185,10 @@ object ContextReceiver {
 
     @JvmStatic
     fun putMeter(meterId: String) = executor.submit {
+        if (log.isDebugEnable) log.debug("Meter hit: $meterId")
         val liveMeter = ProbeMemory.remove("spp.live-instrument:$meterId") as LiveMeter? ?: return@submit
+        if (log.isDebugEnable) log.debug("Live meter: $liveMeter")
+
         val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
             log.info("Initial trigger of live meter: $meterId")
             when (liveMeter.meterType) {
@@ -236,7 +245,10 @@ object ContextReceiver {
 
     @JvmStatic
     fun openLocalSpan(spanId: String) {
+        if (log.isDebugEnable) log.debug("Open local span: $spanId")
         val liveSpan = ProbeMemory.remove("spp.live-instrument:$spanId") as LiveSpan? ?: return
+        if (log.isDebugEnable) log.debug("Live span: $liveSpan")
+
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
         ProbeMemory.put("spp.active-span:$spanId", activeSpan)
@@ -244,7 +256,10 @@ object ContextReceiver {
 
     @JvmStatic
     fun closeLocalSpan(spanId: String, throwable: Throwable? = null) {
+        if (log.isDebugEnable) log.debug("Close local span: $spanId")
         val activeSpan = ProbeMemory.remove("spp.active-span:$spanId") as AbstractSpan? ?: return
+        if (log.isDebugEnable) log.debug("Active span: $activeSpan")
+
         throwable?.let { activeSpan.log(it) }
         ContextManager.stopSpan(activeSpan)
     }
