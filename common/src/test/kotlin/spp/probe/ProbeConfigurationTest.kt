@@ -25,27 +25,69 @@ class ProbeConfigurationTest {
     fun configEnv() {
         val configFile = javaClass.classLoader.getResource("spp-probe-env.yml")!!.file
         val config = ProbeConfiguration.loadConfigProperties(configFile)
-        config.second.getJsonObject("spp").let {
-            assertEquals("localhost", it.getString("platform_host"))
-            assertEquals(12800, it.getString("platform_port").toInt())
+        config.getJsonObject("spp").let {
+            assertEquals("127.0.0.1", it.getString("platform_host"))
+            assertEquals(1234, it.getString("platform_port").toInt())
         }
-        config.second.getJsonObject("skywalking").let {
-            assertEquals("WARN", it.getJsonObject("logging").getString("level"))
-            assertEquals("jvm", it.getJsonObject("agent").getString("service_name"))
+        config.getJsonObject("skywalking").let {
+            assertEquals("INFO", it.getJsonObject("logging").getString("level"))
+            assertEquals("test", it.getJsonObject("agent").getString("service_name"))
         }
+
+        ProbeConfiguration.localProperties = config
+        val swSettings = ProbeConfiguration.toSkyWalkingSettings(config)
+        assertEquals("INFO", swSettings.find {
+            it.first() == "skywalking.logging.level"
+        }?.last())
+        assertEquals("test", swSettings.find {
+            it.first() == "skywalking.agent.service_name"
+        }?.last())
+        assertEquals("true", swSettings.find {
+            it.first() == "skywalking.agent.is_cache_enhanced_class"
+        }?.last())
+        assertEquals("FILE", swSettings.find {
+            it.first() == "skywalking.agent.class_cache_mode"
+        }?.last())
+        assertEquals("false", swSettings.find {
+            it.first() == "skywalking.plugin.toolkit.log.transmit_formatted"
+        }?.last())
+        assertEquals("127.0.0.1:11800", swSettings.find {
+            it.first() == "skywalking.collector.backend_service"
+        }?.last())
     }
 
     @Test
     fun configNoEnv() {
         val configFile = javaClass.classLoader.getResource("spp-probe-no-env.yml")!!.file
         val config = ProbeConfiguration.loadConfigProperties(configFile)
-        config.second.getJsonObject("spp").let {
+        config.getJsonObject("spp").let {
             assertEquals("localhost", it.getString("platform_host"))
             assertEquals(12800, it.getString("platform_port").toInt())
         }
-        config.second.getJsonObject("skywalking").let {
+        config.getJsonObject("skywalking").let {
             assertEquals("WARN", it.getJsonObject("logging").getString("level"))
             assertEquals("jvm", it.getJsonObject("agent").getString("service_name"))
         }
+
+        ProbeConfiguration.localProperties = config
+        val swSettings = ProbeConfiguration.toSkyWalkingSettings(config)
+        assertEquals("WARN", swSettings.find {
+            it.first() == "skywalking.logging.level"
+        }?.last())
+        assertEquals("jvm", swSettings.find {
+            it.first() == "skywalking.agent.service_name"
+        }?.last())
+        assertEquals("true", swSettings.find {
+            it.first() == "skywalking.agent.is_cache_enhanced_class"
+        }?.last())
+        assertEquals("FILE", swSettings.find {
+            it.first() == "skywalking.agent.class_cache_mode"
+        }?.last())
+        assertEquals("false", swSettings.find {
+            it.first() == "skywalking.plugin.toolkit.log.transmit_formatted"
+        }?.last())
+        assertEquals("localhost:11800", swSettings.find {
+            it.first() == "skywalking.collector.backend_service"
+        }?.last())
     }
 }
