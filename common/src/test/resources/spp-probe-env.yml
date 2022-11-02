@@ -1,0 +1,8 @@
+spp:
+  platform_host: ${SPP_PROBE_PLATFORM_HOST:-127.0.0.1}
+  platform_port: ${SPP_PROBE_PLATFORM_PORT:-1234}
+skywalking:
+  logging:
+    level: ${SW_LOGGING_LEVEL:-INFO}
+  agent:
+    service_name: ${SW_AGENT_NAME:-test}

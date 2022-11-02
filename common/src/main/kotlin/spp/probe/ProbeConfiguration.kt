@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetSocket
+import org.apache.commons.text.StringSubstitutor
+import org.apache.commons.text.lookup.StringLookupFactory
 import java.io.File
 import java.io.FileInputStream
 import java.lang.instrument.Instrumentation
@@ -37,11 +39,15 @@ object ProbeConfiguration {
     @JvmField
     var tcpSocket: NetSocket? = null
 
-    private var rawProperties: Map<String, Map<String, Any>>? = null
     var localProperties: JsonObject? = null
     var customProbeFile: String? = null
 
     fun load() {
+        localProperties = loadConfigProperties(customProbeFile)
+    }
+
+    internal fun loadConfigProperties(customProbeFile: String?): JsonObject {
+        var rawProperties: Map<String, Map<String, Any>>? = null
         var localFile = File("spp-probe.yml")
         customProbeFile?.let { localFile = File(it) }
         try {
@@ -95,7 +101,11 @@ object ProbeConfiguration {
                     ProbeConfiguration::class.java.getResourceAsStream("/spp-probe.yml"), MutableMap::class.java
                 ) as Map<String, Map<String, Any>>?
             }
-            localProperties = JsonObject.mapFrom(rawProperties)
+
+            return JsonObject(
+                StringSubstitutor(StringLookupFactory.INSTANCE.environmentVariableStringLookup())
+                    .replace(JsonObject.mapFrom(rawProperties).toString())
+            )
         } catch (e: Exception) {
             System.err.println("Failed to read properties file: $localFile")
             e.printStackTrace()
@@ -151,33 +161,26 @@ object ProbeConfiguration {
         return localProperties!!.getJsonObject("spp").getString(property)
     }
 
-    @JvmStatic
-    fun setString(property: String, value: String?) {
-        localProperties!!.getJsonObject("spp").put(property, value)
-    }
-
     fun getInteger(property: String): Int {
-        return localProperties!!.getJsonObject("spp").getInteger(property)
-    }
-
-    fun setInteger(property: String, value: Int) {
-        localProperties!!.getJsonObject("spp").put(property, value)
+        return localProperties!!.getJsonObject("spp").getValue(property).toString().toInt()
     }
 
     val skywalkingSettings: List<Array<String>>
-        get() {
-            val settings = toProperties(rawProperties).stream()
-                .filter { it[0].startsWith("skywalking.") }
-                .collect(Collectors.toList()).toMutableList()
-            getSkyWalkingDefaults()
-                .filter { default -> settings.stream().noneMatch { it[0] == default[0] } }
-                .forEach { settings.add(it) }
-            if (settings.stream().noneMatch { it[0] == "skywalking.agent.service_name" } ||
-                settings.stream().noneMatch { it[0] == "skywalking.collector.backend_service" }) {
-                throw RuntimeException("Missing Apache SkyWalking setup configuration")
-            }
-            return settings
+        get() = toSkyWalkingSettings(localProperties!!)
+
+    internal fun toSkyWalkingSettings(localProperties: JsonObject): MutableList<Array<String>> {
+        val settings = toProperties(localProperties.map).stream()
+            .filter { it[0].startsWith("skywalking.") }
+            .collect(Collectors.toList()).toMutableList()
+        getSkyWalkingDefaults()
+            .filter { default -> settings.stream().noneMatch { it[0] == default[0] } }
+            .forEach { settings.add(it) }
+        if (settings.stream().noneMatch { it[0] == "skywalking.agent.service_name" } ||
+            settings.stream().noneMatch { it[0] == "skywalking.collector.backend_service" }) {
+            throw RuntimeException("Missing Apache SkyWalking setup configuration")
         }
+        return settings
+    }
 
     private fun getSkyWalkingDefaults(): MutableSet<Array<String>> {
         return setOf(
@@ -205,7 +208,7 @@ object ProbeConfiguration {
     }
 
     val sppSettings: List<Array<String>>
-        get() = toProperties(rawProperties).stream()
+        get() = toProperties(localProperties!!.map).stream()
             .filter { it[0].startsWith("spp.") }
             .collect(Collectors.toList())
     val isNotQuiet: Boolean
@@ -227,7 +230,7 @@ object ProbeConfiguration {
             return spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") == "true")
         }
 
-    private fun toProperties(config: Map<String, Map<String, Any>>?): List<Array<String>> {
+    private fun toProperties(config: Map<String, Any>?): List<Array<String>> {
         val sb: MutableList<Array<String>> = ArrayList()
         for (key in config!!.keys) {
             sb.addAll(toString(key, config[key]))
