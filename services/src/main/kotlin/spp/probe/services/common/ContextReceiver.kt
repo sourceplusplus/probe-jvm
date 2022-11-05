@@ -198,8 +198,8 @@ object ContextReceiver {
                     .build()
 
                 MeterType.GAUGE -> {
-                    if (liveMeter.metricValue.valueType == MetricValueType.NUMBER_SUPPLIER) {
-                        val decoded = Base64.getDecoder().decode(liveMeter.metricValue.value)
+                    if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
+                        val decoded = Base64.getDecoder().decode(liveMeter.metricValue!!.value)
 
                         @Suppress("UNCHECKED_CAST")
                         val supplier = ObjectInputStream(
@@ -211,7 +211,7 @@ object ContextReceiver {
                     } else {
                         return@computeIfAbsent MeterFactory.gauge(
                             "gauge_" + meterId.replace("-", "_")
-                        ) { liveMeter.metricValue.value.toDouble() }
+                        ) { liveMeter.metricValue!!.value.toDouble() }
                             .build()
                     }
                 }
@@ -226,15 +226,15 @@ object ContextReceiver {
             }
         }
         when (liveMeter.meterType) {
-            MeterType.COUNT -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
-                (baseMeter as Counter).increment(liveMeter.metricValue.value.toLong().toDouble())
+            MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
 
             MeterType.GAUGE -> {}
-            MeterType.HISTOGRAM -> if (liveMeter.metricValue.valueType == MetricValueType.NUMBER) {
-                (baseMeter as Histogram).addValue(liveMeter.metricValue.value.toDouble())
+            MeterType.HISTOGRAM -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
+                (baseMeter as Histogram).addValue(liveMeter.metricValue!!.value.toDouble())
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
