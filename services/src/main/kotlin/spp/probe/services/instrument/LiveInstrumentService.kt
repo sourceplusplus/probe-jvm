@@ -22,7 +22,7 @@ import org.springframework.expression.ParseException
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
 import org.springframework.expression.spel.standard.SpelExpressionParser
-import org.springframework.expression.spel.support.StandardEvaluationContext
+import org.springframework.expression.spel.support.SimpleEvaluationContext
 import spp.probe.ProbeConfiguration
 import spp.probe.services.LiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
@@ -304,7 +304,8 @@ object LiveInstrumentService {
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
         val rootObject = ContextReceiver[liveInstrument.instrument.id!!]
-        val context = StandardEvaluationContext(rootObject)
+        val context = SimpleEvaluationContext.forReadWriteDataBinding()
+            .withRootObject(rootObject).build()
         return liveInstrument.expression!!.getValue(context, Boolean::class.java)
     }
 }
