@@ -41,14 +41,15 @@ import java.util.stream.Collectors
 
 object LiveInstrumentService {
 
-    private val log = LogManager.getLogger(LiveInstrumentService::class.java)
-    private val instruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
-    private val applyingInstruments: MutableMap<String?, ActiveLiveInstrument> = ConcurrentHashMap()
-    private val parser = SpelExpressionParser(
+    val parser = SpelExpressionParser(
         SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
     )
+
+    private val log = LogManager.getLogger(LiveInstrumentService::class.java)
+    private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
+    private val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
-    val instrumentsMap: Map<String?, ActiveLiveInstrument>
+    internal val instrumentsMap: Map<String, ActiveLiveInstrument>
         get() = HashMap(instruments)
 
     init {
@@ -121,7 +122,7 @@ object LiveInstrumentService {
             val transformer = LiveTransformer(className)
             try {
                 if (!instrument.isRemoval) {
-                    applyingInstruments[instrument.instrument.id] = instrument
+                    applyingInstruments[instrument.instrument.id!!] = instrument
                 }
                 inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
@@ -180,7 +181,7 @@ object LiveInstrumentService {
                 ActiveLiveInstrument(liveInstrument)
             }
             liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, activeInstrument)
-            instruments[liveInstrument.id] = activeInstrument
+            instruments[liveInstrument.id!!] = activeInstrument
             ModelSerializer.INSTANCE.toJson(activeInstrument.instrument)
         }
     }

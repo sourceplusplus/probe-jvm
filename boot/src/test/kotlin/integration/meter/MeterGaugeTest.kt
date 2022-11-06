@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package integration.breakpoint
+package integration.meter
 
 import integration.ProbeIntegrationTest
 import io.vertx.core.json.JsonObject
@@ -43,12 +43,12 @@ import java.util.function.Supplier
 class MeterGaugeTest : ProbeIntegrationTest() {
 
     private fun doTest() {
-        var i = 0
+        var i = 11
     }
 
     @Test
-    fun testGauge(): Unit = runBlocking {
-        val meterId = "test-gauge"
+    fun `number supplier gauge`(): Unit = runBlocking {
+        val meterId = "number-supplier-gauge"
 
         val supplier = object : Supplier<Double>, Serializable {
             override fun get(): Double = System.currentTimeMillis().toDouble()
@@ -103,6 +103,69 @@ class MeterGaugeTest : ProbeIntegrationTest() {
                 val suppliedTime = rawMetrics.getLong("value")
                 assertTrue(suppliedTime >= System.currentTimeMillis() - 1000)
                 assertTrue(suppliedTime <= System.currentTimeMillis())
+            }
+            testContext.completeNow()
+        }.completionHandler().await()
+
+        instrumentService.addLiveInstrument(liveMeter).await()
+
+        doTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(viewService.removeLiveView(subscriptionId).await())
+    }
+
+    @Test
+    fun `number expression gauge`(): Unit = runBlocking {
+        val meterId = "number-expression-gauge"
+
+        val liveMeter = LiveMeter(
+            MeterType.GAUGE,
+            MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
+            location = LiveSourceLocation(
+                MeterGaugeTest::class.qualifiedName!!,
+                47,
+                "spp-test-probe"
+            ),
+            id = meterId,
+            applyImmediately = true
+        )
+
+        val subscriptionId = viewService.addLiveView(
+            LiveView(
+                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                artifactQualifiedName = ArtifactQualifiedName(
+                    MeterGaugeTest::class.qualifiedName!!,
+                    type = ArtifactType.EXPRESSION
+                ),
+                artifactLocation = LiveSourceLocation(
+                    MeterGaugeTest::class.qualifiedName!!,
+                    47
+                ),
+                viewConfig = LiveViewConfig(
+                    "test",
+                    listOf(liveMeter.toMetricId())
+                )
+            )
+        ).await().subscriptionId!!
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(
+            toLiveViewSubscriberAddress("system")
+        )
+
+        val testContext = VertxTestContext()
+        consumer.handler {
+            val liveViewEvent = LiveViewEvent(it.body())
+            val rawMetrics = JsonObject(liveViewEvent.metricsData)
+            testContext.verify {
+                val meta = rawMetrics.getJsonObject("meta")
+                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+
+                val iValue = rawMetrics.getLong("value")
+                assertEquals(iValue, 11)
             }
             testContext.completeNow()
         }.completionHandler().await()
