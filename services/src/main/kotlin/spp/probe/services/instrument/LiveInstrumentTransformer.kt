@@ -129,7 +129,7 @@ class LiveInstrumentTransformer(
 
                 is LiveMeter -> {
                     val meter = instrument.instrument
-                    if (instrument.expression != null) {
+                    if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
                         captureSnapshot(meter.id!!, line)
                     }
                     isHit(meter.id!!, instrumentLabel)
