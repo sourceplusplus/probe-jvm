@@ -201,7 +201,12 @@ object ContextReceiver {
                 val rootObject = ContextReceiver[liveMeter.id!!]
                 val context = StandardEvaluationContext(rootObject)
                 val expression = LiveInstrumentService.parser.parseExpression(it.value)
-                val value = expression.getValue(context, Any::class.java)
+                val value = try {
+                    expression.getValue(context, Any::class.java)
+                } catch (e: Exception) {
+                    log.error("Failed to evaluate expression: ${it.value}", e)
+                    null
+                }
                 tagMap[it.key] = value?.toString() ?: "null"
             }
         }

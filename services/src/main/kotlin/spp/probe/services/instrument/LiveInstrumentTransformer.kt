@@ -27,6 +27,7 @@ import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSpan
+import spp.protocol.instrument.meter.MeterTagValueType
 
 class LiveInstrumentTransformer(
     private val className: String,
@@ -130,6 +131,8 @@ class LiveInstrumentTransformer(
                 is LiveMeter -> {
                     val meter = instrument.instrument
                     if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
+                        captureSnapshot(meter.id!!, line)
+                    } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
                         captureSnapshot(meter.id!!, line)
                     }
                     isHit(meter.id!!, instrumentLabel)
