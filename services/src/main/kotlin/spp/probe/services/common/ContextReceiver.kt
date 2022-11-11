@@ -30,7 +30,10 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
+import org.springframework.expression.spel.support.StandardEvaluationContext
+import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
+import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
 import java.io.ByteArrayInputStream
@@ -189,13 +192,38 @@ object ContextReceiver {
         val liveMeter = ProbeMemory.remove("spp.live-instrument:$meterId") as LiveMeter? ?: return@submit
         if (log.isDebugEnable) log.debug("Live meter: $liveMeter")
 
-        val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId") {
+        //calculate meter tags
+        val tagMap = HashMap<String, String>()
+        liveMeter.meterTags.forEach {
+            if (it.valueType == MeterTagValueType.VALUE) {
+                tagMap[it.key] = it.value
+            } else if (it.valueType == MeterTagValueType.VALUE_EXPRESSION) {
+                val rootObject = ContextReceiver[liveMeter.id!!]
+                val context = StandardEvaluationContext(rootObject)
+                val expression = LiveInstrumentService.parser.parseExpression(it.value)
+                val value = try {
+                    expression.getValue(context, Any::class.java)
+                } catch (e: Exception) {
+                    log.error("Failed to evaluate expression: ${it.value}", e)
+                    null
+                }
+                tagMap[it.key] = value?.toString() ?: "null"
+            }
+        }
+        val tagStr = tagMap.entries.joinToString(",") { "${it.key}=${it.value}" }
+
+        val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId{$tagStr}") {
             log.info("Initial trigger of live meter: $meterId")
             when (liveMeter.meterType) {
-                MeterType.COUNT -> return@computeIfAbsent MeterFactory.counter(
-                    "count_" + meterId.replace("-", "_")
-                ).mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
-                    .build()
+                MeterType.COUNT -> {
+                    return@computeIfAbsent MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
+                        .mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
+                        .apply {
+                            tagMap.forEach {
+                                tag(it.key, it.value)
+                            }
+                        }.build()
+                }
 
                 MeterType.GAUGE -> {
                     if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
@@ -205,14 +233,79 @@ object ContextReceiver {
                         val supplier = ObjectInputStream(
                             ByteArrayInputStream(decoded)
                         ).readObject() as Supplier<Double>
-                        return@computeIfAbsent MeterFactory.gauge(
-                            "gauge_" + meterId.replace("-", "_"), supplier
-                        ).build()
+                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
+                            .apply {
+                                tagMap.forEach {
+                                    tag(it.key, it.value)
+                                }
+                            }.build()
+                    } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
+                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                            val rootObject = ContextReceiver[liveMeter.id!!]
+                            val context = StandardEvaluationContext(rootObject)
+                            val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
+                            val value = expression.getValue(context, Any::class.java)
+                            if (value is Number) {
+                                value?.toDouble() ?: 0.0
+                            } else {
+                                //todo: remove instrument
+                                log.error("Unsupported expression value type: ${value?.javaClass?.name}")
+                                Double.MIN_VALUE
+                            }
+                        }.apply {
+                            tagMap.forEach {
+                                tag(it.key, it.value)
+                            }
+                        }.build()
+                    } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
+                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                            val rootObject = ContextReceiver[liveMeter.id!!]
+                            val context = StandardEvaluationContext(rootObject)
+                            val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
+                            val value = expression.getValue(context, Any::class.java)
+
+                            //send gauge log
+                            val logTags = LogTags.newBuilder()
+                                .addData(
+                                    KeyStringValuePair.newBuilder()
+                                        .setKey("meter_id").setValue(liveMeter.id).build()
+                                ).addData(
+                                    KeyStringValuePair.newBuilder()
+                                        .setKey("metric_id").setValue(liveMeter.toMetricId()).build()
+                                )
+                            val builder = LogData.newBuilder()
+                                .setTimestamp(System.currentTimeMillis())
+                                .setService(Config.Agent.SERVICE_NAME)
+                                .setServiceInstance(Config.Agent.INSTANCE_NAME)
+                                .setTags(logTags.build())
+                                .setBody(
+                                    LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
+                                        .setText(TextLog.newBuilder().setText(value.toString()).build()).build()
+                                )
+                            val logData =
+                                if (-1 == ContextManager.getSpanId()) builder else builder.setTraceContext(
+                                    TraceContext.newBuilder()
+                                        .setTraceId(ContextManager.getGlobalTraceId())
+                                        .setSpanId(ContextManager.getSpanId())
+                                        .setTraceSegmentId(ContextManager.getSegmentId())
+                                        .build()
+                                )
+                            logReport.produce(logData)
+
+                            Double.MIN_VALUE
+                        }.apply {
+                            tagMap.forEach {
+                                tag(it.key, it.value)
+                            }
+                        }.build()
                     } else {
-                        return@computeIfAbsent MeterFactory.gauge(
-                            "gauge_" + meterId.replace("-", "_")
-                        ) { liveMeter.metricValue!!.value.toDouble() }
-                            .build()
+                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                            liveMeter.metricValue!!.value.toDouble()
+                        }.apply {
+                            tagMap.forEach {
+                                tag(it.key, it.value)
+                            }
+                        }.build()
                     }
                 }
 
@@ -220,7 +313,11 @@ object ContextReceiver {
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
-                    .build()
+                    .apply {
+                        tagMap.forEach {
+                            tag(it.key, it.value)
+                        }
+                    }.build()
 
                 else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
             }
