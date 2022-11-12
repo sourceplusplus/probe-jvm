@@ -273,6 +273,7 @@ object LiveInstrumentService {
         }
         if (instrument.expression == null) {
             if (instrument.isFinished) {
+                if (log.isInfoEnable) log.info("Instrument is finished: {}", instrumentId)
                 _removeInstrument(instrument.instrument, null)
             }
 
@@ -284,6 +285,7 @@ object LiveInstrumentService {
         return try {
             if (evaluateCondition(instrument)) {
                 if (instrument.isFinished) {
+                    if (log.isInfoEnable) log.info("Instrument is finished: {}", instrumentId)
                     _removeInstrument(instrument.instrument, null)
                 }
 
