@@ -154,8 +154,6 @@ object SourceProbe {
         connected.set(false)
         tcpSocket!!.close()
         tcpSocket = null
-        instrumentRemote!!.stop()
-        instrumentRemote = null
     }
 
     @JvmStatic
