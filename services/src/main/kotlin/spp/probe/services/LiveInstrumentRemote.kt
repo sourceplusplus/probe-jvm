@@ -204,6 +204,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     }
 
     private fun removeInstrument(command: LiveInstrumentCommand) {
+        if (log.isInfoEnable) log.info("Removing instrument: $command")
         for (breakpoint in command.instruments) {
             val breakpointId = breakpoint.id
             val location = breakpoint.location
