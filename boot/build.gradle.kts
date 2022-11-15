@@ -60,6 +60,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
+    implementation("io.vertx:vertx-service-proxy:$vertxVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
