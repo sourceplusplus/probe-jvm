@@ -41,6 +41,7 @@ import spp.protocol.artifact.ArtifactLanguage
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.status.InstanceConnection
+import spp.protocol.service.extend.TCPServiceFrameParser
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -150,13 +151,6 @@ object SourceProbe {
     }
 
     @JvmStatic
-    fun disconnectFromPlatform() {
-        connected.set(false)
-        tcpSocket!!.close()
-        tcpSocket = null
-    }
-
-    @JvmStatic
     @Synchronized
     fun connectToPlatform() {
         if (connected.get()) return
@@ -201,59 +195,7 @@ object SourceProbe {
                     connectToPlatform()
                 }
             }
-
-            //handle platform messages
-            val parser = FrameParser { parse: AsyncResult<JsonObject> ->
-                val frame = parse.result()
-                if ("message" == frame.getString("type")) {
-                    if (frame.getString("replyAddress") != null) {
-                        vertx!!.eventBus().request<Any?>(
-                            frame.getString("address"),
-                            frame.getJsonObject("body")
-                        ).onComplete {
-                            if (it.succeeded()) {
-                                FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(),
-                                    frame.getString("replyAddress"),
-                                    null,
-                                    probeMessageHeaders,
-                                    true,
-                                    JsonObject.mapFrom(it.result().body()),
-                                    socket.result()
-                                )
-                            } else {
-                                FrameHelper.sendFrame(
-                                    BridgeEventType.SEND.name.lowercase(),
-                                    frame.getString("replyAddress"),
-                                    null,
-                                    probeMessageHeaders,
-                                    true,
-                                    JsonObject.mapFrom(it.cause()),
-                                    socket.result()
-                                )
-                            }
-                        }
-                    } else {
-                        vertx!!.eventBus().publish(
-                            frame.getString("address"),
-                            frame.getValue("body")
-                        )
-                    }
-                } else if ("err" == frame.getString("type")) {
-                    val errorMessage = frame.getString("message")
-                    if (ProbeConfiguration.isNotQuiet) {
-                        if (errorMessage == "blocked by bridgeEvent handler") {
-                            System.err.println("Probe authentication failed")
-                        } else {
-                            System.err.println(frame.getString("message"))
-                        }
-                    }
-                    disconnectFromPlatform()
-                } else {
-                    throw UnsupportedOperationException(frame.toString())
-                }
-            }
-            socket.result().handler(parser)
+            socket.result().handler(FrameParser(TCPServiceFrameParser(vertx!!, socket.result())))
 
             //define probe metadata
             val meta = HashMap<String, Any>()
