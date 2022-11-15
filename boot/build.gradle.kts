@@ -59,6 +59,7 @@ tasks.getByName<JavaCompile>("compileJava") {
 
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
+    implementation("io.vertx:vertx-service-proxy:$vertxVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     implementation("plus.sourceplus:protocol:$projectVersion") {
@@ -70,7 +71,6 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
     testImplementation("ch.qos.logback:logback-classic:$logbackVersion")
-    testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
 }
