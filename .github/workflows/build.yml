@@ -70,6 +70,13 @@ jobs:
           name: docker-logs
           path: ./build/containers-logs
 
+      - name: Upload skywalking-api.log artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: skywalking-api.log
+          path: /tmp/spp-probe/logs/skywalking-api.log
+
       - name: Remove Old Release Drafts
         if: github.ref == 'refs/heads/master'
         env:
