@@ -149,7 +149,7 @@ abstract class ProbeIntegrationTest {
         return promise.future()
     }
 
-    fun errorOnTimeout(testContext: VertxTestContext, waitTime: Long = 15) {
+    fun errorOnTimeout(testContext: VertxTestContext, waitTime: Long = 20) {
         if (testContext.awaitCompletion(waitTime, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
                 throw testContext.causeOfFailure()
