@@ -39,79 +39,63 @@ import spp.protocol.instrument.meter.MetricValueType
 import java.io.ByteArrayInputStream
 import java.io.ObjectInputStream
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.function.Supplier
 
 @Suppress("unused")
 object ContextReceiver {
 
     private val log = LogManager.getLogger(ContextReceiver::class.java)
-    private val localVariables: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
-    private val fields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
-    private val staticFields: MutableMap<String?, MutableMap<String, Pair<String, Any?>>> = ConcurrentHashMap()
     private val logReport = ServiceManager.INSTANCE.findService(LogReportServiceClient::class.java)
-    private val executor = Executors.newFixedThreadPool(5)
 
-    operator fun get(instrumentId: String): ContextMap {
+    operator fun get(instrumentId: String, removeData: Boolean): ContextMap {
         val contextMap = ContextMap()
-        contextMap.fields = fields[instrumentId]?.map { it.key to it.value.second }?.toMap()
-        contextMap.localVariables = localVariables[instrumentId]?.map { it.key to it.value.second }?.toMap()
-        contextMap.staticFields = staticFields[instrumentId]?.map { it.key to it.value.second }?.toMap()
+        contextMap.localVariables = ProbeMemory.getLocalVariables(instrumentId, removeData)
+            .map { it.key to it.value.second }.toMap()
+        contextMap.fields = ProbeMemory.getFieldVariables(instrumentId, removeData)
+            .map { it.key to it.value.second }.toMap()
+        contextMap.staticFields = ProbeMemory.getStaticVariables(instrumentId, removeData)
+            .map { it.key to it.value.second }.toMap()
         return contextMap
-    }
-
-    fun clear(instrumentId: String) {
-        fields.remove(instrumentId)
-        localVariables.remove(instrumentId)
-        staticFields.remove(instrumentId)
     }
 
     @JvmStatic
     fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
-        addInstrumentVariable(instrumentId, key, value, type, localVariables)
+        ProbeMemory.putLocalVariable(instrumentId, key, Pair(type, value))
     }
 
     @JvmStatic
     fun putField(instrumentId: String, key: String, value: Any?, type: String) {
-        addInstrumentVariable(instrumentId, key, value, type, fields)
+        ProbeMemory.putFieldVariable(instrumentId, key, Pair(type, value))
     }
 
     @JvmStatic
     fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
-        addInstrumentVariable(instrumentId, key, value, type, staticFields)
+        ProbeMemory.putStaticVariable(instrumentId, key, Pair(type, value))
     }
 
     @JvmStatic
     fun putReturn(instrumentId: String, value: Any?, type: String) {
-        addInstrumentVariable(instrumentId, "@return", value, type, localVariables)
-    }
-
-    private fun addInstrumentVariable(
-        instrumentId: String, key: String, value: Any?, type: String,
-        variableMap: MutableMap<String?, MutableMap<String, Pair<String, Any?>>>
-    ) {
-        variableMap.computeIfAbsent(instrumentId) { HashMap() }[key] = Pair(type, value)
+        ProbeMemory.putLocalVariable(instrumentId, "@return", Pair(type, value))
     }
 
     @JvmStatic
-    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) = executor.submit {
+    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
         if (log.isDebugEnable) log.debug("Breakpoint hit: $breakpointId")
-        val liveBreakpoint = ProbeMemory.remove("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return@submit
+        val liveBreakpoint = ProbeMemory.removeLocal("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return
         if (log.isDebugEnable) log.debug("Live breakpoint: $liveBreakpoint")
 
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
-        localVariables.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getLocalVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
-        fields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getFieldVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
-        staticFields.remove(breakpointId)?.forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getStaticVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
             activeSpan.tag(
                 StringTag("spp.static-field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
@@ -128,14 +112,14 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putLog(logId: String?, logFormat: String?, vararg logArguments: String?) = executor.submit {
+    fun putLog(logId: String, logFormat: String?, vararg logArguments: String?) {
         if (log.isDebugEnable) log.debug("Log hit: $logId")
-        val liveLog = ProbeMemory.remove("spp.live-instrument:$logId") as LiveLog? ?: return@submit
+        val liveLog = ProbeMemory.removeLocal("spp.live-instrument:$logId") as LiveLog? ?: return
         if (log.isDebugEnable) log.debug("Live log: $liveLog")
 
-        val localVars = localVariables.remove(logId)
-        val localFields = fields.remove(logId)
-        val localStaticFields = staticFields.remove(logId)
+        val localVars = ProbeMemory.getLocalVariables(logId)
+        val localFields = ProbeMemory.getFieldVariables(logId)
+        val localStaticFields = ProbeMemory.getStaticVariables(logId)
         val logTags = LogTags.newBuilder()
             .addData(
                 KeyStringValuePair.newBuilder()
@@ -152,11 +136,11 @@ object ContextReceiver {
         if (logArguments.isNotEmpty()) {
             for (i in logArguments.indices) {
                 //todo: is it smarter to pass localVariables[arg]?
-                var argValue = localVars?.get(logArguments[i])?.second
+                var argValue = localVars[logArguments[i]]?.second
                 if (argValue == null) {
-                    argValue = localFields?.get(logArguments[i])?.second
+                    argValue = localFields[logArguments[i]]?.second
                     if (argValue == null) {
-                        argValue = localStaticFields?.get(logArguments[i])?.second
+                        argValue = localStaticFields[logArguments[i]]?.second
                     }
                 }
                 val value = Optional.ofNullable(argValue).orElse("null")
@@ -187,10 +171,12 @@ object ContextReceiver {
     }
 
     @JvmStatic
-    fun putMeter(meterId: String) = executor.submit {
+    fun putMeter(meterId: String) {
         if (log.isDebugEnable) log.debug("Meter hit: $meterId")
-        val liveMeter = ProbeMemory.remove("spp.live-instrument:$meterId") as LiveMeter? ?: return@submit
+        val liveMeter = ProbeMemory.removeLocal("spp.live-instrument:$meterId") as LiveMeter? ?: return
         if (log.isDebugEnable) log.debug("Live meter: $liveMeter")
+
+        val contextMap = ContextReceiver[liveMeter.id!!, true]
 
         //calculate meter tags
         val tagMap = HashMap<String, String>()
@@ -198,8 +184,7 @@ object ContextReceiver {
             if (it.valueType == MeterTagValueType.VALUE) {
                 tagMap[it.key] = it.value
             } else if (it.valueType == MeterTagValueType.VALUE_EXPRESSION) {
-                val rootObject = ContextReceiver[liveMeter.id!!]
-                val context = StandardEvaluationContext(rootObject)
+                val context = StandardEvaluationContext(contextMap)
                 val expression = LiveInstrumentService.parser.parseExpression(it.value)
                 val value = try {
                     expression.getValue(context, Any::class.java)
@@ -212,11 +197,11 @@ object ContextReceiver {
         }
         val tagStr = tagMap.entries.joinToString(",") { "${it.key}=${it.value}" }
 
-        val baseMeter = ProbeMemory.computeIfAbsent("spp.base-meter:$meterId{$tagStr}") {
+        val baseMeter = ProbeMemory.computeGlobal("spp.base-meter:$meterId{$tagStr}") {
             log.info("Initial trigger of live meter: $meterId")
             when (liveMeter.meterType) {
                 MeterType.COUNT -> {
-                    return@computeIfAbsent MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
+                    return@computeGlobal MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
                         .mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
                         .apply {
                             tagMap.forEach {
@@ -233,20 +218,19 @@ object ContextReceiver {
                         val supplier = ObjectInputStream(
                             ByteArrayInputStream(decoded)
                         ).readObject() as Supplier<Double>
-                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
+                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
                             .apply {
                                 tagMap.forEach {
                                     tag(it.key, it.value)
                                 }
                             }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
-                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val rootObject = ContextReceiver[liveMeter.id!!]
-                            val context = StandardEvaluationContext(rootObject)
+                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                            val context = StandardEvaluationContext(contextMap)
                             val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
                             val value = expression.getValue(context, Any::class.java)
                             if (value is Number) {
-                                value?.toDouble() ?: 0.0
+                                value.toDouble()
                             } else {
                                 //todo: remove instrument
                                 log.error("Unsupported expression value type: ${value?.javaClass?.name}")
@@ -258,9 +242,8 @@ object ContextReceiver {
                             }
                         }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
-                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val rootObject = ContextReceiver[liveMeter.id!!]
-                            val context = StandardEvaluationContext(rootObject)
+                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                            val context = StandardEvaluationContext(contextMap)
                             val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
                             val value = expression.getValue(context, Any::class.java)
 
@@ -299,7 +282,7 @@ object ContextReceiver {
                             }
                         }.build()
                     } else {
-                        return@computeIfAbsent MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
+                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
                             liveMeter.metricValue!!.value.toDouble()
                         }.apply {
                             tagMap.forEach {
@@ -309,7 +292,7 @@ object ContextReceiver {
                     }
                 }
 
-                MeterType.HISTOGRAM -> return@computeIfAbsent MeterFactory.histogram(
+                MeterType.HISTOGRAM -> return@computeGlobal MeterFactory.histogram(
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
@@ -343,18 +326,18 @@ object ContextReceiver {
     @JvmStatic
     fun openLocalSpan(spanId: String) {
         if (log.isDebugEnable) log.debug("Open local span: $spanId")
-        val liveSpan = ProbeMemory.remove("spp.live-instrument:$spanId") as LiveSpan? ?: return
+        val liveSpan = ProbeMemory.removeLocal("spp.live-instrument:$spanId") as LiveSpan? ?: return
         if (log.isDebugEnable) log.debug("Live span: $liveSpan")
 
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
         activeSpan.tag(StringTag("spanId"), spanId)
-        ProbeMemory.put("spp.active-span:$spanId", activeSpan)
+        ProbeMemory.putLocal("spp.active-span:$spanId", activeSpan)
     }
 
     @JvmStatic
     fun closeLocalSpan(spanId: String, throwable: Throwable? = null) {
         if (log.isDebugEnable) log.debug("Close local span: $spanId")
-        val activeSpan = ProbeMemory.remove("spp.active-span:$spanId") as AbstractSpan? ?: return
+        val activeSpan = ProbeMemory.removeLocal("spp.active-span:$spanId") as AbstractSpan? ?: return
         if (log.isDebugEnable) log.debug("Active span: $activeSpan")
 
         throwable?.let { activeSpan.log(it) }

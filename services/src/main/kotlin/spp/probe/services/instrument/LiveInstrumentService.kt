@@ -268,7 +268,6 @@ object LiveInstrumentService {
     fun isHit(instrumentId: String): Boolean {
         val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle?.isRateLimited() == true) {
-            ContextReceiver.clear(instrumentId)
             return false
         }
         if (instrument.expression == null) {
@@ -278,7 +277,7 @@ object LiveInstrumentService {
             }
 
             //store instrument in probe memory, removed on ContextReceiver.put
-            ProbeMemory.put("spp.live-instrument:$instrumentId", instrument.instrument)
+            ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
             return true
         }
@@ -290,23 +289,21 @@ object LiveInstrumentService {
                 }
 
                 //store instrument in probe memory, removed on ContextReceiver.put
-                ProbeMemory.put("spp.live-instrument:$instrumentId", instrument.instrument)
+                ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
                 true
             } else {
-                ContextReceiver.clear(instrumentId)
                 false
             }
         } catch (e: Throwable) {
             log.warn(e, "Failed to evaluate condition: {}", instrument.instrument.condition)
-            ContextReceiver.clear(instrumentId)
             _removeInstrument(instrument.instrument, e)
             false
         }
     }
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
-        val rootObject = ContextReceiver[liveInstrument.instrument.id!!]
+        val rootObject = ContextReceiver[liveInstrument.instrument.id!!, false]
         val context = SimpleEvaluationContext.forReadWriteDataBinding()
             .withRootObject(rootObject).build()
         return liveInstrument.expression!!.getValue(context, Boolean::class.java)

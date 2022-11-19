@@ -22,24 +22,77 @@ import java.util.function.Function
 object ProbeMemory {
 
     private val memory: MutableMap<String, Any?> = ConcurrentHashMap()
+    private val localMemory: ThreadLocal<MutableMap<String, Any?>> = ThreadLocal.withInitial { HashMap() }
 
-    fun <T> computeIfAbsent(key: String, function: Function<String, T?>?): T? {
+    fun <T> computeGlobal(key: String, function: Function<String, T?>?): T? {
         return memory.computeIfAbsent(key, function!!) as T?
     }
 
-    operator fun get(key: String): Any? {
-        return memory[key]
+    fun putLocal(key: String, value: Any?) {
+        localMemory.get()[key] = value
     }
 
-    fun put(key: String, value: Any?) {
-        memory[key] = value
+    fun removeLocal(key: String): Any? {
+        return localMemory.get().remove(key)
     }
 
-    fun remove(key: String): Any? {
-        return memory.remove(key)
+    fun putLocalVariable(instrumentId: String, key: String, value: Pair<String, Any?>) {
+        val localVariableMap = localMemory.get().computeIfAbsent("localVariables:$instrumentId") {
+            HashMap<String, Pair<String, Any?>>()
+        } as HashMap<String, Pair<String, Any?>>
+        localVariableMap[key] = value
     }
 
-    fun clear() {
-        memory.clear()
+    fun getLocalVariables(instrumentId: String, removeData: Boolean = true): Map<String, Pair<String, Any?>> {
+        if (!removeData) {
+            return localMemory.get().getOrDefault(
+                "localVariables:$instrumentId",
+                emptyMap<String, Pair<String, Any?>>()
+            ) as Map<String, Pair<String, Any?>>
+        }
+
+        return localMemory.get().remove(
+            "localVariables:$instrumentId"
+        ) as Map<String, Pair<String, Any?>>? ?: HashMap()
+    }
+
+    fun putFieldVariable(instrumentId: String, key: String, value: Pair<String, Any?>) {
+        val fieldVariableMap = localMemory.get().computeIfAbsent("fieldVariables:$instrumentId") {
+            HashMap<String, Pair<String, Any?>>()
+        } as HashMap<String, Pair<String, Any?>>
+        fieldVariableMap[key] = value
+    }
+
+    fun getFieldVariables(instrumentId: String, removeData: Boolean = true): Map<String, Pair<String, Any?>> {
+        if (!removeData) {
+            return localMemory.get().getOrDefault(
+                "fieldVariables:$instrumentId",
+                emptyMap<String, Pair<String, Any?>>()
+            ) as Map<String, Pair<String, Any?>>
+        }
+
+        return localMemory.get().remove(
+            "fieldVariables:$instrumentId"
+        ) as Map<String, Pair<String, Any?>>? ?: HashMap()
+    }
+
+    fun putStaticVariable(instrumentId: String, key: String, value: Pair<String, Any?>) {
+        val staticVariableMap = localMemory.get().computeIfAbsent("staticVariables:$instrumentId") {
+            HashMap<String, Pair<String, Any?>>()
+        } as HashMap<String, Pair<String, Any?>>
+        staticVariableMap[key] = value
+    }
+
+    fun getStaticVariables(instrumentId: String, removeData: Boolean = true): Map<String, Pair<String, Any?>> {
+        if (!removeData) {
+            return localMemory.get().getOrDefault(
+                "staticVariables:$instrumentId",
+                emptyMap<String, Pair<String, Any?>>()
+            ) as Map<String, Pair<String, Any?>>
+        }
+
+        return localMemory.get().remove(
+            "staticVariables:$instrumentId"
+        ) as Map<String, Pair<String, Any?>>? ?: HashMap()
     }
 }
