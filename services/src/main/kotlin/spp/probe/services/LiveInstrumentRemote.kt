@@ -26,6 +26,7 @@ import spp.probe.ProbeConfiguration
 import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
+import spp.probe.services.common.ProbeMemory
 import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
@@ -76,7 +77,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         return try {
             LiveInstrumentService.isHit(instrumentId)
         } catch (e: Exception) {
-            log.error("Failed to check if breakpoint is hit", e)
+            log.error("Failed to check if instrument is hit", e)
             false
         }
     }
@@ -130,36 +131,24 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         throw throwable
     }
 
-    override fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
-        try {
-            ContextReceiver.putLocalVariable(instrumentId, key, value, type)
-        } catch (e: Exception) {
-            log.error("Failed to put local variable", e)
-        }
+    override fun putContext(instrumentId: String, key: String, value: Any) {
+        ProbeMemory.putContextVariable(instrumentId, key, Pair(value::class.java.name, value))
     }
 
-    override fun putField(instrumentId: String, key: String, value: Any?, type: String?) {
-        try {
-            ContextReceiver.putField(instrumentId, key, value, type!!)
-        } catch (e: Exception) {
-            log.error("Failed to put field", e)
-        }
+    override fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
+        ProbeMemory.putLocalVariable(instrumentId, key, Pair(type, value))
+    }
+
+    override fun putField(instrumentId: String, key: String, value: Any?, type: String) {
+        ProbeMemory.putFieldVariable(instrumentId, key, Pair(type, value))
     }
 
     override fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
-        try {
-            ContextReceiver.putStaticField(instrumentId, key, value, type)
-        } catch (e: Exception) {
-            log.error("Failed to put static field", e)
-        }
+        ProbeMemory.putStaticVariable(instrumentId, key, Pair(type, value))
     }
 
     override fun putReturn(instrumentId: String, value: Any?, type: String) {
-        try {
-            ContextReceiver.putReturn(instrumentId, value, type)
-        } catch (e: Exception) {
-            log.error("Failed to put return", e)
-        }
+        ProbeMemory.putLocalVariable(instrumentId, "@return", Pair(type, value))
     }
 
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {

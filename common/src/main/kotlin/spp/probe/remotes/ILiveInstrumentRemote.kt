@@ -27,8 +27,9 @@ abstract class ILiveInstrumentRemote : AbstractVerticle() {
     abstract fun openLocalSpan(spanId: String)
     abstract fun closeLocalSpan(spanId: String)
     abstract fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable
+    abstract fun putContext(instrumentId: String, key: String, value: Any)
     abstract fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String)
-    abstract fun putField(instrumentId: String, key: String, value: Any?, type: String?)
+    abstract fun putField(instrumentId: String, key: String, value: Any?, type: String)
     abstract fun putStaticField(instrumentId: String, key: String, value: Any?, type: String)
     abstract fun putReturn(instrumentId: String, value: Any?, type: String)
 }

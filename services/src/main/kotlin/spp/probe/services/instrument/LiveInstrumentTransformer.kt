@@ -28,11 +28,12 @@ import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.meter.MeterTagValueType
+import spp.protocol.instrument.meter.MeterType
 
 class LiveInstrumentTransformer(
     private val className: String,
-    methodName: String,
-    desc: String,
+    private val methodName: String,
+    private val desc: String,
     private val access: Int,
     private val classMetadata: ClassMetadata,
     mv: MethodVisitor
@@ -49,6 +50,7 @@ class LiveInstrumentTransformer(
         private val REMOTE_CHECK_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "isHit" })
         private val REMOTE_SAVE_VAR_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putField" })
         private val REMOTE_PUT_RETURN_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putReturn" })
+        private val REMOTE_PUT_CONTEXT_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putContext" })
         private val PUT_BREAKPOINT_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putBreakpoint" })
         private val PUT_LOG_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putLog" })
         private val PUT_METER_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putMeter" })
@@ -120,12 +122,9 @@ class LiveInstrumentTransformer(
                 }
 
                 is LiveLog -> {
-                    val log = instrument.instrument
-                    if (log.logArguments.isNotEmpty() || instrument.expression != null) {
-                        captureSnapshot(log.id!!, line)
-                    }
-                    isHit(log.id!!, instrumentLabel)
-                    putLog(log)
+                    captureSnapshot(instrument.instrument.id!!, line)
+                    isHit(instrument.instrument.id!!, instrumentLabel)
+                    putLog(instrument.instrument)
                 }
 
                 is LiveMeter -> {
@@ -156,6 +155,7 @@ class LiveInstrumentTransformer(
     }
 
     private fun captureSnapshot(instrumentId: String, line: Int) {
+        addContext(instrumentId)
         addLocals(instrumentId, line)
         addStaticFields(instrumentId)
         addFields(instrumentId)
@@ -170,6 +170,28 @@ class LiveInstrumentTransformer(
             "isHit", REMOTE_CHECK_DESC, false
         )
         mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
+    }
+
+    private fun addContext(instrumentId: String) {
+        val contextVars = mutableMapOf<String, Any>()
+        contextVars["className"] = className.replace("/", ".")
+        contextVars["methodName"] = methodName
+        contextVars["methodDesc"] = desc
+        contextVars["lineNumber"] = line
+
+        contextVars.forEach {
+            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+
+            mv.visitLdcInsn(instrumentId)
+            mv.visitLdcInsn(it.key)
+            mv.visitLdcInsn(it.value)
+            boxIfNecessary(mv, getType(it.value::class.javaPrimitiveType ?: it.value::class.java).descriptor)
+
+            mv.visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                "putContext", REMOTE_PUT_CONTEXT_DESC, false
+            )
+        }
     }
 
     private fun addLocals(instrumentId: String, line: Int) {

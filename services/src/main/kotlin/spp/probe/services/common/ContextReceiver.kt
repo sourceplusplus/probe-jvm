@@ -41,7 +41,6 @@ import java.io.ObjectInputStream
 import java.util.*
 import java.util.function.Supplier
 
-@Suppress("unused")
 object ContextReceiver {
 
     private val log = LogManager.getLogger(ContextReceiver::class.java)
@@ -49,6 +48,8 @@ object ContextReceiver {
 
     operator fun get(instrumentId: String, removeData: Boolean): ContextMap {
         val contextMap = ContextMap()
+        contextMap.contextVariables = ProbeMemory.getContextVariables(instrumentId, removeData)
+            .map { it.key to it.value.second }.toMap()
         contextMap.localVariables = ProbeMemory.getLocalVariables(instrumentId, removeData)
             .map { it.key to it.value.second }.toMap()
         contextMap.fields = ProbeMemory.getFieldVariables(instrumentId, removeData)
@@ -58,27 +59,6 @@ object ContextReceiver {
         return contextMap
     }
 
-    @JvmStatic
-    fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putLocalVariable(instrumentId, key, Pair(type, value))
-    }
-
-    @JvmStatic
-    fun putField(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putFieldVariable(instrumentId, key, Pair(type, value))
-    }
-
-    @JvmStatic
-    fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putStaticVariable(instrumentId, key, Pair(type, value))
-    }
-
-    @JvmStatic
-    fun putReturn(instrumentId: String, value: Any?, type: String) {
-        ProbeMemory.putLocalVariable(instrumentId, "@return", Pair(type, value))
-    }
-
-    @JvmStatic
     fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
         if (log.isDebugEnable) log.debug("Breakpoint hit: $breakpointId")
         val liveBreakpoint = ProbeMemory.removeLocal("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return
@@ -111,16 +91,24 @@ object ContextReceiver {
         ContextManager.stopSpan(activeSpan)
     }
 
-    @JvmStatic
     fun putLog(logId: String, logFormat: String?, vararg logArguments: String?) {
         if (log.isDebugEnable) log.debug("Log hit: $logId")
         val liveLog = ProbeMemory.removeLocal("spp.live-instrument:$logId") as LiveLog? ?: return
         if (log.isDebugEnable) log.debug("Live log: $liveLog")
 
+        val contextVars = ProbeMemory.getContextVariables(logId)
         val localVars = ProbeMemory.getLocalVariables(logId)
         val localFields = ProbeMemory.getFieldVariables(logId)
         val localStaticFields = ProbeMemory.getStaticVariables(logId)
         val logTags = LogTags.newBuilder()
+            .addData(
+                KeyStringValuePair.newBuilder()
+                    .setKey("source").setValue(contextVars["className"]!!.second.toString()).build()
+            )
+            .addData(
+                KeyStringValuePair.newBuilder()
+                    .setKey("line").setValue(contextVars["lineNumber"]!!.second.toString()).build()
+            )
             .addData(
                 KeyStringValuePair.newBuilder()
                     .setKey("log_id").setValue(logId).build()
@@ -170,7 +158,6 @@ object ContextReceiver {
         logReport.produce(logData)
     }
 
-    @JvmStatic
     fun putMeter(meterId: String) {
         if (log.isDebugEnable) log.debug("Meter hit: $meterId")
         val liveMeter = ProbeMemory.removeLocal("spp.live-instrument:$meterId") as LiveMeter? ?: return
@@ -323,7 +310,6 @@ object ContextReceiver {
         }
     }
 
-    @JvmStatic
     fun openLocalSpan(spanId: String) {
         if (log.isDebugEnable) log.debug("Open local span: $spanId")
         val liveSpan = ProbeMemory.removeLocal("spp.live-instrument:$spanId") as LiveSpan? ?: return
@@ -334,7 +320,6 @@ object ContextReceiver {
         ProbeMemory.putLocal("spp.active-span:$spanId", activeSpan)
     }
 
-    @JvmStatic
     fun closeLocalSpan(spanId: String, throwable: Throwable? = null) {
         if (log.isDebugEnable) log.debug("Close local span: $spanId")
         val activeSpan = ProbeMemory.removeLocal("spp.active-span:$spanId") as AbstractSpan? ?: return

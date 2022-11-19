@@ -36,6 +36,26 @@ object ProbeMemory {
         return localMemory.get().remove(key)
     }
 
+    fun putContextVariable(instrumentId: String, key: String, value: Pair<String, Any?>) {
+        val contextVariableMap = localMemory.get().computeIfAbsent("contextVariables:$instrumentId") {
+            HashMap<String, Pair<String, Any?>>()
+        } as HashMap<String, Pair<String, Any?>>
+        contextVariableMap[key] = value
+    }
+
+    fun getContextVariables(instrumentId: String, removeData: Boolean = true): Map<String, Pair<String, Any?>> {
+        if (!removeData) {
+            return localMemory.get().getOrDefault(
+                "contextVariables:$instrumentId",
+                emptyMap<String, Pair<String, Any?>>()
+            ) as Map<String, Pair<String, Any?>>
+        }
+
+        return localMemory.get().remove(
+            "contextVariables:$instrumentId"
+        ) as Map<String, Pair<String, Any?>>? ?: HashMap()
+    }
+
     fun putLocalVariable(instrumentId: String, key: String, value: Pair<String, Any?>) {
         val localVariableMap = localMemory.get().computeIfAbsent("localVariables:$instrumentId") {
             HashMap<String, Pair<String, Any?>>()
