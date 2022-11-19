@@ -185,7 +185,7 @@ object ContextReceiver {
         val tagStr = tagMap.entries.joinToString(",") { "${it.key}=${it.value}" }
 
         val baseMeter = ProbeMemory.computeGlobal("spp.base-meter:$meterId{$tagStr}") {
-            log.info("Initial trigger of live meter: $meterId")
+            log.info("Initial trigger of live meter: $meterId. Tags: $tagStr")
             when (liveMeter.meterType) {
                 MeterType.COUNT -> {
                     return@computeGlobal MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
