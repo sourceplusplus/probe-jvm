@@ -34,6 +34,7 @@ import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
+import spp.protocol.view.rule.LiveViewRule
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
@@ -63,12 +64,25 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                47,
+                48,
                 "spp-test-probe"
             ),
             id = meterId,
             applyImmediately = true
         )
+
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = liveMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(".downsampling(LATEST)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
@@ -79,7 +93,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
                 ),
                 artifactLocation = LiveSourceLocation(
                     MeterGaugeTest::class.qualifiedName!!,
-                    47
+                    48
                 ),
                 viewConfig = LiveViewConfig(
                     "test",
@@ -128,12 +142,25 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                47,
+                48,
                 "spp-test-probe"
             ),
             id = meterId,
             applyImmediately = true
         )
+
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = liveMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(".downsampling(LATEST)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
@@ -144,7 +171,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
                 ),
                 artifactLocation = LiveSourceLocation(
                     MeterGaugeTest::class.qualifiedName!!,
-                    47
+                    48
                 ),
                 viewConfig = LiveViewConfig(
                     "test",

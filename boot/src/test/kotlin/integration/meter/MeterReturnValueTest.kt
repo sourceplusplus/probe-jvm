@@ -35,6 +35,7 @@ import spp.protocol.service.SourceServices
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
+import spp.protocol.view.rule.LiveViewRule
 
 class MeterReturnValueTest : ProbeIntegrationTest() {
 
@@ -58,6 +59,20 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             applyImmediately = true,
             hitLimit = 1
         )
+
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = liveMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(".sum(['service', 'instance'])")
+                    append(".downsampling(SUM)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
