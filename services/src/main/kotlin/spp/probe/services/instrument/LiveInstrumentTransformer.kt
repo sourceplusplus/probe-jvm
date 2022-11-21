@@ -23,12 +23,8 @@ import net.bytebuddy.jar.asm.Type.*
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.model.ClassMetadata
-import spp.protocol.instrument.LiveBreakpoint
-import spp.protocol.instrument.LiveLog
-import spp.protocol.instrument.LiveMeter
-import spp.protocol.instrument.LiveSpan
+import spp.protocol.instrument.*
 import spp.protocol.instrument.meter.MeterTagValueType
-import spp.protocol.instrument.meter.MeterType
 
 class LiveInstrumentTransformer(
     private val className: String,
@@ -54,6 +50,7 @@ class LiveInstrumentTransformer(
         private val PUT_BREAKPOINT_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putBreakpoint" })
         private val PUT_LOG_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putLog" })
         private val PUT_METER_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "putMeter" })
+        private val START_STOP_TIMER_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "startTimer" })
         private val OPEN_CLOSE_SPAN_DESC = getMethodDescriptor(REMOTE_CLASS.methods.find { it.name == "openLocalSpan" })
         private val CLOSE_AND_THROW_DESC = getMethodDescriptor(
             REMOTE_CLASS.methods.find { it.name == "closeLocalSpanAndThrowException" }
@@ -63,7 +60,7 @@ class LiveInstrumentTransformer(
     private val methodUniqueName = methodName + desc
     private var currentBeginLabel: Label? = null
     private var inOriginalCode = true
-    private var liveInstrument: LiveSpan? = null
+    private var methodInstrument: LiveInstrument? = null
     private var line = 0
 
     init {
@@ -94,11 +91,11 @@ class LiveInstrumentTransformer(
         }
 
         val qualifiedMethodName = "${className.replace("/", ".")}.$methodName(${qualifiedArgs.joinToString(",")})"
-        val activeSpans = LiveInstrumentService.getInstruments(qualifiedMethodName)
-        if (activeSpans.size == 1) {
-            liveInstrument = activeSpans[0].instrument as LiveSpan
-        } else if (activeSpans.size > 1) {
-            log.warn("Multiple live spans found for $qualifiedMethodName")
+        val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName)
+        if (methodInstruments.size == 1) {
+            methodInstrument = methodInstruments[0].instrument
+        } else if (methodInstruments.size > 1) {
+            log.warn("Multiple method live instruments found for $qualifiedMethodName")
             TODO()
         }
     }
@@ -141,6 +138,26 @@ class LiveInstrumentTransformer(
             mv.visitLabel(Label())
             mv.visitLabel(instrumentLabel)
         }
+    }
+
+    private fun startTimer(meterId: String) {
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+
+        mv.visitLdcInsn(meterId)
+        mv.visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            "startTimer", START_STOP_TIMER_DESC, false
+        )
+    }
+
+    private fun stopTimer(meterId: String) {
+        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+
+        mv.visitLdcInsn(meterId)
+        mv.visitMethodInsn(
+            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+            "stopTimer", START_STOP_TIMER_DESC, false
+        )
     }
 
     private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: Label) {
@@ -302,7 +319,7 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitCode() {
-        if (liveInstrument is LiveSpan) {
+        if (methodInstrument != null) {
             try {
                 inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
@@ -365,7 +382,12 @@ class LiveInstrumentTransformer(
                                 captureSnapshot(instrument.instrument.id!!, line)
 
                                 //use putReturn to capture return value
-                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitFieldInsn(
+                                    Opcodes.GETSTATIC,
+                                    PROBE_INTERNAL_NAME,
+                                    REMOTE_FIELD,
+                                    REMOTE_DESCRIPTOR
+                                )
                                 mv.visitInsn(Opcodes.SWAP)
 
                                 val type = getMethodType(methodUniqueName).returnType
@@ -391,7 +413,12 @@ class LiveInstrumentTransformer(
                                 captureSnapshot(instrument.instrument.id!!, line)
 
                                 //use putReturn to capture return value
-                                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                                mv.visitFieldInsn(
+                                    Opcodes.GETSTATIC,
+                                    PROBE_INTERNAL_NAME,
+                                    REMOTE_FIELD,
+                                    REMOTE_DESCRIPTOR
+                                )
                                 mv.visitInsn(Opcodes.SWAP)
 
                                 val type = getMethodType(methodUniqueName).returnType
@@ -415,7 +442,7 @@ class LiveInstrumentTransformer(
             }
         }
 
-        if (liveInstrument is LiveSpan) {
+        if (methodInstrument != null) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
                     inOriginalCode = false
@@ -430,13 +457,15 @@ class LiveInstrumentTransformer(
                     inOriginalCode = true
                 }
             } else if (inOriginalCode && opcode == Opcodes.ATHROW) {
-                mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+                if (methodInstrument is LiveSpan) {
+                    mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-                visitLdcInsn(liveInstrument!!.id)
-                visitMethodInsn(
-                    Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
-                    "closeLocalSpanAndThrowException", CLOSE_AND_THROW_DESC, false
-                )
+                    visitLdcInsn(methodInstrument!!.id)
+                    visitMethodInsn(
+                        Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                        "closeLocalSpanAndThrowException", CLOSE_AND_THROW_DESC, false
+                    )
+                }
 
                 try {
                     inOriginalCode = false
@@ -472,23 +501,31 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        if (methodInstrument is LiveSpan) {
+            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-        visitLdcInsn(liveInstrument!!.id)
-        visitMethodInsn(
-            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
-            "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
-        )
+            visitLdcInsn(methodInstrument!!.id)
+            visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
+            )
+        } else {
+            startTimer(methodInstrument!!.id!!)
+        }
     }
 
     private fun execVisitFinallyBlock() {
-        mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
+        if (methodInstrument is LiveSpan) {
+            mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-        visitLdcInsn(liveInstrument!!.id)
-        visitMethodInsn(
-            Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
-            "closeLocalSpan", OPEN_CLOSE_SPAN_DESC, false
-        )
+            visitLdcInsn(methodInstrument!!.id)
+            visitMethodInsn(
+                Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
+                "closeLocalSpan", OPEN_CLOSE_SPAN_DESC, false
+            )
+        } else {
+            stopTimer(methodInstrument!!.id!!)
+        }
     }
 
     private fun getQualifiedPrimitive(char: Char): String? {

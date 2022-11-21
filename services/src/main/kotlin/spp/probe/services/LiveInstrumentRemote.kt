@@ -151,6 +151,22 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         ProbeMemory.putLocalVariable(instrumentId, "@return", Pair(type, value))
     }
 
+    override fun startTimer(meterId: String) {
+        try {
+            ContextReceiver.startTimer(meterId)
+        } catch (e: Exception) {
+            log.error("Failed to start timer", e)
+        }
+    }
+
+    override fun stopTimer(meterId: String) {
+        try {
+            ContextReceiver.stopTimer(meterId)
+        } catch (e: Exception) {
+            log.error("Failed to stop timer", e)
+        }
+    }
+
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {
         try {
             val command = LiveInstrumentCommand(it.body())

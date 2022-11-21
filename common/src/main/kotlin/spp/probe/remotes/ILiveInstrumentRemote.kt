@@ -32,4 +32,6 @@ abstract class ILiveInstrumentRemote : AbstractVerticle() {
     abstract fun putField(instrumentId: String, key: String, value: Any?, type: String)
     abstract fun putStaticField(instrumentId: String, key: String, value: Any?, type: String)
     abstract fun putReturn(instrumentId: String, value: Any?, type: String)
+    abstract fun startTimer(meterId: String)
+    abstract fun stopTimer(meterId: String)
 }

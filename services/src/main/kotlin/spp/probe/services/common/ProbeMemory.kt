@@ -24,8 +24,8 @@ object ProbeMemory {
     private val memory: MutableMap<String, Any?> = ConcurrentHashMap()
     private val localMemory: ThreadLocal<MutableMap<String, Any?>> = ThreadLocal.withInitial { HashMap() }
 
-    fun <T> computeGlobal(key: String, function: Function<String, T?>?): T? {
-        return memory.computeIfAbsent(key, function!!) as T?
+    fun <T> computeGlobal(key: String, function: Function<String, T?>): T {
+        return memory.computeIfAbsent(key, function) as T
     }
 
     fun putLocal(key: String, value: Any?) {

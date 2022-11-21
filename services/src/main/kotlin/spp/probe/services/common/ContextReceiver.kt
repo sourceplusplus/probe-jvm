@@ -329,6 +329,31 @@ object ContextReceiver {
         ContextManager.stopSpan(activeSpan)
     }
 
+    fun startTimer(meterId: String) {
+        val liveMeter = LiveInstrumentService.getInstrument(meterId) as LiveMeter? ?: return
+        if (log.isTraceEnabled) log.trace("Live meter (startTimer): $liveMeter")
+        ProbeMemory.putLocal("spp.active-timer:$meterId", System.currentTimeMillis())
+
+        ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-meter") {
+            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_meter").apply {
+                mode(CounterMode.RATE)
+            }.build()
+        }.increment(1.0)
+    }
+
+    fun stopTimer(meterId: String) {
+        val liveMeter = LiveInstrumentService.getInstrument(meterId) as LiveMeter? ?: return
+        if (log.isTraceEnabled) log.trace("Live meter (stopTimer): $liveMeter")
+        val startTime = ProbeMemory.removeLocal("spp.active-timer:$meterId") as Long
+        val duration = System.currentTimeMillis() - startTime
+
+        ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-sum") {
+            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_duration_sum").apply {
+                mode(CounterMode.RATE)
+            }.build()
+        }.increment(duration.toDouble())
+    }
+
     private fun encodeObject(breakpoint: LiveBreakpoint, varName: String, varData: Pair<String, Any?>): String? {
         val value = varData.second ?: return String.format(
             "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s}", varData.first, null

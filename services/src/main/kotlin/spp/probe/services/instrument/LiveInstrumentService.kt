@@ -256,6 +256,10 @@ object LiveInstrumentService {
         return ArrayList(instruments)
     }
 
+    fun getInstrument(instrumentId: String): LiveInstrument? {
+        return instruments[instrumentId]?.instrument
+    }
+
     fun isInstrumentEnabled(instrumentId: String): Boolean {
         val applied = instruments.containsKey(instrumentId)
         return if (applied) {
