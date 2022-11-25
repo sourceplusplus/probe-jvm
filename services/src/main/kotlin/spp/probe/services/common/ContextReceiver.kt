@@ -331,8 +331,8 @@ object ContextReceiver {
 
     fun startTimer(meterId: String) {
         val liveMeter = LiveInstrumentService.getInstrument(meterId) as LiveMeter? ?: return
-        if (log.isTraceEnabled) log.trace("Live meter (startTimer): $liveMeter")
         ProbeMemory.putLocal("spp.active-timer:$meterId", System.currentTimeMillis())
+        if (log.isTraceEnabled) log.trace("Live meter (startTimer): $liveMeter")
 
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-meter") {
             MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_meter").apply {
@@ -343,10 +343,10 @@ object ContextReceiver {
 
     fun stopTimer(meterId: String) {
         val liveMeter = LiveInstrumentService.getInstrument(meterId) as LiveMeter? ?: return
+        val startTime = ProbeMemory.removeLocal("spp.active-timer:$meterId") as Long? ?: return
         if (log.isTraceEnabled) log.trace("Live meter (stopTimer): $liveMeter")
-        val startTime = ProbeMemory.removeLocal("spp.active-timer:$meterId") as Long
-        val duration = System.currentTimeMillis() - startTime
 
+        val duration = System.currentTimeMillis() - startTime
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-sum") {
             MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_duration_sum").apply {
                 mode(CounterMode.RATE)
