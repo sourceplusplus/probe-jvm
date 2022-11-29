@@ -32,7 +32,7 @@ import kotlin.system.exitProcess
 object ProbeConfiguration {
 
     val PROBE_DIRECTORY by lazy {
-        getString("probe_directory")?.let { File(it) }
+        getString("install_directory")?.let { File(it) }
             ?: File(System.getProperty("java.io.tmpdir"), "spp-probe")
     }
 
