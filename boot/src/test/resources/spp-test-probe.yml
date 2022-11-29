@@ -2,6 +2,7 @@ spp:
   platform_host: ${SPP_PROBE_PLATFORM_HOST:-localhost}
   platform_port: ${SPP_PROBE_PLATFORM_PORT:-12800}
   quiet_mode: ${SPP_PROBE_QUIET_MODE:-false}
+  install_directory: ${SPP_PROBE_INSTALL_DIRECTORY:-/tmp/spp-probe}
 skywalking:
   logging:
     level: ${SW_LOGGING_LEVEL:-INFO}

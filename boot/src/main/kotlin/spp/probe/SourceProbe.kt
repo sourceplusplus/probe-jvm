@@ -30,6 +30,7 @@ import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.logging.core.LogLevel
+import spp.probe.ProbeConfiguration.PROBE_DIRECTORY
 import spp.probe.ProbeConfiguration.PROBE_ID
 import spp.probe.ProbeConfiguration.instrumentation
 import spp.probe.ProbeConfiguration.probeMessageHeaders
@@ -56,10 +57,6 @@ import java.util.zip.ZipInputStream
 object SourceProbe {
 
     private val BUILD = ResourceBundle.getBundle("probe_build")
-    private var PROBE_DIRECTORY = File(
-        if (System.getProperty("os.name").lowercase().startsWith("mac"))
-            "/tmp" else System.getProperty("java.io.tmpdir"), "spp-probe"
-    )
 
     @JvmField
     var vertx: Vertx? = null
