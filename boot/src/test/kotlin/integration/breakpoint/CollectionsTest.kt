@@ -52,7 +52,7 @@ class CollectionsTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun testCollections() = runBlocking {
+    fun testCollections(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {

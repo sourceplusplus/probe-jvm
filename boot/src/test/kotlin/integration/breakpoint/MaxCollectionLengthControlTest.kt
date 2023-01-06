@@ -45,7 +45,7 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun testVariableControl() = runBlocking {
+    fun testVariableControl(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {

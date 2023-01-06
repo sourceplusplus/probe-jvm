@@ -45,7 +45,7 @@ class ProbeLogTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun testPrimitives() = runBlocking {
+    fun testPrimitives(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
