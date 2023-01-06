@@ -104,7 +104,7 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxObjectSizeControlTest::class.qualifiedName!!, 41),
+                    location = LiveSourceLocation(MaxObjectSizeControlTest::class.qualifiedName!!, 42),
                     applyImmediately = true
                 )
             ).await()
