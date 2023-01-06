@@ -59,11 +59,14 @@ object ObjectLifespanMonitor {
 
     /**
      * Get the total lifespan of all objects of the given type.
-     * @param obj the class of the object
+     *
+     * @param obj the type of object
+     * @param reset whether to reset the total lifespan after getting it
+     * @return the total lifespan of all objects of the given type
      */
-    fun getLifespan(obj: Any, getAndRemove: Boolean = true): Double {
+    fun getLifespan(obj: Any, reset: Boolean = true): Double {
         val objectClass = obj.javaClass
-        return if (getAndRemove) {
+        return if (reset) {
             (totalLifespan.remove(objectClass) ?: 0L).toDouble() * 100.0
         } else {
             (totalLifespan[objectClass] ?: 0L).toDouble() * 100.0
