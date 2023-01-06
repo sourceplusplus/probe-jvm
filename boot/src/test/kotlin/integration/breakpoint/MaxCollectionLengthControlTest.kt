@@ -136,7 +136,7 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxCollectionLengthControlTest::class.qualifiedName!!, 44),
+                    location = LiveSourceLocation(MaxCollectionLengthControlTest::class.qualifiedName!!, 45),
                     applyImmediately = true
                 )
             ).await()
