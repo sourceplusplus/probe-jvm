@@ -192,24 +192,16 @@ object ContextReceiver {
                 MeterType.COUNT -> {
                     return@computeGlobal MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
                         .mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
-                        .apply {
-                            tagMap.forEach {
-                                tag(it.key, it.value)
-                            }
-                        }.build()
+                        .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                 }
 
                 MeterType.GAUGE -> {
                     if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
                         val supplier: Supplier<Double> = Supplier<Double> {
-                            0.0
+                            ObjectLifespanMonitor.getLifespan(thisObject!!, false)
                         }
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
-                            .apply {
-                                tagMap.forEach {
-                                    tag(it.key, it.value)
-                                }
-                            }.build()
+                            .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
                         val decoded = Base64.getDecoder().decode(liveMeter.metricValue!!.value)
 
@@ -218,11 +210,7 @@ object ContextReceiver {
                             ByteArrayInputStream(decoded)
                         ).readObject() as Supplier<Double>
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
-                            .apply {
-                                tagMap.forEach {
-                                    tag(it.key, it.value)
-                                }
-                            }.build()
+                            .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
                             val context = StandardEvaluationContext(contextMap)
@@ -235,11 +223,7 @@ object ContextReceiver {
                                 log.error("Unsupported expression value type: ${value?.javaClass?.name}")
                                 Double.MIN_VALUE
                             }
-                        }.apply {
-                            tagMap.forEach {
-                                tag(it.key, it.value)
-                            }
-                        }.build()
+                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
                             val context = StandardEvaluationContext(contextMap)
@@ -275,19 +259,11 @@ object ContextReceiver {
                             logReport.produce(logData)
 
                             Double.MIN_VALUE
-                        }.apply {
-                            tagMap.forEach {
-                                tag(it.key, it.value)
-                            }
-                        }.build()
+                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else {
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
                             liveMeter.metricValue!!.value.toDouble()
-                        }.apply {
-                            tagMap.forEach {
-                                tag(it.key, it.value)
-                            }
-                        }.build()
+                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     }
                 }
 
@@ -295,11 +271,7 @@ object ContextReceiver {
                     "histogram_" + meterId.replace("-", "_")
                 )
                     .steps(listOf(0.0)) //todo: dynamic
-                    .apply {
-                        tagMap.forEach {
-                            tag(it.key, it.value)
-                        }
-                    }.build()
+                    .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
 
                 else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
             }
@@ -308,12 +280,18 @@ object ContextReceiver {
             MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
             } else if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
-                (baseMeter as Counter).increment(ObjectLifespanMonitor.monitor(thisObject!!))
+                ObjectLifespanMonitor.monitor(thisObject!!)
+                (baseMeter as Counter).increment(ObjectLifespanMonitor.getLifespan(thisObject))
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
 
-            MeterType.GAUGE -> {}
+            MeterType.GAUGE -> {
+                if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+                    ObjectLifespanMonitor.monitor(thisObject!!)
+                }
+            }
+
             MeterType.HISTOGRAM -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Histogram).addValue(liveMeter.metricValue!!.value.toDouble())
             } else {

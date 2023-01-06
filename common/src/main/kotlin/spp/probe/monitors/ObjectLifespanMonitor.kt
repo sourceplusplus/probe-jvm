@@ -41,9 +41,8 @@ object ObjectLifespanMonitor {
      * Add an object to be monitored.
      *
      * @param obj the object to be monitored
-     * @return the total lifespan of all objects of the given type
      */
-    fun monitor(obj: Any): Double {
+    fun monitor(obj: Any) {
         val objectClass = obj.javaClass
 
         var ref: Reference<*>? = null
@@ -56,8 +55,19 @@ object ObjectLifespanMonitor {
         //object created
         ref = PhantomReference(obj, queue)
         monitoredObjects[System.identityHashCode(ref)] = Pair(ref!!, MonitorTimer.time)
+    }
 
-        return (totalLifespan.remove(objectClass) ?: 0L).toDouble() * 100.0
+    /**
+     * Get the total lifespan of all objects of the given type.
+     * @param obj the class of the object
+     */
+    fun getLifespan(obj: Any, getAndRemove: Boolean = true): Double {
+        val objectClass = obj.javaClass
+        return if (getAndRemove) {
+            (totalLifespan.remove(objectClass) ?: 0L).toDouble() * 100.0
+        } else {
+            (totalLifespan[objectClass] ?: 0L).toDouble() * 100.0
+        }
     }
 
     private class MonitorTimer : Thread() {

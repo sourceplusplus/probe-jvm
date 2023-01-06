@@ -50,8 +50,8 @@ class MeterMonitorTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun `object lifespan`(): Unit = runBlocking {
-        val meterId = "object-lifespan-" + System.currentTimeMillis()
+    fun `object lifespan count`(): Unit = runBlocking {
+        val meterId = "object-lifespan-count"
 
         val liveMeter = LiveMeter(
             MeterType.COUNT,
@@ -85,7 +85,80 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                     type = ArtifactType.METHOD
                 ),
                 artifactLocation = LiveSourceLocation(
+                    LifespanObject::class.java.name
+                ),
+                viewConfig = LiveViewConfig(
+                    "test",
+                    listOf(liveMeter.toMetricId())
+                )
+            )
+        ).await().subscriptionId!!
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(
+            toLiveViewSubscriberAddress("system")
+        )
+
+        val testContext = VertxTestContext()
+        consumer.handler {
+            val liveViewEvent = LiveViewEvent(it.body())
+            val rawMetrics = JsonObject(liveViewEvent.metricsData)
+            testContext.verify {
+                val meta = rawMetrics.getJsonObject("meta")
+                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+
+                assertEquals(1000.0, rawMetrics.getDouble("value"), 1500.0)
+            }
+            testContext.completeNow()
+        }.completionHandler().await()
+
+        instrumentService.addLiveInstrument(liveMeter).await()
+
+        doTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(viewService.removeLiveView(subscriptionId).await())
+    }
+
+    @Test
+    fun `object lifespan gauge`(): Unit = runBlocking {
+        val meterId = "object-lifespan-gauge"
+
+        val liveMeter = LiveMeter(
+            MeterType.GAUGE,
+            MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
+            location = LiveSourceLocation(
+                LifespanObject::class.java.name,
+                service = "spp-test-probe"
+            ),
+            id = meterId,
+            applyImmediately = true
+        )
+
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = liveMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(".downsampling(LATEST)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
+
+        val subscriptionId = viewService.addLiveView(
+            LiveView(
+                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                artifactQualifiedName = ArtifactQualifiedName(
                     LifespanObject::class.java.name,
+                    type = ArtifactType.METHOD
+                ),
+                artifactLocation = LiveSourceLocation(
+                    LifespanObject::class.java.name
                 ),
                 viewConfig = LiveViewConfig(
                     "test",
