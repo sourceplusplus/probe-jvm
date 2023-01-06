@@ -99,10 +99,9 @@ class LiveInstrumentTransformer(
         val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName).toMutableList()
 
         //add constructor monitor meters
-        methodInstruments += LiveInstrumentService.applyingInstruments.filterValues {
-            it.instrument.location.source == qualifiedClassName &&
-                    (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
-        }.mapNotNull { it.value }
+        methodInstruments += LiveInstrumentService.getInstruments(qualifiedClassName).filter {
+            (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
+        }
 
         if (methodInstruments.size == 1) {
             methodActiveInstrument = methodInstruments[0]

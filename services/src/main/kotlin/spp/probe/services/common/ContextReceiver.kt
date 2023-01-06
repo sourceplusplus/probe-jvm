@@ -164,7 +164,7 @@ object ContextReceiver {
         val liveMeter = ProbeMemory.removeLocal("spp.live-instrument:$meterId") as LiveMeter? ?: return
         if (log.isDebugEnable) log.debug("Live meter: $liveMeter")
 
-        val thisObject = ProbeMemory.getLocalVariables(meterId, false)["this"]?.second!!
+        val thisObject = ProbeMemory.getLocalVariables(meterId, false)["this"]?.second
         val contextMap = ContextReceiver[liveMeter.id!!, true]
 
         //calculate meter tags
@@ -308,7 +308,7 @@ object ContextReceiver {
             MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
             } else if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
-                (baseMeter as Counter).increment(ObjectLifespanMonitor.monitor(thisObject))
+                (baseMeter as Counter).increment(ObjectLifespanMonitor.monitor(thisObject!!))
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }

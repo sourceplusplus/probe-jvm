@@ -47,7 +47,7 @@ object LiveInstrumentService {
 
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
-    val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
+    private val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
     internal val instrumentsMap: Map<String, ActiveLiveInstrument>
         get() = HashMap(instruments)
@@ -213,7 +213,7 @@ object LiveInstrumentService {
         return emptyList()
     }
 
-    fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+    private fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
         if (ex != null) {
             log.warn(ex, "Removing erroneous live instrument: {}", instrument)
         } else {
