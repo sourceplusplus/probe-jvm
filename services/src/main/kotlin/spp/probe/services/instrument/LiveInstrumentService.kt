@@ -47,7 +47,7 @@ object LiveInstrumentService {
 
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
-    private val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
+    val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
     internal val instrumentsMap: Map<String, ActiveLiveInstrument>
         get() = HashMap(instruments)

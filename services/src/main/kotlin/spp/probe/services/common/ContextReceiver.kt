@@ -31,6 +31,7 @@ import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
 import org.springframework.expression.spel.support.StandardEvaluationContext
+import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
 import spp.protocol.instrument.meter.MeterTagValueType
@@ -163,6 +164,7 @@ object ContextReceiver {
         val liveMeter = ProbeMemory.removeLocal("spp.live-instrument:$meterId") as LiveMeter? ?: return
         if (log.isDebugEnable) log.debug("Live meter: $liveMeter")
 
+        val thisObject = ProbeMemory.getLocalVariables(meterId, false)["this"]?.second!!
         val contextMap = ContextReceiver[liveMeter.id!!, true]
 
         //calculate meter tags
@@ -198,7 +200,17 @@ object ContextReceiver {
                 }
 
                 MeterType.GAUGE -> {
-                    if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
+                    if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+                        val supplier: Supplier<Double> = Supplier<Double> {
+                            0.0
+                        }
+                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
+                            .apply {
+                                tagMap.forEach {
+                                    tag(it.key, it.value)
+                                }
+                            }.build()
+                    } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
                         val decoded = Base64.getDecoder().decode(liveMeter.metricValue!!.value)
 
                         @Suppress("UNCHECKED_CAST")
@@ -295,6 +307,8 @@ object ContextReceiver {
         when (liveMeter.meterType) {
             MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
+            } else if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+                (baseMeter as Counter).increment(ObjectLifespanMonitor.monitor(thisObject))
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }

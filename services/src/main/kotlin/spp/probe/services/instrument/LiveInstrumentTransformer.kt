@@ -27,6 +27,7 @@ import spp.probe.services.common.model.ClassMetadata
 import spp.protocol.instrument.*
 import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MetricValueType
 
 class LiveInstrumentTransformer(
     private val className: String,
@@ -93,8 +94,16 @@ class LiveInstrumentTransformer(
             }
         }
 
-        val qualifiedMethodName = "${className.replace("/", ".")}.$methodName(${qualifiedArgs.joinToString(",")})"
-        val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName)
+        val qualifiedClassName = className.replace('/', '.')
+        val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
+        val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName).toMutableList()
+
+        //add constructor monitor meters
+        methodInstruments += LiveInstrumentService.applyingInstruments.filterValues {
+            it.instrument.location.source == qualifiedClassName &&
+                    (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
+        }.mapNotNull { it.value }
+
         if (methodInstruments.size == 1) {
             methodActiveInstrument = methodInstruments[0]
             methodInstrument = methodInstruments[0].instrument
@@ -457,6 +466,8 @@ class LiveInstrumentTransformer(
             if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
                 captureSnapshot(meter.id!!, line)
             } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                captureSnapshot(meter.id!!, line)
+            } else if (meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
                 captureSnapshot(meter.id!!, line)
             }
             isHit(meter.id!!, instrumentLabel)
