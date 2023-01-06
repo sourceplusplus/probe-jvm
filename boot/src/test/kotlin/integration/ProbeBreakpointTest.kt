@@ -65,7 +65,7 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation("integration.ProbeBreakpointTest", 45),
+                    location = LiveSourceLocation(ProbeBreakpointTest::class.java.name, 45),
                     applyImmediately = true
                 )
             ).await()

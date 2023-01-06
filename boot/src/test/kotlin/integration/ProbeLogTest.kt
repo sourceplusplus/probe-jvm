@@ -66,7 +66,7 @@ class ProbeLogTest : ProbeIntegrationTest() {
                 LiveLog(
                     logFormat = "{} {} {}",
                     logArguments = listOf("a", "b", "c"),
-                    location = LiveSourceLocation("integration.ProbeLogTest", 45),
+                    location = LiveSourceLocation(ProbeLogTest::class.java.name, 45),
                     applyImmediately = true
                 )
             ).await()
