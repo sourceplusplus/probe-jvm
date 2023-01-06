@@ -22,9 +22,11 @@ import net.bytebuddy.jar.asm.Opcodes
 import net.bytebuddy.jar.asm.Type.*
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
+import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.model.ClassMetadata
 import spp.protocol.instrument.*
 import spp.protocol.instrument.meter.MeterTagValueType
+import spp.protocol.instrument.meter.MeterType
 
 class LiveInstrumentTransformer(
     private val className: String,
@@ -60,6 +62,7 @@ class LiveInstrumentTransformer(
     private val methodUniqueName = methodName + desc
     private var currentBeginLabel: Label? = null
     private var inOriginalCode = true
+    private var methodActiveInstrument: ActiveLiveInstrument? = null
     private var methodInstrument: LiveInstrument? = null
     private var line = 0
 
@@ -93,6 +96,7 @@ class LiveInstrumentTransformer(
         val qualifiedMethodName = "${className.replace("/", ".")}.$methodName(${qualifiedArgs.joinToString(",")})"
         val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName)
         if (methodInstruments.size == 1) {
+            methodActiveInstrument = methodInstruments[0]
             methodInstrument = methodInstruments[0].instrument
         } else if (methodInstruments.size > 1) {
             log.warn("Multiple method live instruments found for $qualifiedMethodName")
@@ -442,7 +446,7 @@ class LiveInstrumentTransformer(
             }
         }
 
-        if (methodInstrument != null) {
+        if (methodInstrument is LiveSpan) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
                     inOriginalCode = false
@@ -476,6 +480,26 @@ class LiveInstrumentTransformer(
             } else {
                 super.visitInsn(opcode)
             }
+        } else if (methodInstrument is LiveMeter) {
+            if (opcode == Opcodes.RETURN) {
+                val instrument = methodActiveInstrument!!
+                val meter = instrument.instrument as LiveMeter
+
+                val instrumentLabel = Label()
+                isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
+
+                if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
+                    captureSnapshot(meter.id!!, line)
+                } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                    captureSnapshot(meter.id!!, line)
+                }
+                isHit(meter.id!!, instrumentLabel)
+                putMeter(meter)
+
+                mv.visitLabel(Label())
+                mv.visitLabel(instrumentLabel)
+            }
+            super.visitInsn(opcode)
         } else {
             super.visitInsn(opcode)
         }
@@ -509,7 +533,7 @@ class LiveInstrumentTransformer(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-        } else {
+        } else if ((methodInstrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER) {
             startTimer(methodInstrument!!.id!!)
         }
     }
