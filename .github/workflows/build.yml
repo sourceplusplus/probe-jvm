@@ -17,6 +17,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     strategy:
+      fail-fast: false
       matrix:
         java: [ '8', '11', '17' ]
     timeout-minutes: 10
@@ -30,7 +31,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: ${{ matrix.java }}
-          distribution: 'adopt'
+          distribution: 'temurin'
           cache: gradle
 
       - name: Export Properties
