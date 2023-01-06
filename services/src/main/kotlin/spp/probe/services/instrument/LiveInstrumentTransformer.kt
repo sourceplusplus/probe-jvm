@@ -446,7 +446,27 @@ class LiveInstrumentTransformer(
             }
         }
 
-        if (methodInstrument is LiveSpan) {
+        val isLiveMeter = methodInstrument as? LiveMeter != null
+        if (isLiveMeter && (methodInstrument as LiveMeter).meterType != MeterType.METHOD_TIMER) {
+            val instrument = methodActiveInstrument!!
+            val meter = instrument.instrument as LiveMeter
+
+            val instrumentLabel = Label()
+            isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
+
+            if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
+                captureSnapshot(meter.id!!, line)
+            } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                captureSnapshot(meter.id!!, line)
+            }
+            isHit(meter.id!!, instrumentLabel)
+            putMeter(meter)
+
+            mv.visitLabel(Label())
+            mv.visitLabel(instrumentLabel)
+
+            super.visitInsn(opcode)
+        } else if (methodInstrument != null) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
                     inOriginalCode = false
@@ -480,26 +500,6 @@ class LiveInstrumentTransformer(
             } else {
                 super.visitInsn(opcode)
             }
-        } else if (methodInstrument is LiveMeter) {
-            if (opcode == Opcodes.RETURN) {
-                val instrument = methodActiveInstrument!!
-                val meter = instrument.instrument as LiveMeter
-
-                val instrumentLabel = Label()
-                isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
-
-                if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
-                    captureSnapshot(meter.id!!, line)
-                } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
-                    captureSnapshot(meter.id!!, line)
-                }
-                isHit(meter.id!!, instrumentLabel)
-                putMeter(meter)
-
-                mv.visitLabel(Label())
-                mv.visitLabel(instrumentLabel)
-            }
-            super.visitInsn(opcode)
         } else {
             super.visitInsn(opcode)
         }
@@ -547,7 +547,7 @@ class LiveInstrumentTransformer(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "closeLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-        } else {
+        } else if ((methodInstrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER) {
             stopTimer(methodInstrument!!.id!!)
         }
     }
