@@ -21,7 +21,7 @@ jobs:
         java: [ '8', '11', '17' ]
     timeout-minutes: 10
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.java }}
       cancel-in-progress: true
 
     steps:
