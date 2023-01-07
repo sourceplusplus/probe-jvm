@@ -16,6 +16,7 @@
  */
 package integration
 
+import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.Promise
 import io.vertx.core.Vertx
@@ -54,6 +55,7 @@ abstract class ProbeIntegrationTest {
     val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
 
     companion object {
+        private val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService
@@ -64,7 +66,12 @@ abstract class ProbeIntegrationTest {
             vertx = Vertx.vertx()
 
             val socket = setupTcp(vertx)
-            socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
+            socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
+                override fun handle(event: AsyncResult<JsonObject>) {
+                    log.debug("Got frame: " + event.result())
+                    super.handle(event)
+                }
+            }))
             setupHandler(socket, vertx, SourceServices.LIVE_INSTRUMENT)
             setupHandler(socket, vertx, SourceServices.LIVE_VIEW)
 
