@@ -25,8 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.*
@@ -63,7 +61,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterTagTest::class.qualifiedName!!,
-                45,
+                43,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -82,14 +80,6 @@ class MeterTagTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf("spp_$ruleName"),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterTagTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterTagTest::class.qualifiedName!!,
-                    45
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf("spp_$ruleName")

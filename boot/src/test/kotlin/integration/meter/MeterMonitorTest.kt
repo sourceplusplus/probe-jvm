@@ -25,8 +25,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -83,13 +81,6 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.toMetricId()),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    LifespanObject::class.java.name,
-                    type = ArtifactType.METHOD
-                ),
-                artifactLocation = LiveSourceLocation(
-                    LifespanObject::class.java.name
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(liveMeter.toMetricId())
@@ -157,13 +148,6 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.toMetricId()),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    LifespanObject::class.java.name,
-                    type = ArtifactType.METHOD
-                ),
-                artifactLocation = LiveSourceLocation(
-                    LifespanObject::class.java.name
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(liveMeter.toMetricId())
