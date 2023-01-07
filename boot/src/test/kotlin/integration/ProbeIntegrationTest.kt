@@ -68,7 +68,7 @@ abstract class ProbeIntegrationTest {
             val socket = setupTcp(vertx)
             socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
                 override fun handle(event: AsyncResult<JsonObject>) {
-                    log.debug("Got frame: " + event.result())
+                    log.info("Got frame: " + event.result())
                     super.handle(event)
                 }
             }))
