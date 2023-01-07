@@ -213,7 +213,7 @@ object LiveInstrumentService {
         return emptyList()
     }
 
-    fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+    private fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
         if (ex != null) {
             log.warn(ex, "Removing erroneous live instrument: {}", instrument)
         } else {

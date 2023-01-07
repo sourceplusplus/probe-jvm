@@ -23,8 +23,6 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -64,7 +62,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                48,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -87,14 +85,6 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.toMetricId()),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterGaugeTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterGaugeTest::class.qualifiedName!!,
-                    48
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(liveMeter.toMetricId())
@@ -128,7 +118,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
@@ -142,7 +132,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                48,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -165,14 +155,6 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.toMetricId()),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterGaugeTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterGaugeTest::class.qualifiedName!!,
-                    48
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(liveMeter.toMetricId())
@@ -204,7 +186,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }

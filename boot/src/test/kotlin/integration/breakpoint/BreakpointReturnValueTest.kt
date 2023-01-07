@@ -54,7 +54,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals("Hello World", returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -63,7 +62,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 38),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 38),
                     applyImmediately = true
                 )
             ).await()
@@ -75,7 +74,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     private fun doIntegerTest(): Integer {
@@ -99,7 +98,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals(200, returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -108,19 +106,19 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 83),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 82),
                     applyImmediately = true
                 )
             ).await()
         )
 
-        //trigger breakpoint
+        log.info("Triggering breakpoint")
         doIntegerTest()
 
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     private fun doIntTest(): Int {
@@ -144,7 +142,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals(200, returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -153,7 +150,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(BreakpointReturnValueTest::class.qualifiedName!!, 128),
+                    location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 126),
                     applyImmediately = true
                 )
             ).await()
@@ -165,6 +162,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

@@ -56,7 +56,6 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
                     val vars = item.stackTrace.first().variables
                     assertEquals(10, vars.size)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -71,12 +70,12 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
             ).await()
         )
 
-        //trigger breakpoint
+        log.info("Triggering breakpoint")
         doTest()
 
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

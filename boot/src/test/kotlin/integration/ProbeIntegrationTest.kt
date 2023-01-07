@@ -16,6 +16,7 @@
  */
 package integration
 
+import io.vertx.core.AsyncResult
 import io.vertx.core.Future
 import io.vertx.core.Promise
 import io.vertx.core.Vertx
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
+import org.slf4j.LoggerFactory
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
@@ -50,8 +52,10 @@ import java.util.concurrent.TimeUnit
 @ExtendWith(VertxExtension::class)
 abstract class ProbeIntegrationTest {
 
-    companion object {
+    val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
 
+    companion object {
+        private val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService
@@ -62,7 +66,12 @@ abstract class ProbeIntegrationTest {
             vertx = Vertx.vertx()
 
             val socket = setupTcp(vertx)
-            socket.handler(FrameParser(TCPServiceFrameParser(vertx, socket)))
+            socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
+                override fun handle(event: AsyncResult<JsonObject>) {
+                    log.info("Got frame: " + event.result())
+                    super.handle(event)
+                }
+            }))
             setupHandler(socket, vertx, SourceServices.LIVE_INSTRUMENT)
             setupHandler(socket, vertx, SourceServices.LIVE_VIEW)
 

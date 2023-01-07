@@ -25,8 +25,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.*
@@ -63,7 +61,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterTagTest::class.qualifiedName!!,
-                45,
+                43,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -82,14 +80,6 @@ class MeterTagTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf("spp_$ruleName"),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterTagTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterTagTest::class.qualifiedName!!,
-                    45
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf("spp_$ruleName")
@@ -105,7 +95,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             val summation = rawMetrics.getString("summation")
-            println("summation: $summation")
+            log.debug("summation: $summation")
 
             val summationMap = summation.split("|").map { it.split(",") }.map { it[0] to it[1] }.toMap()
             val trueCount = summationMap["true"]!!.toInt()
@@ -128,10 +118,10 @@ class MeterTagTest : ProbeIntegrationTest() {
             delay(1000)
         }
 
-        errorOnTimeout(testContext)
+        errorOnTimeout(testContext, 25)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
         assertNotNull(viewService.deleteRule(ruleName).await())

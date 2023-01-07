@@ -24,8 +24,6 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -53,9 +51,8 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
             MeterType.METHOD_TIMER,
             MetricValue(MetricValueType.NUMBER, ""),
             location = LiveSourceLocation(
-                MeterMethodTimerTest::class.qualifiedName!! + ".doTest()",
-                -1,
-                "spp-test-probe"
+                MeterMethodTimerTest::class.java.name + ".doTest()",
+                service = "spp-test-probe"
             ),
             id = meterId,
             applyImmediately = true
@@ -89,14 +86,6 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
                 entityIds = mutableSetOf(
                     liveMeter.toMetricId() + "_avg",
                     liveMeter.toMetricId() + "_count"
-                ),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterMethodTimerTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterMethodTimerTest::class.qualifiedName!!,
-                    -1
                 ),
                 viewConfig = LiveViewConfig(
                     "test",
@@ -135,7 +124,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }

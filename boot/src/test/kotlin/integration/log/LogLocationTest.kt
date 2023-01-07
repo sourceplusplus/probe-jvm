@@ -53,7 +53,6 @@ class LogLocationTest : ProbeIntegrationTest() {
                     assertEquals(LogLocationTest::class.qualifiedName!!, location!!.source)
                     assertEquals(37, location.line)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -75,6 +74,6 @@ class LogLocationTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

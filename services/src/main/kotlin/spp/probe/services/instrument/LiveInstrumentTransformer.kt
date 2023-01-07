@@ -24,9 +24,13 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.model.ClassMetadata
-import spp.protocol.instrument.*
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveMeter
+import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MetricValueType
 
 class LiveInstrumentTransformer(
     private val className: String,
@@ -62,8 +66,7 @@ class LiveInstrumentTransformer(
     private val methodUniqueName = methodName + desc
     private var currentBeginLabel: Label? = null
     private var inOriginalCode = true
-    private var methodActiveInstrument: ActiveLiveInstrument? = null
-    private var methodInstrument: LiveInstrument? = null
+    private var methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
     private var line = 0
 
     init {
@@ -93,14 +96,13 @@ class LiveInstrumentTransformer(
             }
         }
 
-        val qualifiedMethodName = "${className.replace("/", ".")}.$methodName(${qualifiedArgs.joinToString(",")})"
-        val methodInstruments = LiveInstrumentService.getInstruments(qualifiedMethodName)
-        if (methodInstruments.size == 1) {
-            methodActiveInstrument = methodInstruments[0]
-            methodInstrument = methodInstruments[0].instrument
-        } else if (methodInstruments.size > 1) {
-            log.warn("Multiple method live instruments found for $qualifiedMethodName")
-            TODO()
+        val qualifiedClassName = className.replace('/', '.')
+        val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
+        methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
+
+        //add constructor monitor meters
+        methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedClassName).filter {
+            (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
         }
     }
 
@@ -323,7 +325,7 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitCode() {
-        if (methodInstrument != null) {
+        if (methodActiveInstruments.isNotEmpty()) {
             try {
                 inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
@@ -446,27 +448,30 @@ class LiveInstrumentTransformer(
             }
         }
 
-        val isLiveMeter = methodInstrument as? LiveMeter != null
-        if (isLiveMeter && (methodInstrument as LiveMeter).meterType != MeterType.METHOD_TIMER) {
-            val instrument = methodActiveInstrument!!
-            val meter = instrument.instrument as LiveMeter
+        methodActiveInstruments.filter { it.instrument is LiveMeter }
+            .filter { (it.instrument as LiveMeter).meterType != MeterType.METHOD_TIMER }
+            .forEach {
+                val instrument = it
+                val meter = instrument.instrument as LiveMeter
 
-            val instrumentLabel = Label()
-            isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
+                val instrumentLabel = Label()
+                isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
 
-            if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
-                captureSnapshot(meter.id!!, line)
-            } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
-                captureSnapshot(meter.id!!, line)
+                if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
+                    captureSnapshot(meter.id!!, line)
+                } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                    captureSnapshot(meter.id!!, line)
+                } else if (meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+                    captureSnapshot(meter.id!!, line)
+                }
+                isHit(meter.id!!, instrumentLabel)
+                putMeter(meter)
+
+                mv.visitLabel(Label())
+                mv.visitLabel(instrumentLabel)
             }
-            isHit(meter.id!!, instrumentLabel)
-            putMeter(meter)
 
-            mv.visitLabel(Label())
-            mv.visitLabel(instrumentLabel)
-
-            super.visitInsn(opcode)
-        } else if (methodInstrument != null) {
+        if (methodName != "<init>" && methodActiveInstruments.isNotEmpty()) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
                     inOriginalCode = false
@@ -481,10 +486,10 @@ class LiveInstrumentTransformer(
                     inOriginalCode = true
                 }
             } else if (inOriginalCode && opcode == Opcodes.ATHROW) {
-                if (methodInstrument is LiveSpan) {
+                methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
                     mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-                    visitLdcInsn(methodInstrument!!.id)
+                    visitLdcInsn(it.id)
                     visitMethodInsn(
                         Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                         "closeLocalSpanAndThrowException", CLOSE_AND_THROW_DESC, false
@@ -525,31 +530,39 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        if (methodInstrument is LiveSpan) {
+        methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-            visitLdcInsn(methodInstrument!!.id)
+            visitLdcInsn(it.id)
             visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-        } else if ((methodInstrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER) {
-            startTimer(methodInstrument!!.id!!)
         }
+
+        methodActiveInstruments.mapNotNull { it.instrument as? LiveMeter }
+            .filter { it.meterType == MeterType.METHOD_TIMER }
+            .forEach {
+                startTimer(it.id!!)
+            }
     }
 
     private fun execVisitFinallyBlock() {
-        if (methodInstrument is LiveSpan) {
+        methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-            visitLdcInsn(methodInstrument!!.id)
+            visitLdcInsn(it.id)
             visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "closeLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-        } else if ((methodInstrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER) {
-            stopTimer(methodInstrument!!.id!!)
         }
+
+        methodActiveInstruments.mapNotNull { it.instrument as? LiveMeter }
+            .filter { it.meterType == MeterType.METHOD_TIMER }
+            .forEach {
+                stopTimer(it.id!!)
+            }
     }
 
     private fun getQualifiedPrimitive(char: Char): String? {

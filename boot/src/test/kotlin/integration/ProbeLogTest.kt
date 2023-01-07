@@ -55,7 +55,6 @@ class ProbeLogTest : ProbeIntegrationTest() {
                     val item = LiveLogHit(JsonObject(event.data))
                     assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -72,12 +71,12 @@ class ProbeLogTest : ProbeIntegrationTest() {
             ).await()
         )
 
-        //trigger log
+        log.info("Triggering log")
         doTest()
 
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

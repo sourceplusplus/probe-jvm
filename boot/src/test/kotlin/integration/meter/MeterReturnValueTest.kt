@@ -24,14 +24,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.artifact.ArtifactQualifiedName
-import spp.protocol.artifact.ArtifactType
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
-import spp.protocol.service.SourceServices
+import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -51,8 +49,8 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
-                MeterReturnValueTest::class.qualifiedName!!,
-                43,
+                MeterReturnValueTest::class.java.name,
+                42,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -77,14 +75,6 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.toMetricId()),
-                artifactQualifiedName = ArtifactQualifiedName(
-                    MeterReturnValueTest::class.qualifiedName!!,
-                    type = ArtifactType.EXPRESSION
-                ),
-                artifactLocation = LiveSourceLocation(
-                    MeterReturnValueTest::class.qualifiedName!!,
-                    43
-                ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(liveMeter.toMetricId())
@@ -92,7 +82,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             )
         ).await().subscriptionId!!
         val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            SourceServices.Subscribe.toLiveViewSubscriberAddress("system")
+            toLiveViewSubscriberAddress("system")
         )
 
         val testContext = VertxTestContext()
@@ -109,12 +99,13 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
+        log.info("Triggering meter")
         doStringTest()
 
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
