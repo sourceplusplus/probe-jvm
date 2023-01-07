@@ -171,7 +171,6 @@ class CollectionsTest : ProbeIntegrationTest() {
                         topFrame.variables.find { it.name == "listOfLists" }!!.liveClazz
                     )
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -192,6 +191,6 @@ class CollectionsTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

@@ -54,7 +54,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals("Hello World", returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -75,7 +74,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     private fun doIntegerTest(): Integer {
@@ -99,7 +98,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals(200, returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -120,7 +118,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     private fun doIntTest(): Int {
@@ -144,7 +142,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                     assertNotNull(returnValue)
                     assertEquals(200, returnValue.value)
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -165,6 +162,6 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

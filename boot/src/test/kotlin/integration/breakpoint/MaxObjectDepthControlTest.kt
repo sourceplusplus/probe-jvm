@@ -65,7 +65,6 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     deeperObject1 = deeperObject1.getJsonArray("value").first() as JsonObject
                     assertEquals(0, deeperObject1.getJsonArray("value").size())
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -89,7 +88,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     @Test
@@ -125,7 +124,6 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     deepObject11 = deepObject11.getJsonArray("value").first() as JsonObject
                     assertEquals(0, deepObject11.getJsonArray("value").size())
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -153,7 +151,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 
     class DeepObject1 {

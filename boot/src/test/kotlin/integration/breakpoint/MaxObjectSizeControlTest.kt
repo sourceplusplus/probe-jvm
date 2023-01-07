@@ -82,7 +82,6 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                         assertNotNull(it.getString("@id"))
                     }
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -116,6 +115,6 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

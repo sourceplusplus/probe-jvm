@@ -114,7 +114,6 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                         }
                     }
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -148,6 +147,6 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }

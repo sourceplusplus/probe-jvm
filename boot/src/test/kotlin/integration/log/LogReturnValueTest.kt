@@ -48,7 +48,6 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     val item = LiveLogHit(JsonObject(event.data))
                     assertEquals(item.logResult.logs.first().toFormattedMessage(), "value = Hello World")
 
-                    consumer.unregister()
                     testContext.completeNow()
                 }
             }
@@ -71,6 +70,6 @@ class LogReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister()
+        consumer.unregister().await()
     }
 }
