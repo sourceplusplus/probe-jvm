@@ -70,7 +70,8 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 exp = buildString {
                     append("(")
                     append(liveMeter.toMetricIdWithoutPrefix())
-                    append(".downsampling(LATEST)")
+                    append(".sum(['service', 'instance'])")
+                    append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
                 }
@@ -195,5 +196,112 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
-    class LifespanObject
+    @Test
+    fun `average object lifespan`(): Unit = runBlocking {
+        val countMeterId = "lifespan-object-gc-count"
+        val countMeter = LiveMeter(
+            MeterType.COUNT,
+            MetricValue(MetricValueType.NUMBER, "1"),
+            location = LiveSourceLocation(
+                LifespanObject::class.java.name + ".<init>()",
+                service = "spp-test-probe"
+            ),
+            id = countMeterId,
+            applyImmediately = true,
+            meta = mapOf("metric.mode" to "RATE")
+        )
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = countMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(".sum(['service', 'instance'])")
+                    append(".downsampling(SUM)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
+        instrumentService.addLiveInstrument(countMeter).await()
+
+        val meterId = "lifespan-object-total-time-" + System.currentTimeMillis()
+        val liveMeter = LiveMeter(
+            MeterType.COUNT,
+            MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
+            location = LiveSourceLocation(
+                LifespanObject::class.java.name,
+                service = "spp-test-probe"
+            ),
+            id = meterId,
+            applyImmediately = true,
+            meta = mapOf("metric.mode" to "RATE")
+        )
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = liveMeter.toMetricIdWithoutPrefix(),
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(".sum(['service', 'instance'])")
+                    append(".downsampling(SUM)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
+        instrumentService.addLiveInstrument(liveMeter).await()
+
+        val avgMeterId = ("lifespan-object-avg-time-" + System.currentTimeMillis()).replace("-", "_")
+        viewService.saveRuleIfAbsent(
+            LiveViewRule(
+                name = avgMeterId,
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append("/")
+                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(").downsampling(LATEST)")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                }
+            )
+        ).await()
+
+        val subscriptionId = viewService.addLiveView(
+            LiveView(
+                entityIds = mutableSetOf("spp_$avgMeterId"),
+                viewConfig = LiveViewConfig(
+                    "test",
+                    listOf("spp_$avgMeterId")
+                )
+            )
+        ).await().subscriptionId!!
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(
+            toLiveViewSubscriberAddress("system")
+        )
+
+        val testContext = VertxTestContext()
+        consumer.handler {
+            val liveViewEvent = LiveViewEvent(it.body())
+            val rawMetrics = JsonObject(liveViewEvent.metricsData)
+            testContext.verify {
+                val meta = rawMetrics.getJsonObject("meta")
+                assertEquals("spp_$avgMeterId", meta.getString("metricsName"))
+
+                assertEquals(100.0, rawMetrics.getDouble("value"), 200.0)
+            }
+            testContext.completeNow()
+        }.completionHandler().await()
+
+        doTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister()
+        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(viewService.removeLiveView(subscriptionId).await())
+    }
+
+    private class LifespanObject
 }
