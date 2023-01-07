@@ -120,5 +120,5 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
-    class MyObject
+    private class MyObject
 }
