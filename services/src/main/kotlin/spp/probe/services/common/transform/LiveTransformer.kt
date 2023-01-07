@@ -16,8 +16,14 @@
  */
 package spp.probe.services.common.transform
 
-import net.bytebuddy.jar.asm.*
+import net.bytebuddy.jar.asm.ClassReader
+import net.bytebuddy.jar.asm.ClassVisitor
+import net.bytebuddy.jar.asm.ClassWriter
+import net.bytebuddy.jar.asm.Opcodes
+import spp.probe.ProbeConfiguration
 import spp.probe.services.common.model.ClassMetadata
+import java.io.File
+import java.io.FileOutputStream
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
@@ -37,6 +43,16 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
         val classWriter = ClassWriter(computeFlag(classReader))
         val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, classMetadata)
         classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
+
+        val dumpDir = ProbeConfiguration.spp.getString("transformed_dump_directory")
+        if (!dumpDir.isNullOrEmpty()) {
+            val dumpClassName = "${className.substringAfterLast("/")}-${System.currentTimeMillis()}.class"
+            val outputFile = File(dumpDir, dumpClassName)
+            outputFile.parentFile.mkdirs()
+
+            val bytes = classWriter.toByteArray()
+            FileOutputStream(outputFile).use { outputStream -> outputStream.write(bytes) }
+        }
         return classWriter.toByteArray()
     }
 
