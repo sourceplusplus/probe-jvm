@@ -100,9 +100,11 @@ class LiveInstrumentTransformer(
         val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
         methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
 
-        //add constructor monitor meters
-        methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedClassName).filter {
-            (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
+        if (methodName == "<init>") {
+            //add constructor monitor meters
+            methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedClassName).filter {
+                (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
+            }
         }
     }
 
