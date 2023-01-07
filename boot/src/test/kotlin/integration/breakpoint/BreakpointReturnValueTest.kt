@@ -114,7 +114,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
             ).await()
         )
 
-        //trigger breakpoint
+        log.info("Triggering breakpoint")
         doIntegerTest()
 
         errorOnTimeout(testContext)
