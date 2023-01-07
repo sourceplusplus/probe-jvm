@@ -14,6 +14,7 @@ val jacksonVersion: String by project
 val vertxVersion: String by project
 val jupiterVersion: String by project
 val logbackVersion: String by project
+val slf4jVersion: String by project
 
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
@@ -70,7 +71,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
-    testImplementation("ch.qos.logback:logback-classic:$logbackVersion")
+    testImplementation("org.slf4j:slf4j-simple:$slf4jVersion")
     testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")

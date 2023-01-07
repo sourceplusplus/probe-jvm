@@ -101,6 +101,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
+        log.info("Triggering meter")
         doTest()
 
         errorOnTimeout(testContext)

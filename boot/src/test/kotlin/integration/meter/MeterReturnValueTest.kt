@@ -99,6 +99,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
+        log.info("Triggering meter")
         doStringTest()
 
         errorOnTimeout(testContext)

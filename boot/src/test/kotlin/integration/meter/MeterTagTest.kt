@@ -95,7 +95,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             val summation = rawMetrics.getString("summation")
-            println("summation: $summation")
+            log.debug("summation: $summation")
 
             val summationMap = summation.split("|").map { it.split(",") }.map { it[0] to it[1] }.toMap()
             val trueCount = summationMap["true"]!!.toInt()

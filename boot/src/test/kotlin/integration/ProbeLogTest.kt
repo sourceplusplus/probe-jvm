@@ -72,7 +72,7 @@ class ProbeLogTest : ProbeIntegrationTest() {
             ).await()
         )
 
-        //trigger log
+        log.info("Triggering log")
         doTest()
 
         errorOnTimeout(testContext)

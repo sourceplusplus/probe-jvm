@@ -36,6 +36,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
+import org.slf4j.LoggerFactory
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
@@ -50,8 +51,9 @@ import java.util.concurrent.TimeUnit
 @ExtendWith(VertxExtension::class)
 abstract class ProbeIntegrationTest {
 
-    companion object {
+    val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
 
+    companion object {
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService

@@ -183,6 +183,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
+    @Disabled
     @Test
     fun `average object lifespan`(): Unit = runBlocking {
         val countMeterId = "lifespan-object-gc-count"

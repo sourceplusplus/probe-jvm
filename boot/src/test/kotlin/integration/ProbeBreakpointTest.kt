@@ -71,7 +71,7 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
             ).await()
         )
 
-        //trigger breakpoint
+        log.info("Triggering breakpoint")
         doTest()
 
         errorOnTimeout(testContext)
