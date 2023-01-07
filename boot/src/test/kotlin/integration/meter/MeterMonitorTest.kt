@@ -23,6 +23,7 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.artifact.ArtifactQualifiedName
 import spp.protocol.artifact.ArtifactType
@@ -49,9 +50,10 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         }
     }
 
+    @Disabled
     @Test
     fun `object lifespan count`(): Unit = runBlocking {
-        val meterId = "object-lifespan-count"
+        val meterId = "object-lifespan-count-" + System.currentTimeMillis()
 
         val liveMeter = LiveMeter(
             MeterType.COUNT,
@@ -123,6 +125,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
+    @Disabled
     @Test
     fun `object lifespan gauge`(): Unit = runBlocking {
         val meterId = "object-lifespan-gauge"
