@@ -118,7 +118,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             delay(1000)
         }
 
-        errorOnTimeout(testContext)
+        errorOnTimeout(testContext, 25)
 
         //clean up
         consumer.unregister().await()
