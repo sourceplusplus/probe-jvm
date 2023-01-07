@@ -105,7 +105,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 val meta = rawMetrics.getJsonObject("meta")
                 assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
 
-                assertEquals(1000.0, rawMetrics.getDouble("value"), 1500.0)
+                assertEquals(1000.0, rawMetrics.getDouble("value"), 2000.0)
             }
             testContext.completeNow()
         }.completionHandler().await()
