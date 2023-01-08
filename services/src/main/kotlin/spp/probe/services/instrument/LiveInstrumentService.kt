@@ -126,7 +126,7 @@ object LiveInstrumentService {
                 }
                 inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
-                transformer.classMetadata.innerClasses.forEach {
+                transformer.innerClasses.forEach {
                     inst.retransformClasses(it)
                 }
                 instrument.isLive = true
