@@ -42,7 +42,7 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
         }
         log.trace("Transforming class: $className")
 
-        val classMetadata = ClassMetadata()
+        val classMetadata = ClassMetadata(isOuterClass)
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
         if (isOuterClass) {

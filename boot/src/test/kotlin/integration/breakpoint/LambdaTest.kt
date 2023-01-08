@@ -23,17 +23,19 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
+import spp.protocol.instrument.location.LocationScope
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class LambdaTest : ProbeIntegrationTest() {
 
-    private fun doTest() {
+    private fun doLambdaOnlyTest() {
         val lambda = {
             val a = 1
             val b = 2.0
@@ -45,7 +47,7 @@ class LambdaTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun `lambda test`(): Unit = runBlocking {
+    fun `lambda only test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
@@ -69,14 +71,65 @@ class LambdaTest : ProbeIntegrationTest() {
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(LambdaTest::class.java.name, 42),
+                    location = LiveSourceLocation(
+                        source = LambdaTest::class.java.name,
+                        line = 43,
+                        scope = LocationScope.LAMBDA
+                    ),
                     applyImmediately = true
                 )
             ).await()
         )
 
         //trigger breakpoint
-        doTest()
+        doLambdaOnlyTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister().await()
+    }
+
+
+    private fun doLambdaAndLineTest() {
+        val lambda = { x: Int -> println(x) }
+        lambda(5)
+    }
+
+    @Disabled("not working") //todo: this
+    @Test
+    fun `lambda and line test`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(1, vars.size)
+
+                    //testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation(
+                        source = LambdaTest::class.java.name,
+                        line = 90,
+                        scope = LocationScope.BOTH
+                    ),
+                    applyImmediately = true,
+                    hitLimit = 4
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doLambdaAndLineTest()
 
         errorOnTimeout(testContext)
 

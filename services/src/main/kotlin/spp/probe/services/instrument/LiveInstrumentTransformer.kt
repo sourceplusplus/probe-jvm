@@ -28,6 +28,7 @@ import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSpan
+import spp.protocol.instrument.location.LocationScope
 import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
@@ -114,7 +115,16 @@ class LiveInstrumentTransformer(
         mv.visitLineNumber(line, start)
         val lineInstruments = LiveInstrumentService.getInstruments(
             className.replace("/", ".").substringBefore("\$"), line
-        )
+        ).filter {
+            //filter line instruments outside current scope
+            val scope = it.instrument.location.scope
+            if (scope != LocationScope.BOTH) {
+                (classMetadata.outerClass && scope == LocationScope.LINE)
+                        || (!classMetadata.outerClass && scope == LocationScope.LAMBDA)
+            } else true
+        }
+
+        //apply line instruments
         for (instrument in lineInstruments) {
             if (log.isInfoEnable) {
                 log.info("Injecting live instrument {} on line {} of {}", instrument.instrument, line, className)

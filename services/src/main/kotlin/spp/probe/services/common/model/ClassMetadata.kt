@@ -21,7 +21,7 @@ import net.bytebuddy.jar.asm.Type
 import java.io.Serializable
 import java.util.regex.Pattern
 
-class ClassMetadata : Serializable {
+class ClassMetadata(val outerClass: Boolean) : Serializable {
 
     companion object {
         private val ignoredVariables = Pattern.compile(

@@ -34,7 +34,6 @@ import org.springframework.expression.spel.support.StandardEvaluationContext
 import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
-import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType
@@ -88,8 +87,8 @@ object ContextReceiver {
         )
         activeSpan.tag(
             StringTag("spp.breakpoint:$breakpointId"),
-            ModelSerializer.INSTANCE.toJson(LiveSourceLocation(source!!, line, null, null, null, null, null))
-        )
+            ModelSerializer.INSTANCE.toJson(liveBreakpoint.location)
+        ) //todo: tag likely not needed. SourceStorage now holds all this info
         ContextManager.stopSpan(activeSpan)
     }
 
