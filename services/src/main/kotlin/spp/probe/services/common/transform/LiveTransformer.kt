@@ -30,6 +30,7 @@ import java.security.ProtectionDomain
 class LiveTransformer(private val className: String) : ClassFileTransformer {
 
     private val log = LogManager.getLogger(LiveTransformer::class.java)
+    private var isOuterClass = true
     val innerClasses = mutableListOf<Class<*>>()
 
     override fun transform(
@@ -44,8 +45,9 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
         val classMetadata = ClassMetadata()
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
-        if (classMetadata.innerClasses.isNotEmpty()) {
+        if (isOuterClass) {
             innerClasses.addAll(classMetadata.innerClasses)
+            isOuterClass = false
         }
 
         val classWriter = ClassWriter(computeFlag(classReader))
