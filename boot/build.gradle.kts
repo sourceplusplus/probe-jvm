@@ -58,10 +58,6 @@ tasks.getByName<JavaCompile>("compileJava") {
     sourceCompatibility = "1.8"
 }
 
-//configurations.all {
-//    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
-//}
-
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     implementation("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
@@ -69,7 +65,6 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     implementation("plus.sourceplus:protocol:$projectVersion") {
         isTransitive = false
-        //isChanging = true
     }
     implementation(projectDependency(":common"))
     implementation("org.apache.commons:commons-text:1.10.0")
@@ -91,7 +86,7 @@ tasks.test {
 
     //exclude attaching probe to self unless requested
     if (isIntegrationProfile || runningSpecificTests) {
-        jvmArgs = listOf("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5105", "-javaagent:$probeJar=${projectDir}/src/test/resources/spp-test-probe.yml")
+        jvmArgs = listOf("-javaagent:$probeJar=${projectDir}/src/test/resources/spp-test-probe.yml")
     }
     //exclude integration tests unless requested
     if (!isIntegrationProfile && !runningSpecificTests) {
