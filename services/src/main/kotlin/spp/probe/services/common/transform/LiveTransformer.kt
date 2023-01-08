@@ -17,9 +17,9 @@
 package spp.probe.services.common.transform
 
 import net.bytebuddy.jar.asm.ClassReader
-import net.bytebuddy.jar.asm.ClassVisitor
 import net.bytebuddy.jar.asm.ClassWriter
 import net.bytebuddy.jar.asm.Opcodes
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.model.ClassMetadata
 import java.io.File
@@ -29,19 +29,29 @@ import java.security.ProtectionDomain
 
 class LiveTransformer(private val className: String) : ClassFileTransformer {
 
+    private val log = LogManager.getLogger(LiveTransformer::class.java)
+    private var isOuterClass = true
+    val innerClasses = mutableListOf<Class<*>>()
+
     override fun transform(
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
     ): ByteArray? {
-        if (className.replace('/', '.') != this.className) {
+        if (!className.replace('/', '.').startsWith(this.className)) {
             return null
         }
+        log.trace("Transforming class: $className")
 
-        val classReader = ClassReader(classfileBuffer)
         val classMetadata = ClassMetadata()
-        classReader.accept(MetadataCollector(classMetadata), ClassReader.SKIP_FRAMES)
+        val classReader = ClassReader(classfileBuffer)
+        classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
+        if (isOuterClass) {
+            innerClasses.addAll(classMetadata.innerClasses)
+            isOuterClass = false
+        }
+
         val classWriter = ClassWriter(computeFlag(classReader))
-        val classVisitor: ClassVisitor = LiveClassVisitor(classWriter, classMetadata)
+        val classVisitor = LiveClassVisitor(classWriter, classMetadata)
         classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
 
         val dumpDir = ProbeConfiguration.spp.getString("transformed_dump_directory")
@@ -52,6 +62,7 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
 
             val bytes = classWriter.toByteArray()
             FileOutputStream(outputFile).use { outputStream -> outputStream.write(bytes) }
+            log.debug("Dumped transformed class $className to $outputFile")
         }
         return classWriter.toByteArray()
     }

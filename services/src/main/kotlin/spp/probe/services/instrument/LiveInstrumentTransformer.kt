@@ -112,7 +112,10 @@ class LiveInstrumentTransformer(
         this.line = line
 
         mv.visitLineNumber(line, start)
-        for (instrument in LiveInstrumentService.getInstruments(className.replace("/", "."), line)) {
+        val lineInstruments = LiveInstrumentService.getInstruments(
+            className.replace("/", ".").substringBefore("\$"), line
+        )
+        for (instrument in lineInstruments) {
             if (log.isInfoEnable) {
                 log.info("Injecting live instrument {} on line {} of {}", instrument.instrument, line, className)
             }

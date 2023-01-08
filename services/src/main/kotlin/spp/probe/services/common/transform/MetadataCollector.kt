@@ -21,10 +21,20 @@ import spp.probe.services.common.model.ClassField
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.common.model.LocalVariable
 
-class MetadataCollector(private val classMetadata: ClassMetadata) : ClassVisitor(ASM_VERSION) {
+class MetadataCollector(
+    private val className: String,
+    private val classMetadata: ClassMetadata
+) : ClassVisitor(ASM_VERSION) {
 
     companion object {
         private const val ASM_VERSION = Opcodes.ASM7
+    }
+
+    override fun visitInnerClass(name: String, outerName: String?, innerName: String?, access: Int) {
+        if (name != className) {
+            classMetadata.addInnerClass(name)
+        }
+        super.visitInnerClass(name, outerName, innerName, access)
     }
 
     override fun visitField(access: Int, name: String, desc: String, signature: String?, value: Any?): FieldVisitor? {

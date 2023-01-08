@@ -126,6 +126,9 @@ object LiveInstrumentService {
                 }
                 inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
+                transformer.innerClasses.forEach {
+                    inst.retransformClasses(it)
+                }
                 instrument.isLive = true
 
                 if (instrument.isRemoval) {

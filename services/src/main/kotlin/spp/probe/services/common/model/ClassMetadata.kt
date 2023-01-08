@@ -17,6 +17,7 @@
 package spp.probe.services.common.model
 
 import net.bytebuddy.jar.asm.Opcodes
+import net.bytebuddy.jar.asm.Type
 import java.io.Serializable
 import java.util.regex.Pattern
 
@@ -28,9 +29,14 @@ class ClassMetadata : Serializable {
         )
     }
 
-    val fields: MutableList<ClassField> = mutableListOf()
-    val staticFields: MutableList<ClassField> = mutableListOf()
-    val variables: MutableMap<String, MutableList<LocalVariable>> = mutableMapOf()
+    val innerClasses = mutableListOf<Class<*>>()
+    val fields = mutableListOf<ClassField>()
+    val staticFields = mutableListOf<ClassField>()
+    val variables = mutableMapOf<String, MutableList<LocalVariable>>()
+
+    fun addInnerClass(className: String) {
+        innerClasses.add(Class.forName(Type.getObjectType(className).className))
+    }
 
     fun addField(field: ClassField) {
         if (ignoredVariables.matcher(field.name).matches()) {
