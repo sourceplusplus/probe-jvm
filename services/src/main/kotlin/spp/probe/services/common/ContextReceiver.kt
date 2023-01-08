@@ -34,6 +34,7 @@ import org.springframework.expression.spel.support.StandardEvaluationContext
 import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
+import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValueType

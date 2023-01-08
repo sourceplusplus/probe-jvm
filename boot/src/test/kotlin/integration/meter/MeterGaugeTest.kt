@@ -24,7 +24,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
-import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType

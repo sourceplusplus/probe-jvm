@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
-import spp.protocol.instrument.LiveSourceLocation
+import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.*
 import spp.protocol.service.SourceServices
 import spp.protocol.view.LiveView
