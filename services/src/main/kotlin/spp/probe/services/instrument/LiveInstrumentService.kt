@@ -250,11 +250,17 @@ object LiveInstrumentService {
 
     fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {
         val instruments = instruments.values.stream()
-            .filter { it.instrument.location.source == source && it.instrument.location.line == line }
+            .filter {
+                (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
+                        && it.instrument.location.line == line
+            }
             .collect(Collectors.toSet())
         instruments.addAll(
             applyingInstruments.values.stream()
-                .filter { it.instrument.location.source == source && it.instrument.location.line == line }
+                .filter {
+                    (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
+                            && it.instrument.location.line == line
+                }
                 .collect(Collectors.toSet()))
         return ArrayList(instruments)
     }
