@@ -5,7 +5,7 @@ spp:
   install_directory: ${SPP_PROBE_INSTALL_DIRECTORY:-/tmp/spp-probe}
 skywalking:
   logging:
-    level: ${SW_LOGGING_LEVEL:-INFO}
+    level: ${SW_LOGGING_LEVEL:-DEBUG}
   agent:
     service_name: ${SW_AGENT_NAME:-spp-test-probe}
   meter:
