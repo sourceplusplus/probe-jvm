@@ -63,7 +63,8 @@ class LogLocationTest : ProbeIntegrationTest() {
                 LiveLog(
                     "Hello World",
                     location = LiveSourceLocation(LogLocationTest::class.qualifiedName!!, 37),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = "log-location"
                 )
             ).await()
         )
