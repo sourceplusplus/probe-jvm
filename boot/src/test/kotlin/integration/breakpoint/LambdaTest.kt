@@ -90,6 +90,94 @@ class LambdaTest : ProbeIntegrationTest() {
         consumer.unregister().await()
     }
 
+    private fun doSameLineOnlyTest() {
+        val a = 5
+        val lambda = { x: Int -> println("$x") }
+        lambda(a)
+    }
+
+    @Test
+    fun `same line only test`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(2, vars.size)
+                    assertEquals(5, vars.first { it.name == "a" }.value)
+                    testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation(
+                        source = LambdaTest::class.java.name,
+                        line = 95,
+                        scope = LocationScope.LINE
+                    ),
+                    applyImmediately = true
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doSameLineOnlyTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister().await()
+    }
+
+    private fun doSameLineLambdaTest() {
+        val lambda = { x: Int -> println("$x") }
+        lambda(5)
+    }
+
+    @Test
+    fun `same line lambda test`(): Unit = runBlocking {
+        val testContext = VertxTestContext()
+        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
+        consumer.handler {
+            testContext.verify {
+                val event = LiveInstrumentEvent(it.body())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(3, vars.size)
+                    assertEquals(5, vars.first { it.name == "p1" }.value)
+                    testContext.completeNow()
+                }
+            }
+        }.completionHandler().await()
+
+        assertNotNull(
+            instrumentService.addLiveInstrument(
+                LiveBreakpoint(
+                    location = LiveSourceLocation(
+                        source = LambdaTest::class.java.name,
+                        line = 139,
+                        scope = LocationScope.LAMBDA
+                    ),
+                    applyImmediately = true
+                )
+            ).await()
+        )
+
+        //trigger breakpoint
+        doSameLineLambdaTest()
+
+        errorOnTimeout(testContext)
+
+        //clean up
+        consumer.unregister().await()
+    }
 
     private fun doLambdaAndLineTest() {
         val lambda = { x: Int -> println(x) }
