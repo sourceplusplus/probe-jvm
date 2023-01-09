@@ -16,11 +16,10 @@
  */
 package integration
 
-import io.vertx.core.AsyncResult
-import io.vertx.core.Future
-import io.vertx.core.Promise
-import io.vertx.core.Vertx
+import io.vertx.core.*
 import io.vertx.core.eventbus.MessageConsumer
+import io.vertx.core.http.HttpClientOptions
+import io.vertx.core.http.RequestOptions
 import io.vertx.core.json.JsonObject
 import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
@@ -52,13 +52,16 @@ import java.util.concurrent.TimeUnit
 @ExtendWith(VertxExtension::class)
 abstract class ProbeIntegrationTest {
 
-    val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
+    val log: Logger by lazy { LoggerFactory.getLogger(this::class.java.name) }
 
     companion object {
         private val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService
+        private val serviceHost = System.getenv("SPP_PLATFORM_HOST") ?: "localhost"
+        private const val servicePort = 12800
+        private val authToken: String? by lazy { fetchAuthToken() }
 
         @BeforeAll
         @JvmStatic
@@ -80,6 +83,9 @@ abstract class ProbeIntegrationTest {
             val pc = InstanceConnection(UUID.randomUUID().toString(), System.currentTimeMillis())
             val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
             val headers = JsonObject()
+            if (authToken != null) {
+                headers.put("auth-token", authToken)
+            }
 
             val promise = Promise.promise<Void>()
             consumer.handler {
@@ -107,9 +113,11 @@ abstract class ProbeIntegrationTest {
 
             promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
+                .apply { authToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
             viewService = ServiceProxyBuilder(vertx)
+                .apply { authToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_VIEW)
                 .build(LiveViewService::class.java)
         }
@@ -122,7 +130,7 @@ abstract class ProbeIntegrationTest {
             }
         }
 
-        fun setupHandler(socket: NetSocket, vertx: Vertx, address: String) {
+        private fun setupHandler(socket: NetSocket, vertx: Vertx, address: String) {
             vertx.eventBus().localConsumer<JsonObject>(address) { resp ->
                 val replyAddress = UUID.randomUUID().toString()
                 val tempConsumer = vertx.eventBus().localConsumer<Any>(replyAddress)
@@ -141,14 +149,30 @@ abstract class ProbeIntegrationTest {
         }
 
         private suspend fun setupTcp(vertx: Vertx): NetSocket {
-            val serviceHost = if (System.getenv("SPP_PLATFORM_HOST") != null)
-                System.getenv("SPP_PLATFORM_HOST") else "localhost"
             val options = NetClientOptions()
                 .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
             val tcpSocket = withTimeout(5000) {
-                vertx.createNetClient(options).connect(12800, serviceHost).await()
+                vertx.createNetClient(options).connect(servicePort, serviceHost).await()
             }
             return tcpSocket
+        }
+
+        private fun fetchAuthToken() = runBlocking {
+            val tokenUri = "/api/new-token?access_token=change-me"
+            val req = vertx.createHttpClient(HttpClientOptions())
+                .request(
+                    RequestOptions()
+                        .setHost(serviceHost)
+                        .setPort(servicePort)
+                        .setURI(tokenUri)
+                ).await()
+            req.end().await()
+            val resp = req.response().await()
+            if (resp.statusCode() == 200) {
+                resp.body().await().toString()
+            } else {
+                null
+            }
         }
     }
 
