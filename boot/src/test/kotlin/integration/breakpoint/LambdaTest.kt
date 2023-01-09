@@ -20,10 +20,10 @@ import integration.ProbeIntegrationTest
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Disabled
+import kotlinx.coroutines.withContext
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.event.LiveBreakpointHit
@@ -31,7 +31,10 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.location.LocationScope
+import spp.protocol.instrument.throttle.InstrumentThrottle
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class LambdaTest : ProbeIntegrationTest() {
 
@@ -73,7 +76,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 43,
+                        line = 47,
                         scope = LocationScope.LAMBDA
                     ),
                     applyImmediately = true
@@ -118,7 +121,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 95,
+                        line = 98,
                         scope = LocationScope.LINE
                     ),
                     applyImmediately = true
@@ -136,8 +139,9 @@ class LambdaTest : ProbeIntegrationTest() {
     }
 
     private fun doSameLineLambdaTest() {
+        val a = 5
         val lambda = { x: Int -> println("$x") }
-        lambda(5)
+        lambda(a)
     }
 
     @Test
@@ -162,7 +166,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 139,
+                        line = 143,
                         scope = LocationScope.LAMBDA
                     ),
                     applyImmediately = true
@@ -180,13 +184,14 @@ class LambdaTest : ProbeIntegrationTest() {
     }
 
     private fun doLambdaAndLineTest() {
-        val lambda = { x: Int -> println(x) }
-        lambda(5)
+        val a = 5
+        val lambda = { x: Any? -> x }
+        lambda(a)
     }
 
-    @Disabled("not working") //todo: this
     @Test
     fun `lambda and line test`(): Unit = runBlocking {
+        val gotAllHitsLatch = CountDownLatch(2)
         val testContext = VertxTestContext()
         val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
         consumer.handler {
@@ -195,9 +200,9 @@ class LambdaTest : ProbeIntegrationTest() {
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                     val item = LiveBreakpointHit(JsonObject(event.data))
                     val vars = item.stackTrace.first().variables
-                    assertEquals(1, vars.size)
+                    assertTrue(vars.any { it.name == "a" || it.name == "p1" })
 
-                    //testContext.completeNow()
+                    gotAllHitsLatch.countDown()
                 }
             }
         }.completionHandler().await()
@@ -207,11 +212,12 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 90,
+                        line = 188,
                         scope = LocationScope.BOTH
                     ),
+                    throttle = InstrumentThrottle.NONE,
                     applyImmediately = true,
-                    hitLimit = 4
+                    hitLimit = 5
                 )
             ).await()
         )
@@ -219,7 +225,12 @@ class LambdaTest : ProbeIntegrationTest() {
         //trigger breakpoint
         doLambdaAndLineTest()
 
-        errorOnTimeout(testContext)
+        withContext(Dispatchers.IO) {
+            if (!gotAllHitsLatch.await(20, TimeUnit.SECONDS)) {
+                testContext.failNow(RuntimeException("didn't get all hits"))
+            }
+        }
+        testContext.completeNow()
 
         //clean up
         consumer.unregister().await()
