@@ -63,7 +63,8 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 38),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = "breakpoint-return-value-string"
                 )
             ).await()
         )
@@ -107,7 +108,8 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 82),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = "breakpoint-return-value-integer"
                 )
             ).await()
         )
@@ -151,7 +153,8 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(BreakpointReturnValueTest::class.java.name, 126),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = "breakpoint-return-value-int"
                 )
             ).await()
         )

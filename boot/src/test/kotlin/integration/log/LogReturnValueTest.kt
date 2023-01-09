@@ -59,7 +59,8 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     "value = {}",
                     listOf("@return"),
                     location = LiveSourceLocation(LogReturnValueTest::class.qualifiedName!!, 38),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = "log-return-value-string"
                 )
             ).await()
         )
