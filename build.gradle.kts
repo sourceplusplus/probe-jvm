@@ -17,6 +17,10 @@ val vertxVersion: String by project
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
 
+repositories {
+    mavenCentral()
+}
+
 subprojects {
     repositories {
         mavenCentral()
