@@ -270,6 +270,7 @@ object LiveInstrumentService {
     }
 
     fun isInstrumentEnabled(instrumentId: String): Boolean {
+        if (log.isTraceEnabled) log.trace("Checking if instrument is enabled: $instrumentId")
         val applied = instruments.containsKey(instrumentId)
         return if (applied) {
             true
@@ -279,6 +280,7 @@ object LiveInstrumentService {
     }
 
     fun isHit(instrumentId: String): Boolean {
+        if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
         val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle?.isRateLimited() == true) {
             return false
