@@ -275,13 +275,19 @@ object LiveInstrumentService {
         return if (applied) {
             true
         } else {
+            if (log.isTraceEnabled) log.trace("Instrument is not applied, checking if it is being applied: $instrumentId")
             applyingInstruments.containsKey(instrumentId)
         }
     }
 
     fun isHit(instrumentId: String): Boolean {
         if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
-        val instrument = instruments[instrumentId] ?: return false
+        var instrument = instruments[instrumentId]
+        if (instrument == null) {
+            instrument = applyingInstruments[instrumentId]
+            if (log.isTraceEnabled) log.trace("Found $instrument for instrument: $instrumentId")
+            return false
+        }
         if (instrument.throttle?.isRateLimited() == true) {
             if (log.isTraceEnabled) log.trace("Instrument is rate limited: $instrumentId")
             return false
