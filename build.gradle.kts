@@ -95,6 +95,5 @@ tasks {
 }
 
 dockerCompose {
-    removeVolumes.set(true)
     waitForTcpPorts.set(false)
 }
