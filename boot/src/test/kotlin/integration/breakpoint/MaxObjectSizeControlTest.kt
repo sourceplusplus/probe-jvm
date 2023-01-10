@@ -31,7 +31,6 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxObjectSizeControlTest : ProbeIntegrationTest() {
 
@@ -44,8 +43,8 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
     @Test
     fun testVariableControl(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-max-object-size-variable-control"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -85,7 +84,7 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
@@ -103,8 +102,13 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxObjectSizeControlTest::class.qualifiedName!!, 42),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = MaxObjectSizeControlTest::class.java.name,
+                        line = 41,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -113,8 +117,5 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }

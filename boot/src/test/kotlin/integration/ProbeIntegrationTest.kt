@@ -44,6 +44,7 @@ import spp.protocol.service.LiveInstrumentService
 import spp.protocol.service.LiveViewService
 import spp.protocol.service.SourceServices
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
+import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscription
 import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.service.extend.TCPServiceFrameParser
 import java.util.*
@@ -59,6 +60,7 @@ abstract class ProbeIntegrationTest {
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService
+        lateinit var socket: NetSocket
         private val serviceHost = System.getenv("SPP_PLATFORM_HOST") ?: "localhost"
         private const val servicePort = 12800
         private val authToken: String? by lazy { fetchAuthToken() }
@@ -67,8 +69,7 @@ abstract class ProbeIntegrationTest {
         @JvmStatic
         fun setup() = runBlocking {
             vertx = Vertx.vertx()
-
-            val socket = setupTcp(vertx)
+            socket = setupTcp(vertx)
             socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
                 override fun handle(event: AsyncResult<JsonObject>) {
                     log.info("Got frame: " + event.result())
@@ -128,6 +129,23 @@ abstract class ProbeIntegrationTest {
             runBlocking {
                 vertx.close().await()
             }
+        }
+
+        fun getLiveInstrumentSubscription(instrumentId: String): MessageConsumer<JsonObject> {
+            val listenAddress = toLiveInstrumentSubscription(instrumentId)
+
+            //send register
+            val headers = JsonObject()
+            if (authToken != null) {
+                headers.put("auth-token", authToken)
+            }
+            FrameHelper.sendFrame(
+                BridgeEventType.REGISTER.name.lowercase(),
+                listenAddress, "the-reply",
+                headers, null, null, socket
+            )
+
+            return vertx.eventBus().localConsumer(listenAddress)
         }
 
         private fun setupHandler(socket: NetSocket, vertx: Vertx, address: String) {
