@@ -46,6 +46,8 @@ object LiveInstrumentService {
     )
 
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
+
+    //todo: merge instruments & applyingInstruments
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
@@ -279,7 +281,7 @@ object LiveInstrumentService {
     }
 
     fun isHit(instrumentId: String): Boolean {
-        val instrument = instruments[instrumentId] ?: return false
+        val instrument = (instruments[instrumentId] ?: applyingInstruments[instrumentId]) ?: return false
         if (instrument.throttle?.isRateLimited() == true) {
             return false
         }
