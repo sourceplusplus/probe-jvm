@@ -325,6 +325,6 @@ object LiveInstrumentService {
         val rootObject = ContextReceiver[liveInstrument.instrument.id!!, false]
         val context = SimpleEvaluationContext.forReadWriteDataBinding()
             .withRootObject(rootObject).build()
-        return liveInstrument.expression!!.getValue(context, Boolean::class.java)
+        return liveInstrument.expression!!.getValue(context, Boolean::class.java) ?: false
     }
 }
