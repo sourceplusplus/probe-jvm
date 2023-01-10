@@ -283,6 +283,7 @@ object LiveInstrumentService {
         if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
         val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle?.isRateLimited() == true) {
+            if (log.isTraceEnabled) log.trace("Instrument is rate limited: $instrumentId")
             return false
         }
         if (instrument.expression == null) {
@@ -294,6 +295,7 @@ object LiveInstrumentService {
             //store instrument in probe memory, removed on ContextReceiver.put
             ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
+            if (log.isTraceEnabled) log.trace("Instrument is hit: $instrumentId")
             return true
         }
         return try {
@@ -306,8 +308,10 @@ object LiveInstrumentService {
                 //store instrument in probe memory, removed on ContextReceiver.put
                 ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
+                if (log.isTraceEnabled) log.trace("Instrument is hit: $instrumentId")
                 true
             } else {
+                if (log.isTraceEnabled) log.trace("Instrument is not hit: $instrumentId")
                 false
             }
         } catch (e: Throwable) {
