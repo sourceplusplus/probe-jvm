@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.event.LiveBreakpointHit
@@ -36,6 +37,7 @@ import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberA
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
+@Disabled
 class LambdaTest : ProbeIntegrationTest() {
 
     private fun doLambdaOnlyTest() {

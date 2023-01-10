@@ -287,6 +287,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         //clean up
         consumer.unregister().await()
+        assertNotNull(instrumentService.removeLiveInstrument(countMeterId).await())
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
