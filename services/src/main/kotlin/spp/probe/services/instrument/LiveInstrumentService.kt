@@ -37,7 +37,7 @@ import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
+import kotlin.streams.toList
 
 object LiveInstrumentService {
 
@@ -46,10 +46,7 @@ object LiveInstrumentService {
     )
 
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
-
-    //todo: merge instruments & applyingInstruments
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
-    private val applyingInstruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
     internal val instrumentsMap: Map<String, ActiveLiveInstrument>
         get() = HashMap(instruments)
@@ -66,16 +63,9 @@ object LiveInstrumentService {
                         removeInstruments.add(it)
                     }
                 }
-                applyingInstruments.values.forEach {
-                    if (it.instrument.expiresAt != null
-                        && System.currentTimeMillis() >= it.instrument.expiresAt!!
-                    ) {
-                        removeInstruments.add(it)
-                    }
-                }
 
                 if (log.isDebugEnable) log.debug("Found {} expired instruments", removeInstruments.size)
-                removeInstruments.forEach { _removeInstrument(it.instrument, null) }
+                removeInstruments.forEach { removeInstrument(it.instrument, null) }
             }
         }, 5000, 5000)
     }
@@ -123,9 +113,6 @@ object LiveInstrumentService {
 
             val transformer = LiveTransformer(className)
             try {
-                if (!instrument.isRemoval) {
-                    applyingInstruments[instrument.instrument.id!!] = instrument
-                }
                 inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
                 transformer.innerClasses.forEach {
@@ -146,8 +133,7 @@ object LiveInstrumentService {
                 log.warn(ex, "Failed to apply live instrument: {}", instrument)
 
                 //remove and re-transform
-                _removeInstrument(instrument.instrument, ex)
-                applyingInstruments.remove(instrument.instrument.id)
+                removeInstrument(instrument.instrument, ex)
                 inst.addTransformer(transformer, true)
                 try {
                     inst.retransformClasses(clazz)
@@ -156,7 +142,6 @@ object LiveInstrumentService {
                     throw RuntimeException(e)
                 }
             } finally {
-                applyingInstruments.remove(instrument.instrument.id)
                 inst.removeTransformer(transformer)
             }
         }
@@ -164,12 +149,10 @@ object LiveInstrumentService {
 
     fun clearAll() {
         instruments.clear()
-        applyingInstruments.clear()
     }
 
     fun applyInstrument(liveInstrument: LiveInstrument): String {
-        var existingInstrument = applyingInstruments[liveInstrument.id]
-        if (existingInstrument == null) existingInstrument = instruments[liveInstrument.id]
+        val existingInstrument = instruments[liveInstrument.id]
         return if (existingInstrument != null) {
             ModelSerializer.INSTANCE.toJson(existingInstrument.instrument)
         } else {
@@ -185,8 +168,15 @@ object LiveInstrumentService {
             } else {
                 ActiveLiveInstrument(liveInstrument)
             }
-            liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, activeInstrument)
+
             instruments[liveInstrument.id!!] = activeInstrument
+            try {
+                liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, activeInstrument)
+            } catch (ex: Throwable) {
+                instruments.remove(liveInstrument.id)
+                throw ex
+            }
+
             ModelSerializer.INSTANCE.toJson(activeInstrument.instrument)
         }
     }
@@ -218,7 +208,7 @@ object LiveInstrumentService {
         return emptyList()
     }
 
-    private fun _removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+    private fun removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
         if (ex != null) {
             log.warn(ex, "Removing erroneous live instrument: {}", instrument)
         } else {
@@ -240,31 +230,16 @@ object LiveInstrumentService {
     }
 
     fun getInstruments(source: String): List<ActiveLiveInstrument> {
-        val instruments = instruments.values.stream()
-            .filter { it.instrument.location.source == source }
-            .collect(Collectors.toSet())
-        instruments.addAll(
-            applyingInstruments.values.stream()
-                .filter { it.instrument.location.source == source }
-                .collect(Collectors.toSet()))
-        return ArrayList(instruments)
+        return instruments.values.stream().filter {
+            it.instrument.location.source == source
+        }.toList()
     }
 
     fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {
-        val instruments = instruments.values.stream()
-            .filter {
-                (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
-                        && it.instrument.location.line == line
-            }
-            .collect(Collectors.toSet())
-        instruments.addAll(
-            applyingInstruments.values.stream()
-                .filter {
-                    (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
-                            && it.instrument.location.line == line
-                }
-                .collect(Collectors.toSet()))
-        return ArrayList(instruments)
+        return instruments.values.stream().filter {
+            (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
+                    && it.instrument.location.line == line
+        }.toList()
     }
 
     fun getInstrument(instrumentId: String): LiveInstrument? {
@@ -272,47 +247,48 @@ object LiveInstrumentService {
     }
 
     fun isInstrumentEnabled(instrumentId: String): Boolean {
-        val applied = instruments.containsKey(instrumentId)
-        return if (applied) {
-            true
-        } else {
-            applyingInstruments.containsKey(instrumentId)
-        }
+        if (log.isTraceEnabled) log.trace("Checking if instrument is enabled: $instrumentId")
+        return instruments.containsKey(instrumentId)
     }
 
     fun isHit(instrumentId: String): Boolean {
-        val instrument = (instruments[instrumentId] ?: applyingInstruments[instrumentId]) ?: return false
+        if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
+        val instrument = instruments[instrumentId] ?: return false
         if (instrument.throttle?.isRateLimited() == true) {
+            if (log.isTraceEnabled) log.trace("Instrument is rate limited: $instrumentId")
             return false
         }
         if (instrument.expression == null) {
             if (instrument.isFinished) {
                 if (log.isInfoEnable) log.info("Instrument is finished: {}", instrumentId)
-                _removeInstrument(instrument.instrument, null)
+                removeInstrument(instrument.instrument, null)
             }
 
             //store instrument in probe memory, removed on ContextReceiver.put
             ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
+            if (log.isTraceEnabled) log.trace("Instrument is hit: $instrumentId")
             return true
         }
         return try {
             if (evaluateCondition(instrument)) {
                 if (instrument.isFinished) {
                     if (log.isInfoEnable) log.info("Instrument is finished: {}", instrumentId)
-                    _removeInstrument(instrument.instrument, null)
+                    removeInstrument(instrument.instrument, null)
                 }
 
                 //store instrument in probe memory, removed on ContextReceiver.put
                 ProbeMemory.putLocal("spp.live-instrument:$instrumentId", instrument.instrument)
 
+                if (log.isTraceEnabled) log.trace("Instrument is hit: $instrumentId")
                 true
             } else {
+                if (log.isTraceEnabled) log.trace("Instrument is not hit: $instrumentId")
                 false
             }
         } catch (e: Throwable) {
             log.warn(e, "Failed to evaluate condition: {}", instrument.instrument.condition)
-            _removeInstrument(instrument.instrument, e)
+            removeInstrument(instrument.instrument, e)
             false
         }
     }

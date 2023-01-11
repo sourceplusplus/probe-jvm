@@ -30,7 +30,6 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class CollectionsTest : ProbeIntegrationTest() {
 
@@ -54,8 +53,8 @@ class CollectionsTest : ProbeIntegrationTest() {
     @Test
     fun testCollections(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val breakpointId = "breakpoint-collections"
+        getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -174,13 +173,18 @@ class CollectionsTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
-                    location = LiveSourceLocation(CollectionsTest::class.qualifiedName!!, 52),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = CollectionsTest::class.java.name,
+                        line = 51,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = breakpointId
                 )
             ).await()
         )
@@ -189,8 +193,5 @@ class CollectionsTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }

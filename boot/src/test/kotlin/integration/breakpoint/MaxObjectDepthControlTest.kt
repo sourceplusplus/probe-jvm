@@ -32,7 +32,6 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxObjectDepthControlTest : ProbeIntegrationTest() {
 
@@ -45,8 +44,8 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
     @Test
     fun `max depth variable control`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-max-depth-variable-control"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -68,7 +67,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
@@ -76,8 +75,13 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     variableControl = LiveVariableControl(
                         maxObjectDepth = 8
                     ),
-                    location = LiveSourceLocation(MaxObjectDepthControlTest::class.qualifiedName!!, 43),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = MaxObjectDepthControlTest::class.java.name,
+                        line = 42,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -86,16 +90,13 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 
     @Test
     fun `max depth variable control by name`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-max-depth-variable-control-by-name"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -127,7 +128,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
@@ -139,8 +140,13 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxObjectDepthControlTest::class.qualifiedName!!, 43),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = MaxObjectDepthControlTest::class.java.name,
+                        line = 42,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -149,9 +155,6 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 
     class DeepObject1 {

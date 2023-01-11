@@ -32,7 +32,6 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
 
@@ -47,8 +46,8 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
     @Test
     fun testVariableControl(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-max-collection-length-variable-control"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -117,7 +116,7 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
@@ -135,8 +134,13 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                             )
                         )
                     ),
-                    location = LiveSourceLocation(MaxCollectionLengthControlTest::class.qualifiedName!!, 45),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = MaxCollectionLengthControlTest::class.java.name,
+                        line = 44,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -145,8 +149,5 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }
