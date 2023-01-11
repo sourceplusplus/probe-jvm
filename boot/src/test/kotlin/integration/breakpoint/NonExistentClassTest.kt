@@ -28,7 +28,7 @@ import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.service.error.LiveInstrumentException
 
-class NonExistentClass : ProbeIntegrationTest() {
+class NonExistentClassTest : ProbeIntegrationTest() {
 
     @Test
     fun `apply immediately non existent`(): Unit = runBlocking {
