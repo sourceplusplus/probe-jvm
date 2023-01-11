@@ -53,6 +53,10 @@ class PrimitiveTest : AbstractSerializeTest {
         ModelSerializer.INSTANCE.toExtendedJson("a").let {
             assertEquals("\"a\"", it)
         }
+        //null
+        ModelSerializer.INSTANCE.toExtendedJson(null).let {
+            assertEquals("null", it)
+        }
     }
 
     @Test
@@ -85,6 +89,10 @@ class PrimitiveTest : AbstractSerializeTest {
         ModelSerializer.INSTANCE.toExtendedJson(arrayOf("a", "b", "c")).let {
             assertEquals("[\"a\",\"b\",\"c\"]", it)
         }
+        //null
+        ModelSerializer.INSTANCE.toExtendedJson(arrayOfNulls<String>(3)).let {
+            assertEquals("[null,null,null]", it)
+        }
     }
 
     @Test
@@ -116,6 +124,10 @@ class PrimitiveTest : AbstractSerializeTest {
         //string
         ModelSerializer.INSTANCE.toExtendedJson(listOf("a", "b", "c")).let {
             assertEquals("[\"a\",\"b\",\"c\"]", it)
+        }
+        //null
+        ModelSerializer.INSTANCE.toExtendedJson(listOf(null, null, null)).let {
+            assertEquals("[null,null,null]", it)
         }
     }
 
@@ -169,6 +181,13 @@ class PrimitiveTest : AbstractSerializeTest {
             assertEquals("a", it.getString("a"))
             assertEquals("b", it.getString("b"))
             assertEquals("c", it.getString("c"))
+        }
+        //null
+        JsonObject(ModelSerializer.INSTANCE.toExtendedJson(mapOf("a" to null, "b" to null, "c" to null))).let {
+            assertEquals("java.util.LinkedHashMap", it.getString("@class"))
+            assertEquals(null, it.getValue("a"))
+            assertEquals(null, it.getValue("b"))
+            assertEquals(null, it.getValue("c"))
         }
     }
 }
