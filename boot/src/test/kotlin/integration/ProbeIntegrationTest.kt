@@ -32,7 +32,6 @@ import io.vertx.kotlin.coroutines.await
 import io.vertx.serviceproxy.ServiceProxyBuilder
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.extension.ExtendWith
@@ -66,9 +65,13 @@ abstract class ProbeIntegrationTest {
         private const val servicePort = 12800
         private val authToken: String? by lazy { fetchAuthToken() }
 
+        @Synchronized
         @BeforeAll
         @JvmStatic
         fun setup() = runBlocking {
+            if (::vertx.isInitialized) {
+                return@runBlocking
+            }
             vertx = Vertx.vertx()
             socket = setupTcp(vertx)
             socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
@@ -122,14 +125,6 @@ abstract class ProbeIntegrationTest {
                 .apply { authToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_VIEW)
                 .build(LiveViewService::class.java)
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun tearDown() {
-            runBlocking {
-                vertx.close().await()
-            }
         }
 
         fun getLiveViewSubscription(viewId: String): MessageConsumer<JsonObject> {

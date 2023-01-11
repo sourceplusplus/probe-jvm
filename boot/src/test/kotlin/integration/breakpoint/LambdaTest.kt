@@ -23,6 +23,8 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
@@ -32,6 +34,7 @@ import spp.protocol.instrument.location.LocationScope
 import spp.protocol.instrument.throttle.InstrumentThrottle
 import java.util.concurrent.atomic.AtomicInteger
 
+@Execution(ExecutionMode.SAME_THREAD)
 class LambdaTest : ProbeIntegrationTest() {
 
     private fun doLambdaOnlyTest() {
@@ -72,7 +75,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 43,
+                        line = 46,
                         scope = LocationScope.LAMBDA,
                         service = "spp-test-probe"
                     ),
@@ -116,7 +119,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 93,
+                        line = 96,
                         scope = LocationScope.LINE,
                         service = "spp-test-probe"
                     ),
@@ -160,7 +163,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 137,
+                        line = 140,
                         scope = LocationScope.LAMBDA,
                         service = "spp-test-probe"
                     ),
@@ -207,7 +210,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 181,
+                        line = 184,
                         scope = LocationScope.BOTH,
                         service = "spp-test-probe"
                     ),

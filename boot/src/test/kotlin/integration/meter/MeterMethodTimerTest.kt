@@ -23,6 +23,7 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Isolated
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -32,8 +33,8 @@ import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.LiveViewRule
-import java.util.*
 
+@Isolated
 class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     private fun doTest() {
@@ -42,9 +43,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     @Test
     fun `method timer meter`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "method-timer-meter-$uuid"
-
+        val meterId = "method-timer-meter-" + System.currentTimeMillis()
         val liveMeter = LiveMeter(
             MeterType.METHOD_TIMER,
             MetricValue(MetricValueType.NUMBER, ""),

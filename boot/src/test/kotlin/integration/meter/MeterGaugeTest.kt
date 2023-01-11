@@ -21,7 +21,8 @@ import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -61,7 +62,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                45,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -101,8 +102,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
 
                 //check within a second
                 val suppliedTime = rawMetrics.getLong("value")
-                assertTrue(suppliedTime >= System.currentTimeMillis() - 1000)
-                assertTrue(suppliedTime <= System.currentTimeMillis())
+                assertEquals(System.currentTimeMillis().toDouble(), suppliedTime.toDouble(), 1000.0)
             }
             testContext.completeNow()
         }
@@ -127,7 +127,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.qualifiedName!!,
-                45,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
