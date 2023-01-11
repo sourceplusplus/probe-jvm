@@ -30,7 +30,6 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
-import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -88,12 +87,9 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -103,7 +99,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 2000.0)
             }
             testContext.completeNow()
-        }.completionHandler().await()
+        }
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
@@ -112,7 +108,6 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
@@ -155,12 +150,9 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -170,7 +162,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 1500.0)
             }
             testContext.completeNow()
-        }.completionHandler().await()
+        }
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
@@ -179,7 +171,6 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
@@ -264,12 +255,9 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -279,14 +267,13 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 assertEquals(100.0, rawMetrics.getDouble("value"), 200.0)
             }
             testContext.completeNow()
-        }.completionHandler().await()
+        }
 
         doTest()
 
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(countMeterId).await())
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())

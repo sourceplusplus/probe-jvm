@@ -29,7 +29,6 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
-import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -50,7 +49,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 MeterReturnValueTest::class.java.name,
-                42,
+                41,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -81,12 +80,9 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -95,7 +91,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
                 assertEquals(1, rawMetrics.getLong("value"))
             }
             testContext.completeNow()
-        }.completionHandler().await()
+        }
 
         instrumentService.addLiveInstrument(liveMeter).await()
 
@@ -105,7 +101,6 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }

@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.*
-import spp.protocol.service.SourceServices
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -61,7 +60,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterTagTest::class.qualifiedName!!,
-                43,
+                42,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -86,12 +85,9 @@ class MeterTagTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            SourceServices.Subscribe.toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             val summation = rawMetrics.getString("summation")
@@ -108,10 +104,9 @@ class MeterTagTest : ProbeIntegrationTest() {
                 }
                 testContext.completeNow()
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
-        delay(2500)
 
         for (i in 0 until 10) {
             doTest()
@@ -121,7 +116,6 @@ class MeterTagTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext, 30)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
         assertNotNull(viewService.deleteRule(ruleName).await())

@@ -46,6 +46,7 @@ import spp.protocol.service.SourceServices
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscription
 import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
+import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscription
 import spp.protocol.service.extend.TCPServiceFrameParser
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -131,6 +132,23 @@ abstract class ProbeIntegrationTest {
             }
         }
 
+        fun getLiveViewSubscription(viewId: String): MessageConsumer<JsonObject> {
+            val listenAddress = toLiveViewSubscription(viewId)
+
+            //send register
+            val headers = JsonObject()
+            if (authToken != null) {
+                headers.put("auth-token", authToken)
+            }
+            FrameHelper.sendFrame(
+                BridgeEventType.REGISTER.name.lowercase(),
+                listenAddress, null,
+                headers, null, null, socket
+            )
+
+            return vertx.eventBus().localConsumer(listenAddress)
+        }
+
         fun getLiveInstrumentSubscription(instrumentId: String): MessageConsumer<JsonObject> {
             val listenAddress = toLiveInstrumentSubscription(instrumentId)
 
@@ -141,7 +159,7 @@ abstract class ProbeIntegrationTest {
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
-                listenAddress, "the-reply",
+                listenAddress, null,
                 headers, null, null, socket
             )
 
