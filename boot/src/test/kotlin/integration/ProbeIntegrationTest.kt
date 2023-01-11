@@ -212,12 +212,6 @@ abstract class ProbeIntegrationTest {
         }
     }
 
-    fun <T> MessageConsumer<T>.completionHandler(): Future<Void> {
-        val promise = Promise.promise<Void>()
-        completionHandler { promise.handle(it) }
-        return promise.future()
-    }
-
     fun errorOnTimeout(testContext: VertxTestContext, waitTime: Long = 20) {
         if (testContext.awaitCompletion(waitTime, TimeUnit.SECONDS)) {
             if (testContext.failed()) {
