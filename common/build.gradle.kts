@@ -7,6 +7,7 @@ val projectVersion: String by project
 val jacksonVersion: String by project
 val vertxVersion: String by project
 val skywalkingAgentVersion: String by project
+val jupiterVersion: String by project
 
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
@@ -24,8 +25,23 @@ dependencies {
     compileOnly("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     compileOnly("org.apache.commons:commons-text:1.10.0")
 
-    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-core:$vertxVersion")
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
     testImplementation("org.apache.commons:commons-text:1.10.0")
+}
+
+tasks {
+    test {
+        failFast = true
+        useJUnitPlatform()
+
+        testLogging {
+            events("passed", "skipped", "failed")
+            setExceptionFormat("full")
+
+            outputs.upToDateWhen { false }
+            showStandardStreams = true
+        }
+    }
 }
