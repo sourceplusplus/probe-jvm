@@ -24,7 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.event.LiveBreakpointHit
@@ -33,11 +32,9 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.location.LocationScope
 import spp.protocol.instrument.throttle.InstrumentThrottle
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-@Disabled
 class LambdaTest : ProbeIntegrationTest() {
 
     private fun doLambdaOnlyTest() {
@@ -54,8 +51,8 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `lambda only test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-lambda-only"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -71,17 +68,19 @@ class LambdaTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 47,
-                        scope = LocationScope.LAMBDA
+                        line = 46,
+                        scope = LocationScope.LAMBDA,
+                        service = "spp-test-probe"
                     ),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -90,9 +89,6 @@ class LambdaTest : ProbeIntegrationTest() {
         doLambdaOnlyTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 
     private fun doSameLineOnlyTest() {
@@ -104,8 +100,8 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `same line only test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-same-line-only"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -116,17 +112,19 @@ class LambdaTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 98,
-                        scope = LocationScope.LINE
+                        line = 96,
+                        scope = LocationScope.LINE,
+                        service = "spp-test-probe"
                     ),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -135,9 +133,6 @@ class LambdaTest : ProbeIntegrationTest() {
         doSameLineOnlyTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 
     private fun doSameLineLambdaTest() {
@@ -149,8 +144,8 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `same line lambda test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-same-line-lambda"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -161,17 +156,19 @@ class LambdaTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 143,
-                        scope = LocationScope.LAMBDA
+                        line = 140,
+                        scope = LocationScope.LAMBDA,
+                        service = "spp-test-probe"
                     ),
-                    applyImmediately = true
+                    applyImmediately = true,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -180,9 +177,6 @@ class LambdaTest : ProbeIntegrationTest() {
         doSameLineLambdaTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 
     private fun doLambdaAndLineTest() {
@@ -195,8 +189,8 @@ class LambdaTest : ProbeIntegrationTest() {
     fun `lambda and line test`(): Unit = runBlocking {
         val gotAllHitsLatch = CountDownLatch(2)
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "breakpoint-lambda-and-line"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
@@ -207,19 +201,21 @@ class LambdaTest : ProbeIntegrationTest() {
                     gotAllHitsLatch.countDown()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 188,
-                        scope = LocationScope.BOTH
+                        line = 184,
+                        scope = LocationScope.BOTH,
+                        service = "spp-test-probe"
                     ),
                     throttle = InstrumentThrottle.NONE,
                     applyImmediately = true,
-                    hitLimit = 5
+                    hitLimit = 5,
+                    id = instrumentId
                 )
             ).await()
         )
@@ -233,8 +229,5 @@ class LambdaTest : ProbeIntegrationTest() {
             }
         }
         testContext.completeNow()
-
-        //clean up
-        consumer.unregister().await()
     }
 }
