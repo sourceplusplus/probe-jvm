@@ -33,7 +33,6 @@ import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
-import java.lang.reflect.InvocationTargetException
 import java.util.*
 import java.util.function.BiConsumer
 
@@ -173,12 +172,6 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
             when (command.commandType) {
                 CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(command)
                 CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
-            }
-        } catch (ex: InvocationTargetException) {
-            if (ex.cause != null) {
-                publishCommandError(it, ex.cause!!)
-            } else {
-                publishCommandError(it, ex.targetException)
             }
         } catch (ex: Throwable) {
             publishCommandError(it, ex)
