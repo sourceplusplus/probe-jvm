@@ -31,7 +31,7 @@ class MetadataCollector(
     }
 
     override fun visitInnerClass(name: String, outerName: String?, innerName: String?, access: Int) {
-        if (className.startsWith(name) && name != className) {
+        if (name.startsWith(className) && name != className) {
             classMetadata.addInnerClass(name)
         }
         super.visitInnerClass(name, outerName, innerName, access)
