@@ -24,7 +24,7 @@ class ActiveLiveInstrument @JvmOverloads constructor(
     val expression: Expression? = null
 ) {
     val throttle: HitThrottle? = instrument.throttle.let {
-        if (it != null) {
+        if (it != null && it.limit != -1) {
             HitThrottle(it.limit, it.step)
         } else {
             null

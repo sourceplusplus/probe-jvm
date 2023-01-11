@@ -28,7 +28,6 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.instrument.location.LiveSourceLocation
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class ProbeLogTest : ProbeIntegrationTest() {
 
@@ -47,8 +46,8 @@ class ProbeLogTest : ProbeIntegrationTest() {
     @Test
     fun testPrimitives(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val logId = "probe-log-test"
+        getLiveInstrumentSubscription(logId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
@@ -58,15 +57,20 @@ class ProbeLogTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveLog(
                     logFormat = "{} {} {}",
                     logArguments = listOf("a", "b", "c"),
-                    location = LiveSourceLocation(ProbeLogTest::class.java.name, 45),
-                    applyImmediately = true
+                    location = LiveSourceLocation(
+                        source = ProbeLogTest::class.java.name,
+                        line = 44,
+                        service = "spp-test-probe"
+                    ),
+                    applyImmediately = true,
+                    id = logId
                 )
             ).await()
         )
@@ -75,8 +79,5 @@ class ProbeLogTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }

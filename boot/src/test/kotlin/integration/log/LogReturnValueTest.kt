@@ -29,7 +29,6 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.instrument.location.LiveSourceLocation
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class LogReturnValueTest : ProbeIntegrationTest() {
 
@@ -40,8 +39,8 @@ class LogReturnValueTest : ProbeIntegrationTest() {
     @Test
     fun `string return value`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "log-return-value-string"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
@@ -51,16 +50,20 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveLog(
                     "value = {}",
                     listOf("@return"),
-                    location = LiveSourceLocation(LogReturnValueTest::class.qualifiedName!!, 38),
+                    location = LiveSourceLocation(
+                        source = LogReturnValueTest::class.java.name,
+                        line = 37,
+                        service = "spp-test-probe"
+                    ),
                     applyImmediately = true,
-                    id = "log-return-value-string"
+                    id = instrumentId
                 )
             ).await()
         )
@@ -69,8 +72,5 @@ class LogReturnValueTest : ProbeIntegrationTest() {
         doStringTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }

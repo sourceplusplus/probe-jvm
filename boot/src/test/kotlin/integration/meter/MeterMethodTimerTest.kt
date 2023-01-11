@@ -18,7 +18,6 @@ package integration.meter
 
 import integration.ProbeIntegrationTest
 import io.vertx.core.json.JsonArray
-import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
@@ -29,7 +28,6 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
-import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -96,12 +94,9 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
                 )
             )
         ).await().subscriptionId!!
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(
-            toLiveViewSubscriberAddress("system")
-        )
 
         val testContext = VertxTestContext()
-        consumer.handler {
+        getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonArray(liveViewEvent.metricsData)
             testContext.verify {
@@ -113,7 +108,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
                 assertEquals(10.0, rate.getDouble("summation"))
             }
             testContext.completeNow()
-        }.completionHandler().await()
+        }
 
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
@@ -124,7 +119,6 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        consumer.unregister().await()
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }

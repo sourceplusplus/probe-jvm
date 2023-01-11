@@ -29,7 +29,6 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.instrument.location.LiveSourceLocation
-import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberAddress
 
 class LogLocationTest : ProbeIntegrationTest() {
 
@@ -40,8 +39,8 @@ class LogLocationTest : ProbeIntegrationTest() {
     @Test
     fun `log location`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val consumer = vertx.eventBus().localConsumer<JsonObject>(toLiveInstrumentSubscriberAddress("system"))
-        consumer.handler {
+        val instrumentId = "log-location"
+        getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
@@ -51,20 +50,24 @@ class LogLocationTest : ProbeIntegrationTest() {
                     val location = item.logResult.logs.first().location
                     assertNotNull(location)
                     assertEquals(LogLocationTest::class.qualifiedName!!, location!!.source)
-                    assertEquals(37, location.line)
+                    assertEquals(36, location.line)
 
                     testContext.completeNow()
                 }
             }
-        }.completionHandler().await()
+        }
 
         assertNotNull(
             instrumentService.addLiveInstrument(
                 LiveLog(
                     "Hello World",
-                    location = LiveSourceLocation(LogLocationTest::class.qualifiedName!!, 37),
+                    location = LiveSourceLocation(
+                        source = LogLocationTest::class.java.name,
+                        line = 36,
+                        service = "spp-test-probe"
+                    ),
                     applyImmediately = true,
-                    id = "log-location"
+                    id = instrumentId
                 )
             ).await()
         )
@@ -73,8 +76,5 @@ class LogLocationTest : ProbeIntegrationTest() {
         doTest()
 
         errorOnTimeout(testContext)
-
-        //clean up
-        consumer.unregister().await()
     }
 }
