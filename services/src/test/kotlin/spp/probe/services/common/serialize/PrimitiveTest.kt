@@ -17,8 +17,8 @@
 package spp.probe.services.common.serialize
 
 import io.vertx.core.json.JsonObject
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import spp.probe.services.common.ModelSerializer
 
 class PrimitiveTest : AbstractSerializeTest {

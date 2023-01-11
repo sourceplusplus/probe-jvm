@@ -17,9 +17,9 @@
 package spp.probe.services.common.serialize
 
 import io.vertx.core.json.JsonObject
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Test
 import spp.probe.services.common.ModelSerializer
 
 class MaxObjectDepthTest : AbstractSerializeTest {

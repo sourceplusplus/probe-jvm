@@ -9,6 +9,7 @@ val projectVersion: String by project
 val skywalkingAgentVersion: String by project
 val gsonVersion: String by project
 val vertxVersion: String by project
+val jupiterVersion: String by project
 
 group = probeGroup
 version = project.properties["probeVersion"] as String? ?: projectVersion
@@ -64,9 +65,9 @@ dependencies {
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
     implementation("org.springframework:spring-expression:5.3.25")
 
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("plus.sourceplus:protocol:$projectVersion")
     testImplementation("io.vertx:vertx-core:$vertxVersion")
-    testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:4.+")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     testImplementation(projectDependency(":common"))
@@ -116,6 +117,7 @@ tasks {
 
     test {
         failFast = true
+        useJUnitPlatform()
 
         testLogging {
             events("passed", "skipped", "failed")

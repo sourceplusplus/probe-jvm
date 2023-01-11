@@ -16,12 +16,10 @@
  */
 package spp.probe.services.instrument
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
@@ -34,7 +32,6 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import java.lang.instrument.Instrumentation
 import java.util.function.BiConsumer
 
-@RunWith(JUnit4::class)
 class ProbeInstrumentTest {
     companion object {
         private val parser = SpelExpressionParser(
@@ -48,7 +45,7 @@ class ProbeInstrumentTest {
         }
     }
 
-    @Before
+    @BeforeEach
     fun clean() {
         LiveInstrumentService.clearAll()
     }

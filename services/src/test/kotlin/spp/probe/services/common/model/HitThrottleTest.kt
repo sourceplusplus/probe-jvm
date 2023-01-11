@@ -16,8 +16,8 @@
  */
 package spp.probe.services.common.model
 
-import junit.framework.TestCase
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import spp.protocol.instrument.throttle.ThrottleStep
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -31,8 +31,8 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 100, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        TestCase.assertEquals(5f, hitThrottle.totalHitCount.toFloat(), 1f)
-        TestCase.assertEquals(45f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(5f, hitThrottle.totalHitCount.toFloat(), 1f)
+        assertEquals(45f, hitThrottle.totalLimitedCount.toFloat(), 1f)
     }
 
     @Test
@@ -42,8 +42,8 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        TestCase.assertEquals(10f, hitThrottle.totalHitCount.toFloat(), 1f)
-        TestCase.assertEquals(12f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(10f, hitThrottle.totalHitCount.toFloat(), 1f)
+        assertEquals(12f, hitThrottle.totalLimitedCount.toFloat(), 1f)
     }
 
     @Test
@@ -53,7 +53,7 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        TestCase.assertEquals(20f, hitThrottle.totalHitCount.toFloat(), 1f)
-        TestCase.assertEquals(3f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(20f, hitThrottle.totalHitCount.toFloat(), 1f)
+        assertEquals(3f, hitThrottle.totalLimitedCount.toFloat(), 1f)
     }
 }

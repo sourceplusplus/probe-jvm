@@ -17,8 +17,8 @@
 package spp.probe.services.common.serialize
 
 import io.vertx.core.json.JsonObject
-import org.junit.Ignore
-import org.junit.Test
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import spp.probe.services.common.ModelSerializer
 
 /**
@@ -26,7 +26,7 @@ import spp.probe.services.common.ModelSerializer
  * to objects greater than max depth. These test(s) ensure objects over max depth serialize fully
  * with respect to the top level object's depth.
  */
-@Ignore
+@Disabled
 class MaxDepthReferenceTest : AbstractSerializeTest {
 
     @Test

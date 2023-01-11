@@ -17,14 +17,14 @@
 package spp.probe.services.common.serialize
 
 import io.vertx.core.json.JsonObject
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import org.mockito.Mockito
 import spp.probe.ProbeConfiguration
 import java.lang.instrument.Instrumentation
 
 interface AbstractSerializeTest {
 
-    @Before
+    @BeforeEach
     fun setup() {
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         ProbeConfiguration.variableControlByName.clear()
