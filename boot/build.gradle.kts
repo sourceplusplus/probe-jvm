@@ -183,16 +183,18 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
         )
     }
 
-    relocate("kotlin", "spp.probe.common.kotlin")
-    relocate("org.apache.commons", "spp.probe.common.org.apache.commons")
-    relocate("org.intellij", "spp.probe.common.org.intellij")
-    relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
-    relocate("org.yaml", "spp.probe.common.org.yaml")
-    relocate("io", "spp.probe.common.io")
-    relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
+    if (System.getProperty("build.profile") == "release") {
+        relocate("kotlin", "spp.probe.common.kotlin")
+        relocate("org.apache.commons", "spp.probe.common.org.apache.commons")
+        relocate("org.intellij", "spp.probe.common.org.intellij")
+        relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
+        relocate("org.yaml", "spp.probe.common.org.yaml")
+        relocate("io", "spp.probe.common.io")
+        relocate("com.fasterxml", "spp.probe.common.com.fasterxml")
 
-    //need to move marshall package to allow probe to observe platform
-    relocate("spp.protocol.marshall", "spp.protocol")
+        //need to move marshall package to allow probe to observe platform
+        relocate("spp.protocol.marshall", "spp.protocol")
+    }
 }
 tasks.getByName("jar").dependsOn("shadowJar")
 tasks.getByName("generatePomFileForMavenPublication").dependsOn("shadowJar")

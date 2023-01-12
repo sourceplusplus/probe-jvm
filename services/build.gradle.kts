@@ -102,16 +102,12 @@ tasks {
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
 
-        val isIntegrationProfile = System.getProperty("test.profile") == "integration"
-        val runningSpecificTests = gradle.startParameter.taskNames.contains("--tests")
-        if (!isIntegrationProfile && !runningSpecificTests) {
-            //can't relocate these during self probe style testing
+        if (System.getProperty("build.profile") == "release") {
             relocate("io", "spp.probe.common.io")
+            relocate("kotlin", "spp.probe.common.kotlin")
+            relocate("org.intellij", "spp.probe.common.org.intellij")
+            relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
         }
-
-        relocate("kotlin", "spp.probe.common.kotlin")
-        relocate("org.intellij", "spp.probe.common.org.intellij")
-        relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     }
     getByName("jar").dependsOn("shadowJar")
 
