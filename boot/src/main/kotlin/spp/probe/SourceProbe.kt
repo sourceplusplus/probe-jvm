@@ -270,7 +270,7 @@ object SourceProbe {
         val contextClassLoader = Thread.currentThread().contextClassLoader
         val dynamic = ClassLoader.findAncestor(contextClassLoader)
         dynamic?.add(skywalkingAgentFile.toURI().toURL())
-            ?: if (jvmMajorVersion >= 9) {
+            ?: if (ProbeConfiguration.jvmMajorVersion >= 9) {
                 instrumentation!!.appendToSystemClassLoaderSearch(JarFile(skywalkingAgentFile))
             } else {
                 val classLoader = java.lang.ClassLoader.getSystemClassLoader() as URLClassLoader
@@ -362,15 +362,4 @@ object SourceProbe {
         }
         directory.delete()
     }
-
-    private val jvmMajorVersion: Int
-        get() {
-            var version = System.getProperty("java.version").substringBefore("-")
-            if (version.startsWith("1.")) {
-                version = version.substring(2, 3)
-            } else {
-                version = version.substringBefore(".")
-            }
-            return version.toInt()
-        }
 }
