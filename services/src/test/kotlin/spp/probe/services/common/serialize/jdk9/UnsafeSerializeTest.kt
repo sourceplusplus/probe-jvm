@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package spp.probe.services.common.serialize
+package spp.probe.services.common.serialize.jdk9
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpHandler
@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.probe.services.common.ModelSerializer
+import spp.probe.services.common.serialize.AbstractSerializeTest
 import java.net.InetSocketAddress
 import java.net.http.HttpClient
 import java.net.http.HttpRequest

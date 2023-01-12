@@ -136,3 +136,9 @@ fun projectDependency(name: String): ProjectDependency {
         DependencyHandlerScope.of(rootProject.dependencies).project(":probes:jvm$name")
     }
 }
+
+if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        exclude("**/jdk9/**")
+    }
+}
