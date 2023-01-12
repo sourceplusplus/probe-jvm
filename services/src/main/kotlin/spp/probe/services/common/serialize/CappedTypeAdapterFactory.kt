@@ -267,6 +267,11 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
     }
 
     private fun isExported(value: Any): Boolean {
+        val jvmVersion = ProbeConfiguration.jvmMajorVersion
+        if (jvmVersion < 9) {
+            return true
+        }
+
         val module = Class::class.java.getDeclaredMethod("getModule").invoke(value::class.java)
         return value::class.java.`package` == null ||
                 module::class.java.getDeclaredMethod("isExported", String::class.java)
