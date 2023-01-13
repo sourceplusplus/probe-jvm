@@ -24,12 +24,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
-import org.junit.jupiter.api.parallel.Isolated
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.service.error.LiveInstrumentException
 
-@Isolated
 class NonExistentClassTest : ProbeIntegrationTest() {
 
     @Test
