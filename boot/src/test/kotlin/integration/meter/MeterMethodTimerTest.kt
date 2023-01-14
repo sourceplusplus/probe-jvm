@@ -23,7 +23,6 @@ import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.parallel.Isolated
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -33,12 +32,12 @@ import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.LiveViewRule
+import java.util.concurrent.TimeUnit
 
-@Isolated
 class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     private fun doTest() {
-        Thread.sleep(200)
+        sleepNanos()
     }
 
     @Test
@@ -120,5 +119,24 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
         //clean up
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
+    }
+
+    private val sleepTime = TimeUnit.MILLISECONDS.toNanos(200)
+    private val sleepPrecision = TimeUnit.MILLISECONDS.toNanos(2)
+    private val spinYieldPrecision = TimeUnit.MILLISECONDS.toNanos(2)
+    private fun sleepNanos() {
+        val end = System.nanoTime() + sleepTime
+        var timeLeft = sleepTime
+        do {
+            if (timeLeft > sleepPrecision) {
+                Thread.sleep(1)
+            } else {
+                if (timeLeft > spinYieldPrecision) {
+                    Thread.yield()
+                }
+            }
+            timeLeft = end - System.nanoTime()
+            if (Thread.interrupted()) throw InterruptedException()
+        } while (timeLeft > 0)
     }
 }
