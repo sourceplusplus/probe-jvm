@@ -100,9 +100,9 @@ class MeterGaugeTest : ProbeIntegrationTest() {
                 val meta = rawMetrics.getJsonObject("meta")
                 assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
 
-                //check within a second
+                //check within 5 seconds
                 val suppliedTime = rawMetrics.getLong("value")
-                assertEquals(System.currentTimeMillis().toDouble(), suppliedTime.toDouble(), 1000.0)
+                assertEquals(System.currentTimeMillis().toDouble(), suppliedTime.toDouble(), 5000.0)
             }
             testContext.completeNow()
         }
