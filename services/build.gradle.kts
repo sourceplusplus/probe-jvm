@@ -58,7 +58,7 @@ dependencies {
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    compileOnly("net.bytebuddy:byte-buddy:1.12.21")
+    compileOnly("net.bytebuddy:byte-buddy:1.12.22")
     compileOnly(projectDependency(":common"))
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
@@ -102,16 +102,12 @@ tasks {
         relocate("org.springframework", "spp.probe.services.dependencies.org.springframework")
         relocate("net.bytebuddy", "org.apache.skywalking.apm.dependencies.net.bytebuddy")
 
-        val isIntegrationProfile = System.getProperty("test.profile") == "integration"
-        val runningSpecificTests = gradle.startParameter.taskNames.contains("--tests")
-        if (!isIntegrationProfile && !runningSpecificTests) {
-            //can't relocate these during self probe style testing
+        if (System.getProperty("build.profile") == "release") {
             relocate("io", "spp.probe.common.io")
+            relocate("kotlin", "spp.probe.common.kotlin")
+            relocate("org.intellij", "spp.probe.common.org.intellij")
+            relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
         }
-
-        relocate("kotlin", "spp.probe.common.kotlin")
-        relocate("org.intellij", "spp.probe.common.org.intellij")
-        relocate("org.jetbrains", "spp.probe.common.org.jetbrains")
     }
     getByName("jar").dependsOn("shadowJar")
 
@@ -133,5 +129,11 @@ fun projectDependency(name: String): ProjectDependency {
         DependencyHandlerScope.of(rootProject.dependencies).project(name)
     } else {
         DependencyHandlerScope.of(rootProject.dependencies).project(":probes:jvm$name")
+    }
+}
+
+if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        exclude("**/jdk9/**")
     }
 }

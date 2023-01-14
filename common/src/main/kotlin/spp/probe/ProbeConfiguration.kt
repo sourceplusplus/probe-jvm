@@ -31,6 +31,17 @@ import kotlin.system.exitProcess
 
 object ProbeConfiguration {
 
+    val jvmMajorVersion: Int
+        get() {
+            var version = System.getProperty("java.version").substringBefore("-")
+            if (version.startsWith("1.")) {
+                version = version.substring(2, 3)
+            } else {
+                version = version.substringBefore(".")
+            }
+            return version.toInt()
+        }
+
     val PROBE_DIRECTORY by lazy {
         getString("install_directory")?.let { File(it) }
             ?: File(System.getProperty("java.io.tmpdir"), "spp-probe")
