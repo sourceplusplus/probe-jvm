@@ -42,9 +42,9 @@ class LogReturnValueTest : ProbeIntegrationTest() {
         val instrumentId = "log-return-value-string"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                    val item = LiveLogHit(JsonObject(event.data))
+                    val item = event as LiveLogHit
                     assertEquals(item.logResult.logs.first().toFormattedMessage(), "value = Hello World")
 
                     testContext.completeNow()

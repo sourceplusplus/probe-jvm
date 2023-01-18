@@ -56,9 +56,9 @@ class CollectionsTest : ProbeIntegrationTest() {
         val breakpointId = "breakpoint-collections"
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val bpHit = LiveBreakpointHit(JsonObject(event.data))
+                    val bpHit = event as LiveBreakpointHit
                     val topFrame = bpHit.stackTrace.elements.first()
                     assertEquals(9, topFrame.variables.size)
 

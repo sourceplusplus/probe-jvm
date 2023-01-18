@@ -46,9 +46,9 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
         val instrumentId = "breakpoint-max-object-size-variable-control"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(4, vars.size)
 

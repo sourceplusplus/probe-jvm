@@ -49,9 +49,9 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
         val testContext = VertxTestContext()
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(10, vars.size)
 

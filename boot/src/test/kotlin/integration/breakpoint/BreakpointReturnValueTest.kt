@@ -42,9 +42,9 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         val breakpointId = "breakpoint-return-value-string"
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(2, vars.size)
 
@@ -88,9 +88,9 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         val breakpointId = "breakpoint-return-value-integer"
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(2, vars.size)
 
@@ -134,9 +134,9 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         val breakpointId = "breakpoint-return-value-int"
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(2, vars.size)
 
