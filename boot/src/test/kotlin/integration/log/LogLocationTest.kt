@@ -42,9 +42,9 @@ class LogLocationTest : ProbeIntegrationTest() {
         val instrumentId = "log-location"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                    val item = LiveLogHit(JsonObject(event.data))
+                    val item = event as LiveLogHit
                     assertEquals(1, item.logResult.logs.size)
 
                     val location = item.logResult.logs.first().location

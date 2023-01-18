@@ -49,9 +49,9 @@ class ProbeLogTest : ProbeIntegrationTest() {
         val logId = "probe-log-test"
         getLiveInstrumentSubscription(logId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                    val item = LiveLogHit(JsonObject(event.data))
+                    val item = event as LiveLogHit
                     assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
 
                     testContext.completeNow()

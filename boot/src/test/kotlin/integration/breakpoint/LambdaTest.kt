@@ -51,9 +51,9 @@ class LambdaTest : ProbeIntegrationTest() {
         val instrumentId = "breakpoint-lambda-only"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(5, vars.size)
 
@@ -100,9 +100,9 @@ class LambdaTest : ProbeIntegrationTest() {
         val instrumentId = "breakpoint-same-line-only"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(2, vars.size)
                     assertEquals(5, vars.first { it.name == "a" }.value)
@@ -144,9 +144,9 @@ class LambdaTest : ProbeIntegrationTest() {
         val instrumentId = "breakpoint-same-line-lambda"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertEquals(3, vars.size)
                     assertEquals(5, vars.first { it.name == "p1" }.value) //todo: why p1? below test gets 'x'
@@ -189,9 +189,9 @@ class LambdaTest : ProbeIntegrationTest() {
         val instrumentId = "breakpoint-lambda-and-line"
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
-                val event = LiveInstrumentEvent(it.body())
+                val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
-                    val item = LiveBreakpointHit(JsonObject(event.data))
+                    val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
                     assertTrue(vars.any { it.name == "a" || it.name == "x" })
 
