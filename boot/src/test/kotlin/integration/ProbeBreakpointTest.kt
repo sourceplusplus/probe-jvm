@@ -16,7 +16,6 @@
  */
 package integration
 
-import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
@@ -65,7 +64,7 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = ProbeBreakpointTest::class.java.name,
-                        line = 44,
+                        line = 43,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
