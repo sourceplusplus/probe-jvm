@@ -136,7 +136,7 @@ class LiveInstrumentTransformer(
                 is LiveBreakpoint -> {
                     captureSnapshot(instrument.instrument.id!!, line)
                     isHit(instrument.instrument.id!!, instrumentLabel)
-                    putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
+                    putBreakpoint(instrument.instrument.id!!)
                 }
 
                 is LiveLog -> {
@@ -243,6 +243,7 @@ class LiveInstrumentTransformer(
                 mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), local.index)
                 boxIfNecessary(mv, local.desc)
                 mv.visitLdcInsn(type.className)
+                mv.visitLdcInsn(local.start - 1)
                 mv.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "putLocalVariable", REMOTE_SAVE_VAR_DESC, false
@@ -261,6 +262,7 @@ class LiveInstrumentTransformer(
             mv.visitFieldInsn(Opcodes.GETSTATIC, className, staticField.name, staticField.desc)
             boxIfNecessary(mv, staticField.desc)
             mv.visitLdcInsn(type.className)
+            mv.visitLdcInsn(-1) //todo: this
             mv.visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "putStaticField", REMOTE_SAVE_VAR_DESC, false
@@ -280,6 +282,7 @@ class LiveInstrumentTransformer(
                 mv.visitFieldInsn(Opcodes.GETFIELD, className, field.name, field.desc)
                 boxIfNecessary(mv, field.desc)
                 mv.visitLdcInsn(type.className)
+                mv.visitLdcInsn(-1) //todo: this
                 mv.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "putField", REMOTE_SAVE_VAR_DESC, false
@@ -288,12 +291,10 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun putBreakpoint(instrumentId: String, source: String, line: Int) {
+    private fun putBreakpoint(instrumentId: String) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
-        mv.visitLdcInsn(source)
-        mv.visitLdcInsn(line)
         mv.visitTypeInsn(Opcodes.NEW, THROWABLE_INTERNAL_NAME)
         mv.visitInsn(Opcodes.DUP)
         mv.visitMethodInsn(
@@ -391,7 +392,7 @@ class LiveInstrumentTransformer(
                             )
 
                             isHit(instrument.instrument.id!!, instrumentLabel)
-                            putBreakpoint(instrument.instrument.id!!, className.replace("/", "."), line)
+                            putBreakpoint(instrument.instrument.id!!)
                         }
 
                         is LiveLog -> {
