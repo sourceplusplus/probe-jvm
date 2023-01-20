@@ -17,7 +17,6 @@
 package integration.log
 
 import integration.ProbeIntegrationTest
-import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
