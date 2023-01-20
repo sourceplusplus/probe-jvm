@@ -60,23 +60,23 @@ object ContextReceiver {
         return contextMap
     }
 
-    fun putBreakpoint(breakpointId: String, source: String?, line: Int, throwable: Throwable) {
+    fun putBreakpoint(breakpointId: String, throwable: Throwable) {
         if (log.isDebugEnable) log.debug("Breakpoint hit: $breakpointId")
         val liveBreakpoint = ProbeMemory.removeLocal("spp.live-instrument:$breakpointId") as LiveBreakpoint? ?: return
         if (log.isDebugEnable) log.debug("Live breakpoint: $liveBreakpoint")
 
         val activeSpan = ContextManager.createLocalSpan(throwable.stackTrace[0].toString())
-        ProbeMemory.getLocalVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getLocalVariables(breakpointId).forEach { (key: String, value: Triple<String, Any?, Int>) ->
             activeSpan.tag(
                 StringTag("spp.local-variable:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
-        ProbeMemory.getFieldVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getFieldVariables(breakpointId).forEach { (key: String, value: Triple<String, Any?, Int>) ->
             activeSpan.tag(
                 StringTag("spp.field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
         }
-        ProbeMemory.getStaticVariables(breakpointId).forEach { (key: String, value: Pair<String, Any?>) ->
+        ProbeMemory.getStaticVariables(breakpointId).forEach { (key: String, value: Triple<String, Any?, Int>) ->
             activeSpan.tag(
                 StringTag("spp.static-field:$breakpointId:$key"), encodeObject(liveBreakpoint, key, value)
             )
@@ -346,16 +346,17 @@ object ContextReceiver {
         }.increment(duration.toDouble())
     }
 
-    private fun encodeObject(breakpoint: LiveBreakpoint, varName: String, varData: Pair<String, Any?>): String? {
+    private fun encodeObject(breakpoint: LiveBreakpoint, varName: String, varData: Triple<String, Any?, Int>): String? {
         val value = varData.second ?: return String.format(
-            "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s}", varData.first, null
+            "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s,\"@line\":%s}", varData.first, null, varData.third
         )
 
         return try {
             String.format(
-                "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s}",
+                "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s,\"@line\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
-                ModelSerializer.INSTANCE.toExtendedJson(value, varName, breakpoint)
+                ModelSerializer.INSTANCE.toExtendedJson(value, varName, breakpoint),
+                varData.third
             )
         } catch (ex: Throwable) {
             log.error("Failed to encode object: $varName", ex)
@@ -367,6 +368,7 @@ object ContextReceiver {
                 map["@id"] = Integer.toHexString(System.identityHashCode(value))
                 map["@skip"] = "EXCEPTION_OCCURRED"
                 map["@cause"] = ex.message
+                map["@line"] = varData.third
                 return ModelSerializer.INSTANCE.toJson(map)
             } catch (ignore: Exception) {
             }

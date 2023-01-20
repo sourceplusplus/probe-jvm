@@ -81,9 +81,9 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         }
     }
 
-    override fun putBreakpoint(breakpointId: String, source: String, line: Int, ex: Throwable) {
+    override fun putBreakpoint(breakpointId: String, ex: Throwable) {
         try {
-            ContextReceiver.putBreakpoint(breakpointId, source, line, ex)
+            ContextReceiver.putBreakpoint(breakpointId, ex)
         } catch (e: Throwable) {
             log.error("Failed to put breakpoint", e)
         }
@@ -131,23 +131,23 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     }
 
     override fun putContext(instrumentId: String, key: String, value: Any) {
-        ProbeMemory.putContextVariable(instrumentId, key, Pair(value::class.java.name, value))
+        ProbeMemory.putContextVariable(instrumentId, key, Triple(value::class.java.name, value, -1))
     }
 
-    override fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putLocalVariable(instrumentId, key, Pair(type, value))
+    override fun putLocalVariable(instrumentId: String, key: String, value: Any?, type: String, line: Int) {
+        ProbeMemory.putLocalVariable(instrumentId, key, Triple(type, value, line))
     }
 
-    override fun putField(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putFieldVariable(instrumentId, key, Pair(type, value))
+    override fun putField(instrumentId: String, key: String, value: Any?, type: String, line: Int) {
+        ProbeMemory.putFieldVariable(instrumentId, key, Triple(type, value, line))
     }
 
-    override fun putStaticField(instrumentId: String, key: String, value: Any?, type: String) {
-        ProbeMemory.putStaticVariable(instrumentId, key, Pair(type, value))
+    override fun putStaticField(instrumentId: String, key: String, value: Any?, type: String, line: Int) {
+        ProbeMemory.putStaticVariable(instrumentId, key, Triple(type, value, line))
     }
 
     override fun putReturn(instrumentId: String, value: Any?, type: String) {
-        ProbeMemory.putLocalVariable(instrumentId, "@return", Pair(type, value))
+        ProbeMemory.putLocalVariable(instrumentId, "@return", Triple(type, value, -1))
     }
 
     override fun startTimer(meterId: String) {
