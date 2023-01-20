@@ -52,7 +52,12 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
 
         val classWriter = ClassWriter(computeFlag(classReader))
         val classVisitor = LiveClassVisitor(classWriter, classMetadata)
-        classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
+        try {
+            classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
+        } catch (e: Exception) {
+            log.error("Failed to transform class: $className", e)
+            return null
+        }
 
         val dumpDir = ProbeConfiguration.spp.getString("transformed_dump_directory")
         if (!dumpDir.isNullOrEmpty()) {
