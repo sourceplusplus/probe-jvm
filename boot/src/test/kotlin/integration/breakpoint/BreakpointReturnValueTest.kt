@@ -62,7 +62,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 37,
+                        line = 36,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
@@ -108,7 +108,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 83,
+                        line = 82,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
@@ -154,7 +154,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 129,
+                        line = 128,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

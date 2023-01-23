@@ -58,7 +58,7 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     listOf("@return"),
                     location = LiveSourceLocation(
                         source = LogReturnValueTest::class.java.name,
-                        line = 37,
+                        line = 36,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
