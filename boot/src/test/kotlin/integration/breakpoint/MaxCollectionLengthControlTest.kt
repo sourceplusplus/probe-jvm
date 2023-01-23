@@ -135,7 +135,7 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                     ),
                     location = LiveSourceLocation(
                         source = MaxCollectionLengthControlTest::class.java.name,
-                        line = 44,
+                        line = 43,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
