@@ -304,7 +304,7 @@ object ContextReceiver {
 
     fun openLocalSpan(spanId: String) {
         if (log.isDebugEnable) log.debug("Open local span: $spanId")
-        val liveSpan = ProbeMemory.removeLocal("spp.live-instrument:$spanId") as LiveSpan? ?: return
+        val liveSpan = LiveInstrumentService.getInstrument(spanId) as LiveSpan? ?: return
         if (log.isDebugEnable) log.debug("Live span: $liveSpan")
 
         val activeSpan = ContextManager.createLocalSpan(liveSpan.operationName)
