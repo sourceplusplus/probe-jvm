@@ -14,21 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package integration
+package integration.breakpoint
 
+import integration.ProbeIntegrationTest
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
-import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.instrument.location.LiveSourceLocation
 
-class ProbeLogTest : ProbeIntegrationTest() {
+class ProbeBreakpointTest : ProbeIntegrationTest() {
 
     private fun doTest() {
         val a = 1
@@ -44,14 +45,15 @@ class ProbeLogTest : ProbeIntegrationTest() {
 
     @Test
     fun testPrimitives(): Unit = runBlocking {
+        val breakpointId = "probe-breakpoint-test"
         val testContext = VertxTestContext()
-        val logId = "probe-log-test"
-        getLiveInstrumentSubscription(logId).handler {
+        getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
-                if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
-                    val item = event as LiveLogHit
-                    assertEquals("1 a a", item.logResult.logs.first().toFormattedMessage())
+                if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
+                    val item = event as LiveBreakpointHit
+                    val vars = item.stackTrace.first().variables
+                    assertEquals(10, vars.size)
 
                     testContext.completeNow()
                 }
@@ -60,21 +62,19 @@ class ProbeLogTest : ProbeIntegrationTest() {
 
         assertNotNull(
             instrumentService.addLiveInstrument(
-                LiveLog(
-                    logFormat = "{} {} {}",
-                    logArguments = listOf("a", "b", "c"),
+                LiveBreakpoint(
                     location = LiveSourceLocation(
-                        source = ProbeLogTest::class.java.name,
-                        line = 43,
+                        source = ProbeBreakpointTest::class.java.name,
+                        line = 44,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
-                    id = logId
+                    id = breakpointId
                 )
             ).await()
         )
 
-        log.info("Triggering log")
+        log.info("Triggering breakpoint")
         doTest()
 
         errorOnTimeout(testContext)
