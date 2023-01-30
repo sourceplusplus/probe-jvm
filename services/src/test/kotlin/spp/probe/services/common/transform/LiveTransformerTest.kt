@@ -41,12 +41,27 @@ class LiveTransformerTest {
         assertEquals(2, metadata.variables.size)
 
         val labelLinesVars = metadata.variables["labelLines()V"]!!
-        assertEquals(2, labelLinesVars.size)
+        assertEquals(4, labelLinesVars.size)
 
-        val varI = labelLinesVars[0]
+        val varZ = labelLinesVars[0]
+        assertEquals("z", varZ.name)
+        assertEquals("I", varZ.desc)
+        assertEquals(2, varZ.startLabel)
+        assertEquals(3, varZ.endLabel)
+        assertEquals(20, varZ.line) //todo: fix
+
+        val varI = labelLinesVars[1]
         assertEquals("i", varI.name)
         assertEquals("I", varI.desc)
-        assertEquals(22, varI.start)
-        assertEquals(22, varI.end)
+        assertEquals(4, varI.startLabel)
+        assertEquals(6, varI.endLabel)
+        assertEquals(22, varI.line) //todo: fix
+
+        val varB = labelLinesVars[2]
+        assertEquals("b", varB.name)
+        assertEquals("I", varB.desc)
+        assertEquals(5, varB.startLabel)
+        assertEquals(6, varB.endLabel)
+        assertEquals(23, varB.line)
     }
 }

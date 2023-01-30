@@ -18,6 +18,8 @@ package spp.probe.services.common.transform
 
 class LabelLines {
     fun labelLines() {
-        val i = 0
+        for (z in 0..10) {
+        }
+        val i = 0; val b = i + 1
     }
 }

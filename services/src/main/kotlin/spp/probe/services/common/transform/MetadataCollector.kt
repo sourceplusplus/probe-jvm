@@ -49,10 +49,12 @@ class MetadataCollector(
         val methodUniqueName = methodName + desc
         return object : MethodVisitor(ASM_VERSION, superMV) {
             private val labelLineMapping: MutableMap<String, Int> = HashMap()
-            private var currentLine = 1
+            private val labelRanges = mutableMapOf<Label, Int>()
+            private var currentLine = -1
 
             override fun visitLabel(label: Label) {
-                labelLineMapping[label.toString()] = currentLine
+                labelRanges.computeIfAbsent(label) { labelRanges.size }
+                if (currentLine != -1) labelLineMapping[label.toString()] = currentLine
                 super.visitLabel(label)
             }
 
@@ -65,11 +67,14 @@ class MetadataCollector(
                 name: String, desc: String, signature: String?,
                 start: Label, end: Label, index: Int
             ) {
-                super.visitLocalVariable(name, desc, signature, start, end, index)
+                val startLabel = labelRanges[start]!!
+                val endLabel = labelRanges[end]!!
+                val line = labelLine(start) - 1
                 classMetadata.addVariable(
-                    methodUniqueName,
-                    LocalVariable(name, desc, labelLine(start), labelLine(end), index)
+                    methodUniqueName, LocalVariable(name, desc, startLabel, endLabel, index, line)
                 )
+
+                super.visitLocalVariable(name, desc, signature, start, end, index)
             }
 
             private fun labelLine(label: Label): Int {
