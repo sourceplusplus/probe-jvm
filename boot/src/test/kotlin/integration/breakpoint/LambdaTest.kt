@@ -54,12 +54,12 @@ class LambdaTest : ProbeIntegrationTest() {
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                     val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
-                    assertEquals(5, vars.size)
+                    assertEquals(6, vars.size)
 
                     assertEquals(1, vars.first { it.name == "a" }.value)
                     assertEquals(2.0, vars.first { it.name == "b" }.value)
                     assertEquals("3", vars.first { it.name == "c" }.value)
-                    //assertEquals(true, vars.first { it.name == "d" }.value) //todo: this is not working
+                    assertEquals(true, vars.first { it.name == "d" }.value)
 
                     testContext.completeNow()
                 }

@@ -32,6 +32,7 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
     private val log = LogManager.getLogger(LiveTransformer::class.java)
     private var isOuterClass = true
     val innerClasses = mutableListOf<Class<*>>()
+    lateinit var classMetadata: ClassMetadata
 
     override fun transform(
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
@@ -42,7 +43,7 @@ class LiveTransformer(private val className: String) : ClassFileTransformer {
         }
         log.trace("Transforming class: $className")
 
-        val classMetadata = ClassMetadata(isOuterClass)
+        classMetadata = ClassMetadata(isOuterClass)
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
         if (isOuterClass) {
