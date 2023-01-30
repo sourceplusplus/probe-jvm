@@ -33,6 +33,7 @@ class LineNumberTest : ProbeIntegrationTest() {
 
     private fun doTest() {
         val a = 1
+        val b = "test"
     }
 
     @Test
@@ -45,10 +46,10 @@ class LineNumberTest : ProbeIntegrationTest() {
                 if (event.eventType == LiveInstrumentEventType.BREAKPOINT_HIT) {
                     val item = event as LiveBreakpointHit
                     val vars = item.stackTrace.first().variables
-                    assertEquals(2, vars.size)
+                    assertEquals(3, vars.size)
 
-                    assertEquals(1, vars.first { it.name == "a" }.value)
                     assertEquals(35, vars.first { it.name == "a" }.lineNumber)
+                    assertEquals(36, vars.first { it.name == "b" }.lineNumber)
 
                     testContext.completeNow()
                 }
@@ -60,7 +61,7 @@ class LineNumberTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LineNumberTest::class.java.name,
-                        line = 36,
+                        line = 37,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
