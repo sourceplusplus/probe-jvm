@@ -5,6 +5,7 @@ plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm")
     id("maven-publish")
+    id("groovy")
 }
 
 val probeGroup: String by project
@@ -75,6 +76,7 @@ dependencies {
     testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
+    testImplementation("org.codehaus.groovy:groovy-all:3.0.13")
 }
 
 tasks.test {
@@ -205,4 +207,8 @@ fun projectDependency(name: String): ProjectDependency {
     } else {
         DependencyHandlerScope.of(rootProject.dependencies).project(":probes:jvm$name")
     }
+}
+
+tasks.named<GroovyCompile>("compileTestGroovy") {
+    classpath += files(tasks.compileTestKotlin)
 }

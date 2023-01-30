@@ -27,6 +27,9 @@ class ClassMetadata(val outerClass: Boolean) : Serializable {
         private val ignoredVariables = Pattern.compile(
             "(_\\\$EnhancedClassField_ws)|((delegate|cachedValue)\\$[a-zA-Z0-9\$]+)"
         )
+        private val ignoredTypes = setOf(
+            "Lgroovy/lang/MetaClass;"
+        )
     }
 
     val innerClasses = mutableListOf<Class<*>>()
@@ -39,7 +42,11 @@ class ClassMetadata(val outerClass: Boolean) : Serializable {
     }
 
     fun addField(field: ClassField) {
-        if (ignoredVariables.matcher(field.name).matches()) {
+        if (field.name.contains("$")) {
+            return //ignore synthetic variables
+        } else if (ignoredTypes.contains(field.desc)) {
+            return
+        } else if (ignoredVariables.matcher(field.name).matches()) {
             return
         }
 
@@ -51,6 +58,12 @@ class ClassMetadata(val outerClass: Boolean) : Serializable {
     }
 
     fun addVariable(methodId: String, variable: LocalVariable) {
+        if (variable.name.contains("$")) {
+            return //ignore synthetic variables
+        } else if (ignoredTypes.contains(variable.desc)) {
+            return
+        }
+
         variables.computeIfAbsent(methodId) { ArrayList() }
         variables[methodId]!!.add(variable)
     }
