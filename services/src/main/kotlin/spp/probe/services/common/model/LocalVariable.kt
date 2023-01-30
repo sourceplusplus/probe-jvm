@@ -19,7 +19,8 @@ package spp.probe.services.common.model
 data class LocalVariable(
     val name: String,
     val desc: String,
-    val start: Int,
-    val end: Int,
-    val index: Int
+    val startLabel: Int,
+    val endLabel: Int,
+    val index: Int,
+    val line: Int
 )

@@ -65,10 +65,12 @@ class LiveInstrumentTransformer(
     }
 
     private val methodUniqueName = methodName + desc
-    private var currentBeginLabel: Label? = null
+    private var currentBeginLabel: NewLabel? = null
     private var inOriginalCode = true
     private var methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
     private var line = 0
+    private lateinit var currentLabel: Label
+    private val labelRanges = mutableMapOf<Label, Int>()
 
     init {
         val qualifiedArgs = mutableListOf<String>()
@@ -109,6 +111,14 @@ class LiveInstrumentTransformer(
         }
     }
 
+    override fun visitLabel(label: Label) {
+        currentLabel = label
+        if (label !is NewLabel) {
+            labelRanges.putIfAbsent(label, labelRanges.size)
+        }
+        mv.visitLabel(label)
+    }
+
     override fun visitLineNumber(line: Int, start: Label) {
         this.line = line
 
@@ -130,17 +140,17 @@ class LiveInstrumentTransformer(
                 log.info("Injecting live instrument {} on line {} of {}", instrument.instrument, line, className)
             }
 
-            val instrumentLabel = Label()
+            val instrumentLabel = NewLabel()
             isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
             when (instrument.instrument) {
                 is LiveBreakpoint -> {
-                    captureSnapshot(instrument.instrument.id!!, line)
+                    captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
                 }
 
                 is LiveLog -> {
-                    captureSnapshot(instrument.instrument.id!!, line)
+                    captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
                 }
@@ -148,15 +158,15 @@ class LiveInstrumentTransformer(
                 is LiveMeter -> {
                     val meter = instrument.instrument
                     if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
-                        captureSnapshot(meter.id!!, line)
+                        captureSnapshot(meter.id!!)
                     } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
-                        captureSnapshot(meter.id!!, line)
+                        captureSnapshot(meter.id!!)
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
                 }
             }
-            mv.visitLabel(Label())
+            mv.visitLabel(NewLabel())
             mv.visitLabel(instrumentLabel)
         }
     }
@@ -181,7 +191,7 @@ class LiveInstrumentTransformer(
         )
     }
 
-    private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: Label) {
+    private fun isInstrumentEnabled(instrumentId: String, instrumentLabel: NewLabel) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
@@ -192,14 +202,14 @@ class LiveInstrumentTransformer(
         mv.visitJumpInsn(Opcodes.IFEQ, instrumentLabel)
     }
 
-    private fun captureSnapshot(instrumentId: String, line: Int) {
+    private fun captureSnapshot(instrumentId: String) {
         addContext(instrumentId)
-        addLocals(instrumentId, line)
+        addLocals(instrumentId)
         addStaticFields(instrumentId)
         addFields(instrumentId)
     }
 
-    private fun isHit(instrumentId: String, instrumentLabel: Label) {
+    private fun isHit(instrumentId: String, instrumentLabel: NewLabel) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
         mv.visitLdcInsn(instrumentId)
@@ -232,9 +242,10 @@ class LiveInstrumentTransformer(
         }
     }
 
-    private fun addLocals(instrumentId: String, line: Int) {
+    private fun addLocals(instrumentId: String) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
-            if (line >= local.start && line <= local.end) {
+            val labelRange = labelRanges[currentLabel] ?: continue
+            if (labelRange >= local.startLabel && labelRange < local.endLabel) {
                 mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = getType(local.desc)
@@ -243,7 +254,7 @@ class LiveInstrumentTransformer(
                 mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), local.index)
                 boxIfNecessary(mv, local.desc)
                 mv.visitLdcInsn(type.className)
-                mv.visitLdcInsn(local.start - 1)
+                mv.visitLdcInsn(local.line)
                 mv.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                     "putLocalVariable", REMOTE_SAVE_VAR_DESC, false
@@ -367,7 +378,7 @@ class LiveInstrumentTransformer(
                         )
                     }
 
-                    val instrumentLabel = Label()
+                    val instrumentLabel = NewLabel()
                     isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
 
                     when (instrument.instrument) {
@@ -375,7 +386,7 @@ class LiveInstrumentTransformer(
                             //copy return value to top of stack
                             mv.visitInsn(Opcodes.DUP)
 
-                            captureSnapshot(instrument.instrument.id!!, line)
+                            captureSnapshot(instrument.instrument.id!!)
 
                             //use putReturn to capture return value
                             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
@@ -401,7 +412,7 @@ class LiveInstrumentTransformer(
                                 //copy return value to top of stack
                                 mv.visitInsn(Opcodes.DUP)
 
-                                captureSnapshot(instrument.instrument.id!!, line)
+                                captureSnapshot(instrument.instrument.id!!)
 
                                 //use putReturn to capture return value
                                 mv.visitFieldInsn(
@@ -432,7 +443,7 @@ class LiveInstrumentTransformer(
                                 //copy return value to top of stack
                                 mv.visitInsn(Opcodes.DUP)
 
-                                captureSnapshot(instrument.instrument.id!!, line)
+                                captureSnapshot(instrument.instrument.id!!)
 
                                 //use putReturn to capture return value
                                 mv.visitFieldInsn(
@@ -458,7 +469,7 @@ class LiveInstrumentTransformer(
                         }
                     }
 
-                    mv.visitLabel(Label())
+                    mv.visitLabel(NewLabel())
                     mv.visitLabel(instrumentLabel)
                 }
             }
@@ -470,20 +481,20 @@ class LiveInstrumentTransformer(
                 val instrument = it
                 val meter = instrument.instrument as LiveMeter
 
-                val instrumentLabel = Label()
+                val instrumentLabel = NewLabel()
                 isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
 
                 if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
-                    captureSnapshot(meter.id!!, line)
+                    captureSnapshot(meter.id!!)
                 } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
-                    captureSnapshot(meter.id!!, line)
+                    captureSnapshot(meter.id!!)
                 } else if (meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
-                    captureSnapshot(meter.id!!, line)
+                    captureSnapshot(meter.id!!)
                 }
                 isHit(meter.id!!, instrumentLabel)
                 putMeter(meter)
 
-                mv.visitLabel(Label())
+                mv.visitLabel(NewLabel())
                 mv.visitLabel(instrumentLabel)
             }
 
@@ -527,14 +538,14 @@ class LiveInstrumentTransformer(
     }
 
     private fun beginTryBlock() {
-        currentBeginLabel = Label()
-        visitLabel(currentBeginLabel)
+        currentBeginLabel = NewLabel()
+        visitLabel(currentBeginLabel!!)
     }
 
     private fun completeTryFinallyBlock() {
-        val endLabel = Label()
+        val endLabel = NewLabel()
         visitTryCatchBlock(currentBeginLabel, endLabel, endLabel, null)
-        val l2 = Label()
+        val l2 = NewLabel()
         visitJumpInsn(Opcodes.GOTO, l2)
         visitLabel(endLabel)
         visitVarInsn(Opcodes.ASTORE, 1)
@@ -666,4 +677,6 @@ class LiveInstrumentTransformer(
             )
         }
     }
+
+    class NewLabel : Label()
 }
