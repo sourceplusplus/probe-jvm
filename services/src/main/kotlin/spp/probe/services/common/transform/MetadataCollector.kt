@@ -49,8 +49,15 @@ class MetadataCollector(
         val methodUniqueName = methodName + desc
         return object : MethodVisitor(ASM_VERSION, superMV) {
             private val labelLineMapping: MutableMap<String, Int> = HashMap()
+            private var currentLine = 1
+
+            override fun visitLabel(label: Label) {
+                labelLineMapping[label.toString()] = currentLine
+                super.visitLabel(label)
+            }
 
             override fun visitLineNumber(line: Int, start: Label) {
+                currentLine = line
                 labelLineMapping[start.toString()] = line
             }
 

@@ -234,7 +234,7 @@ class LiveInstrumentTransformer(
 
     private fun addLocals(instrumentId: String, line: Int) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
-            if (line >= local.start && line < local.end) {
+            if (line >= local.start && line <= local.end) {
                 mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = getType(local.desc)
