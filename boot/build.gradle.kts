@@ -76,7 +76,7 @@ dependencies {
     testImplementation("io.vertx:vertx-service-proxy:$vertxVersion")
     testImplementation("io.vertx:vertx-service-discovery:$vertxVersion")
     testImplementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
-    testImplementation("org.codehaus.groovy:groovy-all:3.0.13")
+    testImplementation("org.codehaus.groovy:groovy-all:3.0.14")
 }
 
 tasks.test {
