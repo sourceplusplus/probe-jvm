@@ -144,6 +144,7 @@ abstract class ProbeIntegrationTest {
             return vertx.eventBus().localConsumer(listenAddress)
         }
 
+        @JvmStatic
         fun getLiveInstrumentSubscription(instrumentId: String): MessageConsumer<JsonObject> {
             val listenAddress = toLiveInstrumentSubscription(instrumentId)
 
