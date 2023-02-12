@@ -27,7 +27,6 @@ import io.vertx.core.net.NetSocket
 import io.vertx.core.net.PemTrustOptions
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
-import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import org.apache.skywalking.apm.agent.core.conf.Config
 import org.apache.skywalking.apm.agent.core.logging.core.LogLevel
 import spp.probe.ProbeConfiguration.PROBE_DIRECTORY
@@ -42,7 +41,7 @@ import spp.protocol.artifact.ArtifactLanguage
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.status.InstanceConnection
-import spp.protocol.service.extend.TCPServiceFrameParser
+import spp.protocol.service.extend.TCPServiceSocket
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -180,19 +179,18 @@ object SourceProbe {
                 tcpSocket = socket.result()
                 connected.set(true)
             }
+
             if (ProbeConfiguration.isNotQuiet) println("Connected to Source++ Platform")
-            socket.result().exceptionHandler {
+            TCPServiceSocket(vertx!!, socket.result()).exceptionHandler {
                 connected.set(false)
                 connectToPlatform()
-            }
-            socket.result().closeHandler {
+            }.closeHandler {
                 if (ProbeConfiguration.isNotQuiet) println("Disconnected from Source++ Platform")
                 connected.set(false)
                 vertx!!.setTimer(5000) {
                     connectToPlatform()
                 }
             }
-            socket.result().handler(FrameParser(TCPServiceFrameParser(vertx!!, socket.result())))
 
             //define probe metadata
             val meta = HashMap<String, Any>()
