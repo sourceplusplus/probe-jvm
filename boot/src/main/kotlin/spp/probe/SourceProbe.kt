@@ -52,6 +52,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.jar.JarFile
 import java.util.zip.ZipInputStream
+import kotlin.system.exitProcess
 
 object SourceProbe {
 
@@ -96,7 +97,10 @@ object SourceProbe {
                 "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
             )
             instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
-            vertx!!.deployVerticle(instrumentRemote)
+            vertx!!.deployVerticle(instrumentRemote).onFailure {
+                it.printStackTrace()
+                exitProcess(-1)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)
@@ -141,7 +145,7 @@ object SourceProbe {
             instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
             vertx!!.deployVerticle(instrumentRemote).onFailure {
                 it.printStackTrace()
-                throw RuntimeException(it)
+                exitProcess(-1)
             }
         } catch (e: Exception) {
             e.printStackTrace()
