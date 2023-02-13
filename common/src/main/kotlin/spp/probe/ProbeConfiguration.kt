@@ -47,12 +47,12 @@ object ProbeConfiguration {
             ?: File(System.getProperty("java.io.tmpdir"), "spp-probe")
     }
 
-    @JvmField
-    val PROBE_ID = UUID.randomUUID().toString()
+    val PROBE_ID by lazy {
+        spp.getString("probe_id")?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
+    }
     var instrumentation: Instrumentation? = null
     val probeMessageHeaders = JsonObject()
 
-    @JvmField
     var tcpSocket: NetSocket? = null
 
     var localProperties: JsonObject? = null
