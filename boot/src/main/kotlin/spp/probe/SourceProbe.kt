@@ -139,7 +139,10 @@ object SourceProbe {
                 "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
             )
             instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
-            vertx!!.deployVerticle(instrumentRemote)
+            vertx!!.deployVerticle(instrumentRemote).onFailure {
+                it.printStackTrace()
+                throw RuntimeException(it)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             throw RuntimeException(e)
