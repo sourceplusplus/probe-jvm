@@ -165,6 +165,8 @@ class LiveInstrumentTransformer(
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
                 }
+
+                is LiveSpan -> Unit //handled via methodActiveInstruments
             }
             mv.visitLabel(NewLabel())
             mv.visitLabel(instrumentLabel)
@@ -467,6 +469,8 @@ class LiveInstrumentTransformer(
                             isHit(meter.id!!, instrumentLabel)
                             putMeter(meter)
                         }
+
+                        is LiveSpan -> Unit //handled via methodActiveInstruments
                     }
 
                     mv.visitLabel(NewLabel())
