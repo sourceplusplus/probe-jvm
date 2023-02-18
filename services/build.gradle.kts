@@ -126,6 +126,10 @@ tasks {
             showStandardStreams = true
         }
     }
+
+    getByName("publishMavenPublicationToGitHubPackagesRepository") {
+        dependsOn("shadowJar")
+    }
 }
 
 fun projectDependency(name: String): ProjectDependency {
