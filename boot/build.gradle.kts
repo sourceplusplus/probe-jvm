@@ -58,6 +58,9 @@ tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
     sourceCompatibility = "1.8"
 }
+tasks.getByName<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {
+    kotlinOptions.jvmTarget = "1.8"
+}
 
 dependencies {
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
