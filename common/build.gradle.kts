@@ -16,7 +16,7 @@ tasks.getByName<JavaCompile>("compileJava") {
     options.release.set(8)
     sourceCompatibility = "1.8"
 }
-tasks.getByName<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class) {
     kotlinOptions.jvmTarget = "1.8"
 }
 
