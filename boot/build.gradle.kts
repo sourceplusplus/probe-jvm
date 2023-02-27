@@ -54,9 +54,9 @@ configure<PublishingExtension> {
     }
 }
 
-tasks.getByName<JavaCompile>("compileJava") {
-    options.release.set(8)
+tasks.withType<JavaCompile> {
     sourceCompatibility = "1.8"
+    targetCompatibility = "1.8"
 }
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class) {
     kotlinOptions.jvmTarget = "1.8"
