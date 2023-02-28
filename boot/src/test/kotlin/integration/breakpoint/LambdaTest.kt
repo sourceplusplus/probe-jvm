@@ -118,7 +118,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 96,
+                        line = 95,
                         scope = LocationScope.LINE,
                         service = "spp-test-probe"
                     ),
@@ -162,7 +162,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 140,
+                        line = 139,
                         scope = LocationScope.LAMBDA,
                         service = "spp-test-probe"
                     ),
@@ -209,7 +209,7 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 184,
+                        line = 183,
                         scope = LocationScope.BOTH,
                         service = "spp-test-probe"
                     ),
