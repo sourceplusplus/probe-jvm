@@ -35,6 +35,8 @@ class ProbeConfigurationTest {
         }
 
         ProbeConfiguration.localProperties = config
+        assertEquals(false, ProbeConfiguration.sslEnabled)
+
         val swSettings = ProbeConfiguration.toSkyWalkingSettings(config)
         assertEquals("INFO", swSettings.find {
             it.first() == "skywalking.logging.level"
