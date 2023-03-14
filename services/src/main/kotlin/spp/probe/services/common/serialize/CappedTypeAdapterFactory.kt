@@ -30,6 +30,7 @@ import java.io.IOException
 import java.io.StringWriter
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
+import java.util.concurrent.atomic.AtomicReference
 
 class CappedTypeAdapterFactory : TypeAdapterFactory {
 
@@ -123,7 +124,27 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                         else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                     }
                 } else {
-                    if (isExported(value)) {
+                    if (shouldUnwrap(value)) {
+                        val sw = StringWriter()
+                        val innerJsonWriter = JsonWriter(sw)
+                        innerJsonWriter.beginObject()
+                        innerJsonWriter.name("@id")
+                        innerJsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                        innerJsonWriter.name("@class")
+                        innerJsonWriter.value(value::class.java.name)
+                        val unwrappedValue = when (value) {
+                            is AtomicReference<*> -> value.get()
+                            else -> value
+                        }
+                        innerJsonWriter.name("value")
+                        doWrite(unwrappedValue!!, innerJsonWriter)
+                        innerJsonWriter.endObject()
+
+                        val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+                        jsonWriter.javaClass.getDeclaredField("product").apply {
+                            isAccessible = true
+                        }.set(jsonWriter, jsonObject)
+                    } else if (isExported(value)) {
                         doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
                     } else {
                         val sw = StringWriter()
@@ -276,6 +297,13 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         return value::class.java.`package` == null ||
                 module::class.java.getDeclaredMethod("isExported", String::class.java)
                     .invoke(module, value::class.java.`package`.name) as Boolean
+    }
+
+    private fun shouldUnwrap(value: Any): Boolean {
+        return when (value) {
+            is AtomicReference<*> -> true
+            else -> false
+        }
     }
 
     @Suppress("unused")
