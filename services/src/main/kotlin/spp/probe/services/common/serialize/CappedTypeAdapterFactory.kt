@@ -233,6 +233,33 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         }
     }
 
+    private fun writeInstant(value: Instant, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("seconds")
+            value(value.epochSecond)
+            name("nanos")
+            value(value.nano)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
     private fun writeDuration(value: Duration, jsonWriter: JsonWriter) {
         val sw = StringWriter()
         if (jsonWriter is JsonTreeWriter) {
@@ -461,6 +488,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     private fun isTimeType(value: Any): Boolean {
         return when (value) {
+            is Instant -> true
             is Duration -> true
             is LocalDate -> true
             is LocalTime -> true
@@ -475,6 +503,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     private fun writeTimeType(value: Any, jsonWriter: JsonWriter) {
         when (value) {
+            is Instant -> writeInstant(value, jsonWriter)
             is Duration -> writeDuration(value, jsonWriter)
             is LocalDate -> writeLocalDate(value, jsonWriter)
             is LocalTime -> writeLocalTime(value, jsonWriter)
