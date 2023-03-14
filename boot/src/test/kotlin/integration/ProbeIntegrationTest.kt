@@ -35,6 +35,8 @@ import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -55,6 +57,17 @@ import java.util.concurrent.TimeUnit
 abstract class ProbeIntegrationTest {
 
     val log: Logger by lazy { LoggerFactory.getLogger(this::class.java.name) }
+
+    var testName: String? = null
+    val testNameAsInstrumentId: String
+        get() {
+            return testName!!.replace(" ", "-").lowercase().substringBefore("(")
+        }
+
+    @BeforeEach
+    open fun setUp(testInfo: TestInfo) {
+        testName = testInfo.displayName
+    }
 
     companion object {
         private val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
