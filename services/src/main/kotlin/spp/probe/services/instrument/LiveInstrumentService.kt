@@ -37,7 +37,6 @@ import java.lang.instrument.Instrumentation
 import java.lang.instrument.UnmodifiableClassException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.streams.toList
 
 object LiveInstrumentService {
 
@@ -231,7 +230,9 @@ object LiveInstrumentService {
 
     fun getInstruments(source: String): List<ActiveLiveInstrument> {
         return instruments.values.stream().filter {
-            it.instrument.location.source == source
+            it.instrument.location.source == source ||
+                    (it.instrument.location.source.endsWith("(...)")
+                            && source.startsWith(it.instrument.location.source.substringBefore("(...)")))
         }.toList()
     }
 

@@ -46,7 +46,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
 
     @Test
     fun `number supplier gauge`(): Unit = runBlocking {
-        val meterId = "number-supplier-gauge"
+        val meterId = testNameAsUniqueInstrumentId
 
         val supplier = object : Supplier<Double>, Serializable {
             override fun get(): Double = System.currentTimeMillis().toDouble()
@@ -68,7 +68,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             applyImmediately = true
         )
 
-        viewService.saveRuleIfAbsent(
+        viewService.saveRule(
             LiveViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
@@ -120,7 +120,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
 
     @Test
     fun `number expression gauge`(): Unit = runBlocking {
-        val meterId = "number-expression-gauge"
+        val meterId = testNameAsUniqueInstrumentId
 
         val liveMeter = LiveMeter(
             MeterType.GAUGE,
@@ -134,7 +134,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             applyImmediately = true
         )
 
-        viewService.saveRuleIfAbsent(
+        viewService.saveRule(
             LiveViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {

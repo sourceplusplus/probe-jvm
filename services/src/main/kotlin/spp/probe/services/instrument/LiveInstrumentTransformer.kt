@@ -246,6 +246,7 @@ class LiveInstrumentTransformer(
 
     private fun addLocals(instrumentId: String) {
         for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
+            if (::currentLabel.isInitialized.not()) continue
             val labelRange = labelRanges[currentLabel] ?: continue
             if (labelRange >= local.startLabel && labelRange < local.endLabel) {
                 mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
@@ -354,7 +355,10 @@ class LiveInstrumentTransformer(
     }
 
     override fun visitCode() {
-        if (methodActiveInstruments.isNotEmpty()) {
+        val tryCatchInstruments = getTryCatchMethodInstruments()
+        val beforeCodeInstruments = getBeforeCodeMethodInstruments()
+
+        if (tryCatchInstruments.isNotEmpty()) {
             try {
                 inOriginalCode = false
                 execVisitBeforeFirstTryCatchBlock()
@@ -362,6 +366,11 @@ class LiveInstrumentTransformer(
             } finally {
                 inOriginalCode = true
             }
+        } else if (beforeCodeInstruments.isNotEmpty()) {
+            beforeCodeInstruments.forEach {
+                putActiveLiveMeter(it)
+            }
+            super.visitCode()
         } else {
             super.visitCode()
         }
@@ -479,30 +488,7 @@ class LiveInstrumentTransformer(
             }
         }
 
-        methodActiveInstruments.filter { it.instrument is LiveMeter }
-            .filter { (it.instrument as LiveMeter).meterType != MeterType.METHOD_TIMER }
-            .forEach {
-                val instrument = it
-                val meter = instrument.instrument as LiveMeter
-
-                val instrumentLabel = NewLabel()
-                isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
-
-                if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
-                    captureSnapshot(meter.id!!)
-                } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
-                    captureSnapshot(meter.id!!)
-                } else if (meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
-                    captureSnapshot(meter.id!!)
-                }
-                isHit(meter.id!!, instrumentLabel)
-                putMeter(meter)
-
-                mv.visitLabel(NewLabel())
-                mv.visitLabel(instrumentLabel)
-            }
-
-        if (methodName != "<init>" && methodActiveInstruments.isNotEmpty()) {
+        if (methodName != "<init>" && getTryCatchMethodInstruments().isNotEmpty()) {
             if (inOriginalCode && isXRETURN(opcode)) {
                 try {
                     inOriginalCode = false
@@ -539,6 +525,26 @@ class LiveInstrumentTransformer(
         } else {
             super.visitInsn(opcode)
         }
+    }
+
+    private fun putActiveLiveMeter(instrument: ActiveLiveInstrument) {
+        val meter = instrument.instrument as LiveMeter
+
+        val instrumentLabel = NewLabel()
+        isInstrumentEnabled(instrument.instrument.id!!, instrumentLabel)
+
+        if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
+            captureSnapshot(meter.id!!)
+        } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+            captureSnapshot(meter.id!!)
+        } else if (meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+            captureSnapshot(meter.id!!)
+        }
+        isHit(meter.id!!, instrumentLabel)
+        putMeter(meter)
+
+        mv.visitLabel(NewLabel())
+        mv.visitLabel(instrumentLabel)
     }
 
     private fun beginTryBlock() {
@@ -679,6 +685,18 @@ class LiveInstrumentTransformer(
                 "(S)Ljava/lang/Short;",
                 false
             )
+        }
+    }
+
+    private fun getTryCatchMethodInstruments(): List<ActiveLiveInstrument> {
+        return methodActiveInstruments.filter {
+            it.instrument is LiveSpan || (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER
+        }
+    }
+
+    private fun getBeforeCodeMethodInstruments(): List<ActiveLiveInstrument> {
+        return methodActiveInstruments.filter {
+            it.instrument is LiveMeter && it.instrument.meterType != MeterType.METHOD_TIMER
         }
     }
 
