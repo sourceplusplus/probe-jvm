@@ -34,6 +34,7 @@ import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.LiveViewRule
+import java.util.*
 
 class MeterMonitorTest : ProbeIntegrationTest() {
 
@@ -50,7 +51,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
     @Disabled
     @Test
     fun `object lifespan count`(): Unit = runBlocking {
-        val meterId = "object-lifespan-count"
+        val meterId = testNameAsUniqueInstrumentId
 
         val liveMeter = LiveMeter(
             MeterType.COUNT,
@@ -115,7 +116,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
     @Disabled
     @Test
     fun `object lifespan gauge`(): Unit = runBlocking {
-        val meterId = "object-lifespan-gauge"
+        val meterId = testNameAsUniqueInstrumentId
 
         val liveMeter = LiveMeter(
             MeterType.GAUGE,
@@ -177,19 +178,19 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
     @Test
     fun `average object lifespan`(): Unit = runBlocking {
-        val countMeterId = "lifespan-object-gc-count"
+        val countMeterId = testNameAsUniqueInstrumentId
         val countMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
-                LifespanObject::class.java.name + ".<init>()",
+                LifespanObject::class.java.name + ".<init>()", //todo: (...)
                 service = "spp-test-probe"
             ),
             id = countMeterId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
-        viewService.saveRuleIfAbsent(
+        viewService.saveRule(
             LiveViewRule(
                 name = countMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
@@ -204,7 +205,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         ).await()
         instrumentService.addLiveInstrument(countMeter).await()
 
-        val meterId = "lifespan-object-total-time"
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
@@ -216,7 +217,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
-        viewService.saveRuleIfAbsent(
+        viewService.saveRule(
             LiveViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
@@ -231,8 +232,8 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         ).await()
         instrumentService.addLiveInstrument(liveMeter).await()
 
-        val avgMeterId = "lifespan-object-avg-time".replace("-", "_")
-        viewService.saveRuleIfAbsent(
+        val avgMeterId = ("lifespan-object-avg-time" + UUID.randomUUID().toString()).replace("-", "_")
+        viewService.saveRule(
             LiveViewRule(
                 name = avgMeterId,
                 exp = buildString {

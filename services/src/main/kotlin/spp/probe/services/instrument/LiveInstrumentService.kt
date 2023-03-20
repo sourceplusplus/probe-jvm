@@ -231,7 +231,9 @@ object LiveInstrumentService {
 
     fun getInstruments(source: String): List<ActiveLiveInstrument> {
         return instruments.values.stream().filter {
-            it.instrument.location.source == source
+            it.instrument.location.source == source ||
+                    (it.instrument.location.source.endsWith("(...)")
+                            && source.startsWith(it.instrument.location.source.substringBefore("(...)")))
         }.toList()
     }
 
