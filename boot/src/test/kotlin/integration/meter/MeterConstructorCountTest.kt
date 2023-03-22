@@ -44,7 +44,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
     @Test
     fun `constructor count`(): Unit = runBlocking {
-        val meterId = "constructor-count"
+        val meterId = testNameAsUniqueInstrumentId
 
         val liveMeter = LiveMeter(
             MeterType.COUNT,
@@ -58,7 +58,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE")
         )
 
-        viewService.saveRuleIfAbsent(
+        viewService.saveRule(
             LiveViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
