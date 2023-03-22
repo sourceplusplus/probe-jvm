@@ -24,6 +24,7 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.model.ClassMetadata
+import spp.probe.services.common.model.LocalVariable
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
@@ -102,13 +103,6 @@ class LiveInstrumentTransformer(
         val qualifiedClassName = className.replace('/', '.')
         val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
         methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
-
-        if (methodName == "<init>") {
-            //add constructor monitor meters
-            methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedClassName).filter {
-                (it.instrument as? LiveMeter)?.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
-            }
-        }
     }
 
     override fun visitLabel(label: Label) {
@@ -137,7 +131,7 @@ class LiveInstrumentTransformer(
         //apply line instruments
         for (instrument in lineInstruments) {
             if (log.isInfoEnable) {
-                log.info("Injecting live instrument {} on line {} of {}", instrument.instrument, line, className)
+                log.info("Injecting live instrument {} on line {} of {}", instrument.instrument.id, line, className)
             }
 
             val instrumentLabel = NewLabel()
@@ -245,10 +239,9 @@ class LiveInstrumentTransformer(
     }
 
     private fun addLocals(instrumentId: String) {
-        for (local in classMetadata.variables[methodUniqueName].orEmpty()) {
-            if (::currentLabel.isInitialized.not()) continue
-            val labelRange = labelRanges[currentLabel] ?: continue
-            if (labelRange >= local.startLabel && labelRange < local.endLabel) {
+        val methodLocalVariables = classMetadata.variables[methodUniqueName]
+        for (local in methodLocalVariables.orEmpty()) {
+            if (isInLabelRange(methodLocalVariables!!, local)) {
                 mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
                 val type = getType(local.desc)
@@ -264,6 +257,24 @@ class LiveInstrumentTransformer(
                 )
             }
         }
+    }
+
+    private fun isInLabelRange(methodLocalVariables: MutableList<LocalVariable>, local: LocalVariable): Boolean {
+        //deny all local variables in <init> (todo: probably too restrictive)
+        if (methodName == "<init>") return false
+
+        //startLabel == 0 indicates that the variable is a parameter (maybe?)
+        if (local.startLabel == 0) return true
+
+        //local.startLabel/endLabel = this.startLabel/endLabel means the variable is a parameter (maybe?)
+        if (methodLocalVariables.any { it.name == "this" }) {
+            val thisVariable = methodLocalVariables.first { it.name == "this" }
+            if (thisVariable.startLabel == local.startLabel && thisVariable.endLabel == local.endLabel) return true
+        }
+
+        if (::currentLabel.isInitialized.not()) return false
+        val labelRange = labelRanges[currentLabel] ?: return false
+        return labelRange >= local.startLabel && labelRange < local.endLabel
     }
 
     private fun addStaticFields(instrumentId: String) {
@@ -385,7 +396,7 @@ class LiveInstrumentTransformer(
                     if (log.isInfoEnable) {
                         log.info(
                             "Injecting live instrument {} after return on line {} of {}",
-                            instrument.instrument, line, className
+                            instrument.instrument.id, line, className
                         )
                     }
 

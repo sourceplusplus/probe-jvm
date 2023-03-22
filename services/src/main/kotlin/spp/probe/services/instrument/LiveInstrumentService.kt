@@ -50,8 +50,11 @@ object LiveInstrumentService {
     private val timer = Timer("LiveInstrumentScheduler", true)
     internal val instrumentsMap: Map<String, ActiveLiveInstrument>
         get() = HashMap(instruments)
+    private val transformer = LiveTransformer()
 
     init {
+        ProbeConfiguration.instrumentation!!.addTransformer(transformer, true)
+
         timer.schedule(object : TimerTask() {
             override fun run() {
                 if (log.isDebugEnable) log.debug("Running LiveInstrumentScheduler")
@@ -101,19 +104,11 @@ object LiveInstrumentService {
                     )
                     throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
                         .toEventBusException()
-                } else if (!instrument.isRemoval) {
-                    timer.schedule(object : TimerTask() {
-                        override fun run() {
-                            apply(inst, instrument)
-                        }
-                    }, 5000)
                 }
                 return
             }
 
-            val transformer = LiveTransformer(className)
             try {
-                inst.addTransformer(transformer, true)
                 inst.retransformClasses(clazz)
                 transformer.innerClasses.forEach {
                     inst.retransformClasses(it)
@@ -134,15 +129,12 @@ object LiveInstrumentService {
 
                 //remove and re-transform
                 removeInstrument(instrument.instrument, ex)
-                inst.addTransformer(transformer, true)
                 try {
                     inst.retransformClasses(clazz)
                 } catch (e: UnmodifiableClassException) {
                     log.warn(e, "Failed to re-transform class: {}", clazz)
                     throw RuntimeException(e)
                 }
-            } finally {
-                inst.removeTransformer(transformer)
             }
         }
     }
@@ -227,6 +219,16 @@ object LiveInstrumentService {
             ProcessorAddress.LIVE_INSTRUMENT_REMOVED,
             ModelSerializer.INSTANCE.toJson(map)
         )
+    }
+
+    fun getInstrumentsForClass(source: String): List<ActiveLiveInstrument> {
+        return instruments.values.stream().filter {
+            var className = it.instrument.location.source
+            if (className.contains("(")) {
+                className = className.substringBefore("(").substringBeforeLast(".")
+            }
+            source.startsWith(className)
+        }.toList()
     }
 
     fun getInstruments(source: String): List<ActiveLiveInstrument> {

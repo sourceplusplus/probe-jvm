@@ -63,6 +63,18 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
             .handler { handleInstrumentationRequest(it) }
     }
 
+    override fun registerRemote() {
+        FrameHelper.sendFrame(
+            BridgeEventType.REGISTER.name.lowercase(),
+            ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,
+            null,
+            ProbeConfiguration.probeMessageHeaders,
+            false,
+            JsonObject(),
+            ProbeConfiguration.tcpSocket
+        )
+    }
+
     override fun isInstrumentEnabled(instrumentId: String): Boolean {
         return try {
             LiveInstrumentService.isInstrumentEnabled(instrumentId)
@@ -169,9 +181,18 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {
         try {
             val command = LiveInstrumentCommand(it.body())
+            if (log.isInfoEnable) log.info("Received command: $command")
+
             when (command.commandType) {
-                CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(command)
-                CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
+                CommandType.ADD_LIVE_INSTRUMENT -> addInstruments(command)
+                CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstruments(command)
+                CommandType.SET_INITIAL_INSTRUMENTS -> {
+                    try {
+                        addInstruments(command)
+                    } finally {
+                        vertx.eventBus().publish(INITIAL_INSTRUMENTS_SET, JsonObject())
+                    }
+                }
             }
         } catch (ex: Throwable) {
             publishCommandError(it, ex)
@@ -196,19 +217,22 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         )
     }
 
-    private fun addInstrument(command: LiveInstrumentCommand) {
-        if (log.isInfoEnable) log.info("Adding instrument: $command")
-        LiveInstrumentService.applyInstrument(command.instruments.first()) //todo: check for multiple
+    private fun addInstruments(command: LiveInstrumentCommand) {
+        command.instruments.forEach {
+            if (log.isInfoEnable) log.info("Adding instrument: $it")
+            LiveInstrumentService.applyInstrument(it)
+        }
     }
 
-    private fun removeInstrument(command: LiveInstrumentCommand) {
-        if (log.isInfoEnable) log.info("Removing instrument: $command")
+    private fun removeInstruments(command: LiveInstrumentCommand) {
         for (breakpoint in command.instruments) {
+            if (log.isInfoEnable) log.info("Removing instrument: $breakpoint")
             val breakpointId = breakpoint.id
             val location = breakpoint.location
             LiveInstrumentService.removeInstrument(location.source, location.line, breakpointId)
         }
         for (location in command.locations) {
+            if (log.isInfoEnable) log.info("Removing instrument: $location")
             LiveInstrumentService.removeInstrument(location.source, location.line, null)
         }
     }
