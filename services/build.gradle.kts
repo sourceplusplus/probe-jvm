@@ -71,7 +71,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("plus.sourceplus:protocol:$projectVersion")
     testImplementation("io.vertx:vertx-core:$vertxVersion")
-    testImplementation("org.mockito:mockito-core:4.11.0")
+    testImplementation("org.mockito:mockito-core:5.2.0")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     testImplementation(projectDependency(":common"))
 }
