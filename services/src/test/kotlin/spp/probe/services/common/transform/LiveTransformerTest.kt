@@ -26,7 +26,7 @@ class LiveTransformerTest {
     @Test
     fun metadataTest() {
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
-        val transformer = LiveTransformer(LabelLines::class.java.name)
+        val transformer = LiveTransformer().apply { transformAll = true }
         transformer.transform(
             LabelLines::class.java.classLoader,
             LabelLines::class.java.name.replace('.', '/'),

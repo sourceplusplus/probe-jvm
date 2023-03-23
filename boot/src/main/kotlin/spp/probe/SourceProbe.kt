@@ -19,6 +19,8 @@ package spp.probe
 import io.netty.util.internal.logging.InternalLogger
 import io.netty.util.internal.logging.InternalLoggerFactory
 import io.vertx.core.AsyncResult
+import io.vertx.core.Future
+import io.vertx.core.Promise
 import io.vertx.core.Vertx
 import io.vertx.core.buffer.Buffer
 import io.vertx.core.json.JsonObject
@@ -35,11 +37,11 @@ import spp.probe.ProbeConfiguration.instrumentation
 import spp.probe.ProbeConfiguration.probeMessageHeaders
 import spp.probe.ProbeConfiguration.tcpSocket
 import spp.probe.remotes.ILiveInstrumentRemote
+import spp.probe.remotes.ILiveInstrumentRemote.Companion.INITIAL_INSTRUMENTS_SET
 import spp.probe.util.NopInternalLogger
 import spp.probe.util.NopLogDelegateFactory
 import spp.protocol.artifact.ArtifactLanguage
 import spp.protocol.platform.PlatformAddress
-import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.extend.TCPServiceSocket
 import java.io.File
@@ -58,12 +60,12 @@ object SourceProbe {
 
     private val BUILD = ResourceBundle.getBundle("probe_build")
 
-    @JvmField
-    var vertx: Vertx? = null
+    @JvmStatic
+    lateinit var vertx: Vertx
     private val connected = AtomicBoolean()
 
-    @JvmField
-    var instrumentRemote: ILiveInstrumentRemote? = null
+    @JvmStatic
+    lateinit var instrumentRemote: ILiveInstrumentRemote
 
     val isAgentInitialized: Boolean
         get() = instrumentation != null
@@ -88,23 +90,8 @@ object SourceProbe {
         vertx = Vertx.vertx()
 
         configureAgent(false)
-        connectToPlatform()
-        try {
-            val agentClassLoader = Class.forName(
-                "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
-            ).getMethod("getDefault").invoke(null) as java.lang.ClassLoader
-            val instrumentRemoteClass = Class.forName(
-                "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
-            )
-            instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
-            vertx!!.deployVerticle(instrumentRemote).onFailure {
-                it.printStackTrace()
-                exitProcess(-1)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw RuntimeException(e)
-        }
+        bootProbe()
+        connectToPlatform().toCompletionStage().toCompletableFuture().get()
     }
 
     @JvmStatic
@@ -134,7 +121,11 @@ object SourceProbe {
         addAgentToClassLoader()
         configureAgent(true)
         invokeAgent()
-        connectToPlatform()
+        bootProbe()
+        connectToPlatform().toCompletionStage().toCompletableFuture().get()
+    }
+
+    private fun bootProbe() {
         try {
             val agentClassLoader = Class.forName(
                 "org.apache.skywalking.apm.agent.core.plugin.loader.AgentClassLoader"
@@ -143,7 +134,7 @@ object SourceProbe {
                 "spp.probe.services.LiveInstrumentRemote", true, agentClassLoader
             )
             instrumentRemote = instrumentRemoteClass.declaredConstructors.first().newInstance() as ILiveInstrumentRemote
-            vertx!!.deployVerticle(instrumentRemote).onFailure {
+            vertx.deployVerticle(instrumentRemote).onFailure {
                 it.printStackTrace()
                 exitProcess(-1)
             }
@@ -155,8 +146,13 @@ object SourceProbe {
 
     @JvmStatic
     @Synchronized
-    fun connectToPlatform() {
-        if (connected.get()) return
+    fun connectToPlatform(): Future<Void> {
+        val promise = Promise.promise<Void>()
+        if (connected.get()) {
+            promise.complete()
+            return promise.future()
+        }
+
         val options = NetClientOptions()
             .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
             .setSsl(ProbeConfiguration.sslEnabled)
@@ -172,7 +168,7 @@ object SourceProbe {
                 }
             }
 
-        val client = vertx!!.createNetClient(options)
+        val client = vertx.createNetClient(options)
         client.connect(
             ProbeConfiguration.getInteger("platform_port"),
             ProbeConfiguration.getString("platform_host")
@@ -188,13 +184,13 @@ object SourceProbe {
             }
 
             if (ProbeConfiguration.isNotQuiet) println("Connected to Source++ Platform")
-            TCPServiceSocket(vertx!!, socket.result()).exceptionHandler {
+            TCPServiceSocket(vertx, socket.result()).exceptionHandler {
                 connected.set(false)
                 connectToPlatform()
             }.closeHandler {
                 if (ProbeConfiguration.isNotQuiet) println("Disconnected from Source++ Platform")
                 connected.set(false)
-                vertx!!.setTimer(5000) {
+                vertx.setTimer(5000) {
                     connectToPlatform()
                 }
             }
@@ -226,20 +222,17 @@ object SourceProbe {
             //send probe connected status
             val replyAddress = UUID.randomUUID().toString()
             val pc = InstanceConnection(PROBE_ID, System.currentTimeMillis(), meta)
-            val consumer = vertx!!.eventBus().localConsumer<Boolean>(replyAddress)
+            val consumer = vertx.eventBus().localConsumer<Boolean>(replyAddress)
             consumer.handler {
                 if (ProbeConfiguration.isNotQuiet) println("Received probe connection confirmation")
 
-                //register instrument remote
-                FrameHelper.sendFrame(
-                    BridgeEventType.REGISTER.name.lowercase(),
-                    ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,
-                    null,
-                    probeMessageHeaders,
-                    false,
-                    JsonObject(),
-                    tcpSocket
-                )
+                vertx.eventBus().localConsumer<JsonObject>(INITIAL_INSTRUMENTS_SET).handler {
+                    if (ProbeConfiguration.isNotQuiet) println("Initial instruments set")
+                    promise.complete()
+                }.completionHandler {
+                    instrumentRemote.registerRemote()
+                }
+
                 consumer.unregister()
             }
             FrameHelper.sendFrame(
@@ -252,6 +245,8 @@ object SourceProbe {
                 socket.result()
             )
         }
+
+        return promise.future()
     }
 
     private fun invokeAgent() {

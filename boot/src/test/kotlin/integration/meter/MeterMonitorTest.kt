@@ -57,7 +57,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MeterType.COUNT,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
-                LifespanObject::class.java.name,
+                LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
             id = meterId,
@@ -122,7 +122,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
-                LifespanObject::class.java.name,
+                LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
             id = meterId,
@@ -183,7 +183,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
-                LifespanObject::class.java.name + ".<init>()", //todo: (...)
+                LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
             id = countMeterId,
@@ -210,7 +210,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MeterType.COUNT,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
-                LifespanObject::class.java.name,
+                LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
             id = meterId,
