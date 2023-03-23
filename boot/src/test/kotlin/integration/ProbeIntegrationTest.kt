@@ -232,4 +232,21 @@ abstract class ProbeIntegrationTest {
             throw RuntimeException("Test timed out")
         }
     }
+
+    private val lineLabels = mutableMapOf<String, Int>()
+    private var setupLineLabels = false
+
+    fun addLineLabel(label: String, getLineNumber: () -> Int) {
+        lineLabels[label] = getLineNumber.invoke()
+    }
+
+    fun getLineNumber(label: String): Int {
+        return lineLabels[label] ?: throw IllegalArgumentException("No line label found for $label")
+    }
+
+    fun setupLineLabels(invoke: () -> Unit) {
+        setupLineLabels = true
+        invoke.invoke()
+        setupLineLabels = false
+    }
 }

@@ -110,8 +110,10 @@ object LiveInstrumentService {
 
             try {
                 inst.retransformClasses(clazz)
-                transformer.innerClasses.forEach {
-                    inst.retransformClasses(it)
+                var innerClazz = transformer.innerClasses.poll()
+                while (innerClazz != null) {
+                    inst.retransformClasses(innerClazz)
+                    innerClazz = transformer.innerClasses.poll()
                 }
                 instrument.isLive = true
 

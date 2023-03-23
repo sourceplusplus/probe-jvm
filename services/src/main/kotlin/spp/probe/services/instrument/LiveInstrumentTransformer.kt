@@ -123,8 +123,8 @@ class LiveInstrumentTransformer(
             //filter line instruments outside current scope
             val scope = it.instrument.location.scope
             if (scope != LocationScope.BOTH) {
-                (classMetadata.outerClass && scope == LocationScope.LINE)
-                        || (!classMetadata.outerClass && scope == LocationScope.LAMBDA)
+                (classMetadata.concreteClass && scope == LocationScope.LINE)
+                        || (!classMetadata.concreteClass && scope == LocationScope.LAMBDA)
             } else true
         }
 

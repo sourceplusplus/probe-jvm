@@ -27,14 +27,15 @@ import java.io.File
 import java.io.FileOutputStream
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
+import java.util.concurrent.ConcurrentLinkedQueue
 
 class LiveTransformer : ClassFileTransformer {
 
     private val log = LogManager.getLogger(LiveTransformer::class.java)
-    val innerClasses = mutableListOf<Class<*>>()
-    lateinit var classMetadata: ClassMetadata
     private val hasActiveTransformations = mutableSetOf<String>()
-    var transformAll: Boolean = false //used for testing
+    val innerClasses = ConcurrentLinkedQueue<Class<*>>()
+    internal lateinit var classMetadata: ClassMetadata //visible for testing
+    internal var transformAll: Boolean = false //visible for testing
 
     override fun transform(
         loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
@@ -51,20 +52,17 @@ class LiveTransformer : ClassFileTransformer {
             return null
         }
 
-        val outerClass = !className.contains("$")
-        classMetadata = ClassMetadata(outerClass)
+        classMetadata = ClassMetadata()
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
-        if (outerClass) {
-            innerClasses.addAll(classMetadata.innerClasses)
-        }
+        innerClasses.addAll(classMetadata.innerClasses)
 
         val classWriter = ClassWriter(computeFlag(classReader))
         val classVisitor = LiveClassVisitor(classWriter, classMetadata)
         try {
             classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
-        } catch (e: Exception) {
-            log.error("Failed to transform class: $className", e)
+        } catch (t: Throwable) {
+            log.error("Failed to transform class: $className", t)
             return null
         }
 
