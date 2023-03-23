@@ -202,6 +202,19 @@ object LiveInstrumentService {
         return emptyList()
     }
 
+    fun removeInstrument(instrumentId: String, ex: Throwable) {
+        val removedInstrument = instruments.remove(instrumentId)
+        if (removedInstrument != null) {
+            removedInstrument.isRemoval = true
+            if (removedInstrument.isLive) {
+                liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
+            }
+            removeInstrument(removedInstrument.instrument, ex)
+        } else {
+            log.warn(ex, "Unable to find instrument with id: {}", instrumentId)
+        }
+    }
+
     private fun removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
         if (ex != null) {
             log.warn(ex, "Removing erroneous live instrument: {}", instrument)

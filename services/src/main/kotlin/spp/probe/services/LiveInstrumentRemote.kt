@@ -78,8 +78,8 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun isInstrumentEnabled(instrumentId: String): Boolean {
         return try {
             LiveInstrumentService.isInstrumentEnabled(instrumentId)
-        } catch (e: Throwable) {
-            log.error("Failed to check if instrument is enabled", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(instrumentId, t)
             false
         }
     }
@@ -87,8 +87,8 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun isHit(instrumentId: String): Boolean {
         return try {
             LiveInstrumentService.isHit(instrumentId)
-        } catch (e: Throwable) {
-            log.error("Failed to check if instrument is hit", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(instrumentId, t)
             false
         }
     }
@@ -96,48 +96,48 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun putBreakpoint(breakpointId: String, ex: Throwable) {
         try {
             ContextReceiver.putBreakpoint(breakpointId, ex)
-        } catch (e: Throwable) {
-            log.error("Failed to put breakpoint", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(breakpointId, t)
         }
     }
 
     override fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
         try {
             ContextReceiver.putLog(logId, logFormat, *logArguments)
-        } catch (e: Throwable) {
-            log.error("Failed to put log", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(logId, t)
         }
     }
 
     override fun putMeter(meterId: String) {
         try {
             ContextReceiver.putMeter(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to put meter", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
     override fun openLocalSpan(spanId: String) {
         try {
             ContextReceiver.openLocalSpan(spanId)
-        } catch (e: Throwable) {
-            log.error("Failed to open local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
     }
 
     override fun closeLocalSpan(spanId: String) {
         try {
             ContextReceiver.closeLocalSpan(spanId, null)
-        } catch (e: Throwable) {
-            log.error("Failed to close local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
     }
 
     override fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable {
         try {
             ContextReceiver.closeLocalSpan(spanId, throwable)
-        } catch (e: Throwable) {
-            log.error("Failed to close local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
         throw throwable
     }
@@ -165,16 +165,16 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun startTimer(meterId: String) {
         try {
             ContextReceiver.startTimer(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to start timer", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
     override fun stopTimer(meterId: String) {
         try {
             ContextReceiver.stopTimer(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to stop timer", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
