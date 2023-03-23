@@ -21,8 +21,7 @@ import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
@@ -265,6 +264,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 val meta = rawMetrics.getJsonObject("meta")
                 assertEquals("spp_$avgMeterId", meta.getString("metricsName"))
 
+                assertTrue(rawMetrics.getDouble("value") > 0.0)
                 assertEquals(100.0, rawMetrics.getDouble("value"), 200.0)
             }
             testContext.completeNow()
