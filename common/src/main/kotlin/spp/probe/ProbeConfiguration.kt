@@ -211,14 +211,14 @@ object ProbeConfiguration {
                 val clientId = it.getString("client_id")
                 val clientSecret = it.getString("client_secret")
                 val tenantId = it.getString("tenant_id")
-                val authToken = "$clientId:$clientSecret".let {
+                val clientAuth = "$clientId:$clientSecret".let {
                     if (tenantId != null) {
                         "$it:$tenantId"
                     } else {
                         it
                     }
                 }
-                arrayOf("skywalking.agent.authentication", authToken)
+                arrayOf("skywalking.agent.authentication", clientAuth)
             }
         ).filterNotNull().toMutableSet()
     }
