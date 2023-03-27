@@ -96,7 +96,7 @@ abstract class ProbeIntegrationTest {
             val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
             val headers = JsonObject()
             if (accessToken != null) {
-                headers.put("access-token", accessToken)
+                headers.put("auth-token", accessToken)
             }
 
             val promise = Promise.promise<Void>()
@@ -148,7 +148,7 @@ abstract class ProbeIntegrationTest {
             //send register
             val headers = JsonObject()
             if (accessToken != null) {
-                headers.put("access-token", accessToken)
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
@@ -166,7 +166,7 @@ abstract class ProbeIntegrationTest {
             //send register
             val headers = JsonObject()
             if (accessToken != null) {
-                headers.put("access-token", accessToken)
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
