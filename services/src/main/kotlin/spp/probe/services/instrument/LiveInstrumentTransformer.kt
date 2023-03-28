@@ -68,7 +68,7 @@ class LiveInstrumentTransformer(
     private val methodUniqueName = methodName + desc
     private var currentBeginLabel: NewLabel? = null
     private var inOriginalCode = true
-    private var methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
+    private val methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
     private var line = 0
     private lateinit var currentLabel: Label
     private val labelRanges = mutableMapOf<Label, Int>()
@@ -102,7 +102,11 @@ class LiveInstrumentTransformer(
 
         val qualifiedClassName = className.replace('/', '.')
         val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
-        methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
+
+        //only apply method instruments to non-synthetic methods
+        if (access and Opcodes.ACC_SYNTHETIC == 0) {
+            methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
+        }
     }
 
     override fun visitLabel(label: Label) {
