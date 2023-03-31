@@ -30,7 +30,7 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
-import org.springframework.expression.spel.support.StandardEvaluationContext
+import org.springframework.expression.spel.support.SimpleEvaluationContext
 import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
 import spp.protocol.instrument.*
@@ -173,7 +173,8 @@ object ContextReceiver {
             if (it.valueType == MeterTagValueType.VALUE) {
                 tagMap[it.key] = it.value
             } else if (it.valueType == MeterTagValueType.VALUE_EXPRESSION) {
-                val context = StandardEvaluationContext(contextMap)
+                val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                    .withRootObject(contextMap).build()
                 val expression = LiveInstrumentService.parser.parseExpression(it.value)
                 val value = try {
                     expression.getValue(context, Any::class.java)
@@ -213,7 +214,8 @@ object ContextReceiver {
                             .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val context = StandardEvaluationContext(contextMap)
+                            val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                                .withRootObject(contextMap).build()
                             val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
                             val value = expression.getValue(context, Any::class.java)
                             if (value is Number) {
@@ -226,7 +228,8 @@ object ContextReceiver {
                         }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
                     } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
                         return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val context = StandardEvaluationContext(contextMap)
+                            val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                                .withRootObject(contextMap).build()
                             val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
                             val value = expression.getValue(context, Any::class.java)
 

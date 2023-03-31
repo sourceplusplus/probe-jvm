@@ -314,7 +314,7 @@ object LiveInstrumentService {
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
         val rootObject = ContextReceiver[liveInstrument.instrument.id!!, false]
-        val context = SimpleEvaluationContext.forReadWriteDataBinding()
+        val context = SimpleEvaluationContext.forReadOnlyDataBinding()
             .withRootObject(rootObject).build()
         return liveInstrument.expression!!.getValue(context, Boolean::class.java) ?: false
     }
