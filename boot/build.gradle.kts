@@ -177,7 +177,18 @@ tasks.getByName<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("sha
 
     archiveBaseName.set("spp-probe")
     archiveClassifier.set("")
-    exclude("META-INF/**")
+    exclude("META-INF/maven/**")
+    exclude("META-INF/native-image/**")
+    exclude("META-INF/services/com.**")
+    exclude("META-INF/services/io.**")
+    exclude("META-INF/services/reactor.**")
+    exclude("META-INF/versions/**")
+    exclude("META-INF/vertx/**")
+    exclude("META-INF/LICENSE**")
+    exclude("META-INF/NOTICE**")
+    exclude("META-INF/MANIFEST.MF")
+    exclude("META-INF/**.kotlin_module")
+    exclude("META-INF/**.properties")
     manifest {
         attributes(
             mapOf(
