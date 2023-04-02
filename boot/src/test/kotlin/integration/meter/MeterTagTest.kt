@@ -56,7 +56,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             ),
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
-                MeterTagTest::class.qualifiedName!!,
+                MeterTagTest::class.java.name,
                 41,
                 "spp-test-probe"
             ),
@@ -69,7 +69,7 @@ class MeterTagTest : ProbeIntegrationTest() {
         viewService.saveRule(
             LiveViewRule(
                 ruleName,
-                "(${liveMeter.toMetricIdWithoutPrefix()}.sum(['service', 'tag2'])).service(['service'], Layer.GENERAL)"
+                "(${liveMeter.toMetricIdWithoutPrefix()}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)"
             )
         ).await()
 
@@ -87,12 +87,11 @@ class MeterTagTest : ProbeIntegrationTest() {
         getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
-            val summation = rawMetrics.getString("summation")
+            val summation = rawMetrics.getJsonObject("value")
             log.info("summation: $summation")
 
-            val summationMap = summation.split("|").map { it.split(",") }.map { it[0] to it[1] }.toMap()
-            val trueCount = summationMap["true"]!!.toInt()
-            val falseCount = summationMap["false"]!!.toInt()
+            val trueCount = summation.getInteger("true")
+            val falseCount = summation.getInteger("false")
             if (trueCount + falseCount >= 10) {
                 testContext.verify {
                     assertEquals(5, trueCount)
