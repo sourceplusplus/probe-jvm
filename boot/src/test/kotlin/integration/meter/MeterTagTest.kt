@@ -33,12 +33,11 @@ import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.LiveViewRule
 import java.util.*
-import java.util.concurrent.ThreadLocalRandom
 
 class MeterTagTest : ProbeIntegrationTest() {
 
-    private fun doTest() {
-        var i = ThreadLocalRandom.current().nextBoolean()
+    private fun doTest(index: Int) {
+        var i = index % 2 == 0
     }
 
     @Test
@@ -58,7 +57,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterTagTest::class.qualifiedName!!,
-                42,
+                41,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -96,8 +95,8 @@ class MeterTagTest : ProbeIntegrationTest() {
             val falseCount = summationMap["false"]!!.toInt()
             if (trueCount + falseCount >= 10) {
                 testContext.verify {
-                    assertEquals(5.0, trueCount.toDouble(), 3.0)
-                    assertEquals(5.0, falseCount.toDouble(), 3.0)
+                    assertEquals(5, trueCount)
+                    assertEquals(5, falseCount)
                     assertEquals(10, trueCount + falseCount)
                 }
                 testContext.completeNow()
@@ -107,7 +106,7 @@ class MeterTagTest : ProbeIntegrationTest() {
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
         repeat(10) {
-            doTest()
+            doTest(it)
             delay(1000)
         }
 
