@@ -159,6 +159,8 @@ class LiveInstrumentTransformer(
                         captureSnapshot(meter.id!!)
                     } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
                         captureSnapshot(meter.id!!)
+                    } else if (meter.meterPartitions.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
+                        captureSnapshot(meter.id!!)
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
@@ -714,6 +716,8 @@ class LiveInstrumentTransformer(
         return if (meter.metricValue?.valueType?.isExpression() == true) {
             true
         } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
+            true
+        } else if (meter.meterPartitions.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
             true
         } else meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
     }
