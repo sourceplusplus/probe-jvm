@@ -30,8 +30,8 @@ import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.location.LocationScope
-import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 
 class LiveInstrumentTransformer(
@@ -157,7 +157,7 @@ class LiveInstrumentTransformer(
                     val meter = instrument.instrument
                     if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
                         captureSnapshot(meter.id!!)
-                    } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                    } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
                         captureSnapshot(meter.id!!)
                     }
                     isHit(meter.id!!, instrumentLabel)
@@ -713,7 +713,7 @@ class LiveInstrumentTransformer(
     private fun shouldCaptureSnapshot(meter: LiveMeter): Boolean {
         return if (meter.metricValue?.valueType?.isExpression() == true) {
             true
-        } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+        } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
             true
         } else meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
     }

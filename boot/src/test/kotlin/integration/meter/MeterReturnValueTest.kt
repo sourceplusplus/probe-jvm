@@ -32,7 +32,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 
 class MeterReturnValueTest : ProbeIntegrationTest() {
 
@@ -58,7 +58,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRuleIfAbsent(
-            LiveViewRule(
+            ViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")

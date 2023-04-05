@@ -33,9 +33,12 @@ import org.apache.skywalking.apm.network.logging.v3.*
 import org.springframework.expression.spel.support.SimpleEvaluationContext
 import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
-import spp.protocol.instrument.*
-import spp.protocol.instrument.meter.MeterTagValueType
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveMeter
+import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 import java.io.ByteArrayInputStream
 import java.io.ObjectInputStream
@@ -170,9 +173,9 @@ object ContextReceiver {
         //calculate meter tags
         val tagMap = HashMap<String, String>()
         liveMeter.meterTags.forEach {
-            if (it.valueType == MeterTagValueType.VALUE) {
+            if (it.valueType == MeterValueType.VALUE) {
                 tagMap[it.key] = it.value
-            } else if (it.valueType == MeterTagValueType.VALUE_EXPRESSION) {
+            } else if (it.valueType == MeterValueType.VALUE_EXPRESSION) {
                 val context = SimpleEvaluationContext.forReadOnlyDataBinding()
                     .withRootObject(contextMap).build()
                 val expression = LiveInstrumentService.parser.parseExpression(it.value)

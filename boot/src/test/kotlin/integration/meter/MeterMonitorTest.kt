@@ -32,7 +32,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 import java.util.*
 
 class MeterMonitorTest : ProbeIntegrationTest() {
@@ -65,7 +65,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRuleIfAbsent(
-            LiveViewRule(
+            ViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")
@@ -129,7 +129,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRuleIfAbsent(
-            LiveViewRule(
+            ViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")
@@ -190,7 +190,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE")
         )
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 name = countMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")
@@ -217,7 +217,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE")
         )
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")
@@ -233,7 +233,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         val avgMeterId = ("lifespan-object-avg-time" + UUID.randomUUID().toString()).replace("-", "_")
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 name = avgMeterId,
                 exp = buildString {
                     append("(")

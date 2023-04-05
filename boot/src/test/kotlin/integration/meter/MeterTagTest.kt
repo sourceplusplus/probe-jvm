@@ -31,7 +31,7 @@ import spp.protocol.instrument.meter.*
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 import java.util.*
 
 class MeterTagTest : ProbeIntegrationTest() {
@@ -48,9 +48,9 @@ class MeterTagTest : ProbeIntegrationTest() {
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             meterTags = listOf(
-                MeterTagValue(
+                MeterTag(
                     "tag2",
-                    MeterTagValueType.VALUE_EXPRESSION,
+                    MeterValueType.VALUE_EXPRESSION,
                     "localVariables[i]"
                 )
             ),
@@ -67,7 +67,7 @@ class MeterTagTest : ProbeIntegrationTest() {
 
         val ruleName = "test_meter_tag_$uuid"
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 ruleName,
                 "(${liveMeter.toMetricIdWithoutPrefix()}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)"
             )

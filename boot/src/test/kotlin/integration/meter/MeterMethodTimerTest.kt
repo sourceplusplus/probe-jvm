@@ -31,7 +31,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 import java.util.*
 
 class MeterMethodTimerTest : ProbeIntegrationTest() {
@@ -57,7 +57,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 "${liveMeter.toMetricIdWithoutPrefix()}_avg",
                 buildString {
                     append("(")
@@ -69,7 +69,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
             )
         ).await()
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 "${liveMeter.toMetricIdWithoutPrefix()}_count",
                 buildString {
                     append("(")

@@ -32,7 +32,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 
 class MeterConstructorCountTest : ProbeIntegrationTest() {
 
@@ -59,7 +59,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 name = liveMeter.toMetricIdWithoutPrefix(),
                 exp = buildString {
                     append("(")
