@@ -66,7 +66,7 @@ dependencies {
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
-    implementation("org.springframework:spring-expression:5.3.26")
+    implementation("org.springframework:spring-expression:5.3.27")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("plus.sourceplus:protocol:$projectVersion")
