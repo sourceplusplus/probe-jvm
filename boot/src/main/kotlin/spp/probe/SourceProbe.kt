@@ -96,7 +96,12 @@ object SourceProbe {
 
     @JvmStatic
     fun premain(args: String?, inst: Instrumentation) {
-        ProbeConfiguration.customProbeFile = args
+        if (System.getenv("SPP_PROBE_CONFIG_FILE") != null) {
+            ProbeConfiguration.customProbeFile = System.getenv("SPP_PROBE_CONFIG_FILE")
+        } else {
+            ProbeConfiguration.customProbeFile = args
+        }
+
         ProbeConfiguration.load()
         if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via premain. args: $args")
         if (isAgentInitialized) {
