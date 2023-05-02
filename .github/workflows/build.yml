@@ -146,6 +146,7 @@ jobs:
       - name: Remove Old Snapshot Packages
         uses: smartsquaregmbh/delete-old-packages@v0.7.0
         with:
+          type: maven
           keep: 0
           version-pattern: "^\\d+\\.\\d+\\.\\d+-SNAPSHOT$"
           names: |
