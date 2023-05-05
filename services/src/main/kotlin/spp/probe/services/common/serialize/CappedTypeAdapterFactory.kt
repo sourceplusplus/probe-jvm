@@ -569,6 +569,8 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         jsonWriter.value(e.message)
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.name("@toString")
+        jsonWriter.value(value.toString())
         jsonWriter.endObject()
     }
 
