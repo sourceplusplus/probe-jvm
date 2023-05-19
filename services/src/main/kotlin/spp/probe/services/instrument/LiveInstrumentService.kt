@@ -77,9 +77,9 @@ object LiveInstrumentService {
         override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
             if (log.isInfoEnable) {
                 if (instrument.isRemoval) {
-                    log.info("Attempting to remove live instrument: {}", instrument.instrument)
+                    log.info("Attempting to remove live instrument: {}", instrument.instrument.id)
                 } else {
-                    log.info("Attempting to apply live instrument: {}", instrument.instrument)
+                    log.info("Attempting to apply live instrument: {}", instrument.instrument.id)
                 }
             }
 
@@ -118,9 +118,9 @@ object LiveInstrumentService {
                 instrument.isLive = true
 
                 if (instrument.isRemoval) {
-                    if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument)
+                    if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
                 } else {
-                    if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument)
+                    if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument.id)
                     LiveInstrumentRemote.EVENT_CONSUMER.accept(
                         ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
                         ModelSerializer.INSTANCE.toJson(instrument.instrument)
@@ -211,15 +211,15 @@ object LiveInstrumentService {
             }
             removeInstrument(removedInstrument.instrument, ex)
         } else {
-            log.warn(ex, "Unable to find instrument with id: {}", instrumentId)
+            log.warn(ex, "Unable to find instrument: {}", instrumentId)
         }
     }
 
     private fun removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
         if (ex != null) {
-            log.warn(ex, "Removing erroneous live instrument: {}", instrument)
+            log.warn(ex, "Removing erroneous live instrument: {}", instrument.id)
         } else {
-            log.info("Removing live instrument: {}", instrument)
+            log.info("Removing live instrument: {}", instrument.id)
         }
 
         removeInstrument(instrument.location.source, instrument.location.line, instrument.id)
