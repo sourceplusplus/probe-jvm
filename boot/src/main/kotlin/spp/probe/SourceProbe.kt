@@ -91,7 +91,11 @@ object SourceProbe {
 
         configureAgent(false)
         bootProbe()
-        connectToPlatform().toCompletionStage().toCompletableFuture().get()
+
+        val connect = connectToPlatform()
+        if (ProbeConfiguration.waitForPlatform) {
+            connect.toCompletionStage().toCompletableFuture().get()
+        }
     }
 
     @JvmStatic
@@ -127,7 +131,11 @@ object SourceProbe {
         configureAgent(true)
         invokeAgent()
         bootProbe()
-        connectToPlatform().toCompletionStage().toCompletableFuture().get()
+
+        val connect = connectToPlatform()
+        if (ProbeConfiguration.waitForPlatform) {
+            connect.toCompletionStage().toCompletableFuture().get()
+        }
     }
 
     private fun bootProbe() {
