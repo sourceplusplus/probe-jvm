@@ -138,6 +138,10 @@ tasks.register<Copy>("untarSkywalkingAgent") {
     } else {
         dependsOn(":downloadSkywalkingAgent")
     }
+    doFirst {
+        File(projectDir.parentFile, "build/agent/extracted").deleteRecursively()
+    }
+
     from(tarTree(resources.gzip(File(projectDir.parentFile, "build/agent/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
     into(File(projectDir.parentFile, "build/agent/extracted"))
 }
