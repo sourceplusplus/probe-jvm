@@ -45,9 +45,9 @@ class LiveTransformer : ClassFileTransformer {
         val classInstruments = LiveInstrumentService.getInstrumentsForClass(qualifiedClassName)
         if (classInstruments.isNotEmpty() || transformAll) {
             hasActiveTransformations.add(qualifiedClassName)
-            log.trace("Transforming class: $className. Active instruments: ${classInstruments.size}")
+            log.info("Transforming class: $className. Active instruments: ${classInstruments.size}")
         } else if (hasActiveTransformations.remove(qualifiedClassName)) {
-            log.trace("Removing transformations for class: $className. Active instruments: ${classInstruments.size}")
+            log.info("Removing transformations for class: $className. Active instruments: ${classInstruments.size}")
         } else {
             return null
         }
