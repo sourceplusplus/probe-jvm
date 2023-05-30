@@ -66,24 +66,25 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         viewService.saveRuleIfAbsent(
             ViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -94,7 +95,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 2000.0)
             }
@@ -130,23 +131,24 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         viewService.saveRuleIfAbsent(
             ViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".downsampling(LATEST)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -157,7 +159,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 1500.0)
             }
@@ -191,15 +193,16 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         )
         viewService.saveRule(
             ViewRule(
-                name = countMeter.toMetricIdWithoutPrefix(),
+                name = countMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(countMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(countMeter.id!!)
             )
         ).await()
         instrumentService.addLiveInstrument(countMeter).await()
@@ -218,15 +221,16 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         )
         viewService.saveRule(
             ViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
         instrumentService.addLiveInstrument(liveMeter).await()
@@ -237,12 +241,13 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 name = avgMeterId,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append("/")
-                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(countMeter.id)
                     append(").downsampling(LATEST)")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!, countMeter.id!!)
             )
         ).await()
 

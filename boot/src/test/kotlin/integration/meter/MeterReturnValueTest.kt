@@ -42,8 +42,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
 
     @Test
     fun `string return value`(): Unit = runBlocking {
-        val meterId = "meter-return-value-string"
-
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -59,24 +58,25 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
 
         viewService.saveRuleIfAbsent(
             ViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -87,7 +87,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
                 assertEquals(1, rawMetrics.getLong("value"))
             }
             testContext.completeNow()

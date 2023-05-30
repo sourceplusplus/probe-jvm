@@ -214,10 +214,10 @@ object ContextReceiver {
 
         liveMeter.meterPartitions.flatMap { it.keys }.forEach {
             val meterName = liveMeter.meterType.name.lowercase() + "_" + it + partition
-            getOrCreateBaseMeter(meterId, meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
+            getOrCreateBaseMeter(meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
         }
-        val meterName = liveMeter.toMetricIdWithoutPrefix() + partition
-        val baseMeter = getOrCreateBaseMeter(meterId, meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
+        val meterName = liveMeter.id + partition
+        val baseMeter = getOrCreateBaseMeter(meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
         when (liveMeter.meterType) {
             MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
@@ -245,7 +245,6 @@ object ContextReceiver {
     }
 
     private fun getOrCreateBaseMeter(
-        meterId: String,
         meterName: String,
         tagStr: String,
         liveMeter: LiveMeter,
@@ -305,7 +304,7 @@ object ContextReceiver {
                                     .setKey("meter_id").setValue(liveMeter.id).build()
                             ).addData(
                                 KeyStringValuePair.newBuilder()
-                                    .setKey("metric_id").setValue(liveMeter.toMetricId()).build()
+                                    .setKey("metric_id").setValue(liveMeter.id).build()
                             )
                         val builder = LogData.newBuilder()
                             .setTimestamp(System.currentTimeMillis())
@@ -335,9 +334,7 @@ object ContextReceiver {
                 }
             }
 
-            MeterType.HISTOGRAM -> return@computeGlobal MeterFactory.histogram(
-                "histogram_" + meterId.replace("-", "_")
-            )
+            MeterType.HISTOGRAM -> return@computeGlobal MeterFactory.histogram(meterName)
                 .steps(listOf(0.0)) //todo: dynamic
                 .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
 
@@ -370,7 +367,7 @@ object ContextReceiver {
         if (log.isTraceEnabled) log.trace("Live meter (startTimer): $liveMeter")
 
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-meter") {
-            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_meter").apply {
+            MeterFactory.counter(liveMeter.id + "_timer_meter").apply {
                 mode(CounterMode.RATE)
             }.build()
         }.increment(1.0)
@@ -383,7 +380,7 @@ object ContextReceiver {
 
         val duration = System.currentTimeMillis() - startTime
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-sum") {
-            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_duration_sum").apply {
+            MeterFactory.counter(liveMeter.id + "_timer_duration_sum").apply {
                 mode(CounterMode.RATE)
             }.build()
         }.increment(duration.toDouble())

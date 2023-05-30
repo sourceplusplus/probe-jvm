@@ -60,24 +60,25 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
         viewService.saveRule(
             ViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -88,7 +89,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(10, rawMetrics.getLong("value"))
             }

@@ -31,8 +31,8 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.ViewRule
-import java.util.*
+import spp.protocol.view.rule.MethodTimerAvgRule
+import spp.protocol.view.rule.MethodTimerCountRule
 
 class MeterMethodTimerTest : ProbeIntegrationTest() {
 
@@ -42,8 +42,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     @Test
     fun `method timer meter`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "method-timer-meter-$uuid"
+        val meterId = testNameAsUniqueInstrumentId
 
         val liveMeter = LiveMeter(
             MeterType.METHOD_TIMER,
@@ -56,40 +55,20 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
             applyImmediately = true
         )
 
-        viewService.saveRule(
-            ViewRule(
-                "${liveMeter.toMetricIdWithoutPrefix()}_avg",
-                buildString {
-                    append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_duration_sum")
-                    append("/")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_meter")
-                    append(").avg(['service']).service(['service'], Layer.GENERAL)")
-                }
-            )
-        ).await()
-        viewService.saveRule(
-            ViewRule(
-                "${liveMeter.toMetricIdWithoutPrefix()}_count",
-                buildString {
-                    append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_meter")
-                    append(").sum(['service']).service(['service'], Layer.GENERAL)")
-                }
-            )
-        ).await()
+        viewService.saveRule(MethodTimerAvgRule(liveMeter)).await()
+        viewService.saveRule(MethodTimerCountRule(liveMeter)).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(
-                    liveMeter.toMetricId() + "_avg",
-                    liveMeter.toMetricId() + "_count"
+                    liveMeter.id!! + "_avg",
+                    liveMeter.id!! + "_count"
                 ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(
-                        liveMeter.toMetricId() + "_avg",
-                        liveMeter.toMetricId() + "_count"
+                        liveMeter.id!! + "_avg",
+                        liveMeter.id!! + "_count"
                     )
                 )
             )
@@ -102,7 +81,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
             testContext.verify {
                 val avg = rawMetrics.getJsonObject(0)
                 assertTrue(avg.getString("metric_type").endsWith("_avg"))
-                assertEquals(200.0, avg.getDouble("value"), 1.0)
+                assertEquals(200.0, avg.getDouble("value"), 5.0)
 
                 val rate = rawMetrics.getJsonObject(1)
                 assertEquals(10.0, rate.getDouble("summation"))

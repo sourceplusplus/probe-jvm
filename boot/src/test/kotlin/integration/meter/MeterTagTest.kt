@@ -42,8 +42,7 @@ class MeterTagTest : ProbeIntegrationTest() {
 
     @Test
     fun `test meter tags`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "test-meter-tags-$uuid"
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -65,20 +64,20 @@ class MeterTagTest : ProbeIntegrationTest() {
             hitLimit = -1
         )
 
-        val ruleName = "test_meter_tag_$uuid"
         viewService.saveRule(
             ViewRule(
-                ruleName,
-                "(${liveMeter.toMetricIdWithoutPrefix()}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)"
+                meterId,
+                "($meterId.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
+                meterIds = listOf(meterId)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf("spp_$ruleName"),
+                entityIds = mutableSetOf(meterId),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf("spp_$ruleName")
+                    listOf(meterId)
                 )
             )
         ).await().subscriptionId!!
@@ -114,6 +113,6 @@ class MeterTagTest : ProbeIntegrationTest() {
         //clean up
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
-        assertNotNull(viewService.deleteRule(ruleName).await())
+        assertNotNull(viewService.deleteRule(meterId).await())
     }
 }

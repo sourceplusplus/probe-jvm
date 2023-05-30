@@ -60,11 +60,12 @@ abstract class ProbeIntegrationTest {
     var testName: String? = null
     val testNameAsInstrumentId: String
         get() {
-            return testName!!.replace(" ", "-").lowercase().substringBefore("(")
+            return "spp_" + testName!!.replace("-", "_").replace(" ", "_")
+                .lowercase().substringBefore("(")
         }
     val testNameAsUniqueInstrumentId: String
         get() {
-            return testNameAsInstrumentId + "-" + UUID.randomUUID().toString().replace("-", "")
+            return testNameAsInstrumentId + "_" + UUID.randomUUID().toString().replace("-", "")
         }
 
     @BeforeEach

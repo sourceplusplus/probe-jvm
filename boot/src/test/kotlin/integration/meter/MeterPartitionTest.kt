@@ -34,7 +34,6 @@ import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.RulePartition
 import spp.protocol.view.rule.ViewRule
-import java.util.*
 
 class MeterPartitionTest : ProbeIntegrationTest() {
 
@@ -44,8 +43,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Test
     fun `test meter partitions`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "test-meter-partitions-$uuid"
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -58,33 +56,33 @@ class MeterPartitionTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterPartitionTest::class.java.name,
-                43,
+                42,
                 "spp-test-probe"
             ),
             id = meterId,
-            applyImmediately = true,
+            applyImmediately = true
         )
 
-        val ruleName = "test_meter_partition_$uuid"
         viewService.saveRule(
             ViewRule(
-                ruleName,
+                liveMeter.id!!,
                 "(the_count.sum(['service']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
                 listOf(
                     RulePartition(
                         "the_count",
-                        "${liveMeter.toMetricIdWithoutPrefix()}_\$partition\$"
+                        "${liveMeter.id}_\$partition\$"
                     )
-                )
+                ),
+                listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf("spp_${ruleName}_true", "spp_${ruleName}_false"),
+                entityIds = mutableSetOf("${liveMeter.id}_true", "${liveMeter.id}_false"),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf("spp_${ruleName}_true", "spp_${ruleName}_false")
+                    listOf("${liveMeter.id}_true", "${liveMeter.id}_false")
                 )
             )
         ).await().subscriptionId!!
@@ -96,11 +94,11 @@ class MeterPartitionTest : ProbeIntegrationTest() {
             log.info("Raw metrics: $rawMetrics")
 
             val trueCount = (rawMetrics.find {
-                (it as JsonObject).getString("metric_type") == "spp_${ruleName}_true"
+                (it as JsonObject).getString("metric_type") == "${liveMeter.id}_true"
             } as JsonObject).getInteger("value")
             println(trueCount)
             val falseCount = (rawMetrics.find {
-                (it as JsonObject).getString("metric_type") == "spp_${ruleName}_false"
+                (it as JsonObject).getString("metric_type") == "${liveMeter.id}_false"
             } as JsonObject).getInteger("value")
             println(falseCount)
             if (trueCount + falseCount == 10) {
@@ -125,6 +123,6 @@ class MeterPartitionTest : ProbeIntegrationTest() {
         //clean up
         assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
-        assertNotNull(viewService.deleteRule(ruleName).await())
+        assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }
 }
