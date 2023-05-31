@@ -276,10 +276,10 @@ tasks.register<Zip>("platformProbeJar") {
     } else {
         dependsOn(":boot:zipPlatformSkywalkingAgent", ":boot:shadowJar")
     }
-    archiveFileName.set("spp-probe-platform-$projectVersion.jar")
+    archiveFileName.set("spp-probe-platform-$version.jar")
     destinationDirectory.set(project.layout.buildDirectory.dir("libs"))
 
-    from(project.zipTree("$buildDir/libs/spp-probe-$projectVersion.jar")) {
+    from(project.zipTree("$buildDir/libs/spp-probe-$version.jar")) {
         exclude("skywalking-agent-$skywalkingAgentVersion.zip")
     }
 
@@ -290,4 +290,3 @@ tasks.register<Zip>("platformProbeJar") {
     duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 tasks.getByName("jar").dependsOn("platformProbeJar")
-tasks.getByName("platformProbeJar").mustRunAfter("shadowJar")
