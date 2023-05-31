@@ -268,6 +268,7 @@ tasks.register<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("plat
     relocate("org.apache.skywalking.apm.dependencies.io.grpc", "io.grpc")
     relocate("org.apache.skywalking.apm.dependencies.com.google.protobuf", "com.google.protobuf")
     relocate("org.apache.skywalking.apm.dependencies.io.netty", "io.netty")
+    //relocate("org.apache.skywalking.apm.dependencies.net.bytebuddy", "net.bytebuddy")
 }
 tasks.register<Zip>("platformProbeJar") {
     if (findProject(":probes:jvm") != null) {
@@ -289,3 +290,4 @@ tasks.register<Zip>("platformProbeJar") {
     duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 tasks.getByName("jar").dependsOn("platformProbeJar")
+tasks.getByName("platformProbeJar").mustRunAfter("shadowJar")
