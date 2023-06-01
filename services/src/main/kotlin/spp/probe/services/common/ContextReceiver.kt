@@ -213,8 +213,7 @@ object ContextReceiver {
         }
 
         liveMeter.meterPartitions.flatMap { it.keys }.forEach {
-            val meterName = liveMeter.meterType.name.lowercase() + "_" + it + partition
-            getOrCreateBaseMeter(meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
+            getOrCreateBaseMeter(it + partition, tagStr, liveMeter, tagMap, thisObject, contextMap)
         }
         val meterName = liveMeter.id + partition
         val baseMeter = getOrCreateBaseMeter(meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
