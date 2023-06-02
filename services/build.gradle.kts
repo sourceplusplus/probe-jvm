@@ -61,7 +61,7 @@ dependencies {
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     compileOnly("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
-    compileOnly("net.bytebuddy:byte-buddy:1.12.19") //tied to SkyWalking agent version
+    compileOnly("net.bytebuddy:byte-buddy:1.14.5") //tied to SkyWalking agent version
     compileOnly(projectDependency(":common"))
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
