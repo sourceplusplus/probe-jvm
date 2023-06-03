@@ -31,6 +31,7 @@ import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
 import spp.probe.services.error.LiveInstrumentException
+import spp.probe.services.error.LiveInstrumentException.ErrorType
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
@@ -91,21 +92,8 @@ object LiveInstrumentService {
 
             if (log.isInfoEnable) log.info("Searching for {} in all loaded classes", className)
             var clazz: Class<*>? = inst.allLoadedClasses.find { it.name == className }
-            if (clazz != null) {
-                if (log.isInfoEnable) log.info("Found {} in all loaded classes", clazz)
-            }
-
+            if (clazz != null && log.isInfoEnable) log.info("Found {} in all loaded classes", clazz)
             if (clazz == null) {
-                if (log.isDebugEnable) log.debug("{} not found", className)
-                if (instrument.instrument.applyImmediately) {
-                    log.warn(
-                        "Unable to find {}. Live instrument {} cannot be applied immediately",
-                        className, instrument.instrument
-                    )
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
-                        .toEventBusException()
-                }
-
                 try {
                     clazz = Class.forName(className, false, javaClass.classLoader)
                     log.info("Found {} in Class.forName", clazz)
@@ -113,11 +101,19 @@ object LiveInstrumentService {
                 }
             }
             if (clazz == null) {
-                log.warn(
-                    "Unable to find {}. Live instrument {} will be applied when the class is loaded",
-                    className, instrument.instrument
-                )
-                return
+                if (instrument.instrument.applyImmediately) {
+                    log.warn(
+                        "Unable to find {}. Live instrument {} cannot be applied immediately",
+                        className, instrument.instrument
+                    )
+                    throw LiveInstrumentException(ErrorType.CLASS_NOT_FOUND, className).toEventBusException()
+                } else {
+                    log.info(
+                        "Unable to find {}. Live instrument {} will be applied when the class is loaded",
+                        className, instrument.instrument
+                    )
+                    return
+                }
             }
 
             try {
@@ -168,8 +164,7 @@ object LiveInstrumentService {
                     ActiveLiveInstrument(liveInstrument, expression)
                 } catch (ex: ParseException) {
                     log.warn(ex, "Failed to parse condition: {}", liveInstrument.condition)
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
-                        .toEventBusException()
+                    throw LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.message).toEventBusException()
                 }
             } else {
                 ActiveLiveInstrument(liveInstrument)
