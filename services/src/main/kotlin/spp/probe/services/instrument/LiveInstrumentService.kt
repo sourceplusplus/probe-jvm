@@ -280,7 +280,7 @@ object LiveInstrumentService {
     fun isHit(instrumentId: String): Boolean {
         if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
         val instrument = instruments[instrumentId] ?: return false
-        if (instrument.throttle?.isRateLimited() == true) {
+        if (instrument.throttle.isRateLimited()) {
             if (log.isTraceEnabled) log.trace("Instrument is rate limited: $instrumentId")
             return false
         }
