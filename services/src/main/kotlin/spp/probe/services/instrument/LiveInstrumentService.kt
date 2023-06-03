@@ -104,13 +104,13 @@ object LiveInstrumentService {
                 if (instrument.instrument.applyImmediately) {
                     log.warn(
                         "Unable to find {}. Live instrument {} cannot be applied immediately",
-                        className, instrument.instrument
+                        className, instrument.instrument.id
                     )
                     throw LiveInstrumentException(ErrorType.CLASS_NOT_FOUND, className).toEventBusException()
                 } else {
                     log.info(
                         "Unable to find {}. Live instrument {} will be applied when the class is loaded",
-                        className, instrument.instrument
+                        className, instrument.instrument.id
                     )
                     return
                 }
@@ -135,7 +135,7 @@ object LiveInstrumentService {
                     )
                 }
             } catch (ex: Throwable) {
-                log.warn(ex, "Failed to apply live instrument: {}", instrument)
+                log.warn(ex, "Failed to apply live instrument: {}", instrument.instrument.id)
 
                 //remove and re-transform
                 removeInstrument(instrument.instrument, ex)

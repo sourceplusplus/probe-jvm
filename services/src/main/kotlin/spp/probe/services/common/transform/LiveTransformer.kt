@@ -56,6 +56,9 @@ class LiveTransformer : ClassFileTransformer {
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
         innerClasses.addAll(classMetadata.innerClasses)
+        if (classMetadata.innerClasses.isNotEmpty()) {
+            log.info("Found inner classes for $className: ${classMetadata.innerClasses}")
+        }
 
         val classWriter = ClassWriter(computeFlag(classReader))
         val classVisitor = LiveClassVisitor(classWriter, classMetadata)
