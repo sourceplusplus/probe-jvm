@@ -106,8 +106,7 @@ object LiveInstrumentService {
                 )
                 throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
                     .toEventBusException()
-            }
-            if (clazz == null) {
+            } else if (clazz == null) {
                 log.info(
                     "Unable to find {}. Live instrument {} will be applied when the class is loaded",
                     className, instrument.instrument
