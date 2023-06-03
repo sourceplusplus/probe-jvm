@@ -90,7 +90,7 @@ object LiveInstrumentService {
             }
 
             if (log.isInfoEnable) log.info("Searching for {} in all loaded classes", className)
-            val clazz: Class<*>? = inst.allLoadedClasses.find { it.name == className }
+            var clazz: Class<*>? = inst.allLoadedClasses.find { it.name == className }
             if (clazz != null) {
                 if (log.isInfoEnable) log.info("Found {} in all loaded classes", clazz)
             }
@@ -105,6 +105,18 @@ object LiveInstrumentService {
                     throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
                         .toEventBusException()
                 }
+
+                try {
+                    clazz = Class.forName(className, false, javaClass.classLoader)
+                    log.info("Found {} in Class.forName", clazz)
+                } catch (ignore: Exception) {
+                }
+            }
+            if (clazz == null) {
+                log.warn(
+                    "Unable to find {}. Live instrument {} will be applied when the class is loaded",
+                    className, instrument.instrument
+                )
                 return
             }
 
