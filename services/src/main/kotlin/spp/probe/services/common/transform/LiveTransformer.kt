@@ -52,7 +52,8 @@ class LiveTransformer : ClassFileTransformer {
             return null
         }
 
-        classMetadata = ClassMetadata()
+        val classMetadata = ClassMetadata()
+        this.classMetadata = classMetadata
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
         innerClasses.addAll(classMetadata.innerClasses)
