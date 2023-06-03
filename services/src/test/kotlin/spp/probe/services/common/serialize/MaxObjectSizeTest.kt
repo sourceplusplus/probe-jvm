@@ -28,7 +28,7 @@ import java.lang.instrument.Instrumentation
 class MaxObjectSizeTest : AbstractSerializeTest {
 
     @Test
-    fun `max size exceeded`() {
+    fun `max object size exceeded`() {
         ProbeConfiguration.variableControl.put("max_object_size", 0)
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
