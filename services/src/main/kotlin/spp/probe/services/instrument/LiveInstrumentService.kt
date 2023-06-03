@@ -99,19 +99,21 @@ object LiveInstrumentService {
                 } catch (ignore: Exception) {
                 }
             }
-            if (clazz == null && instrument.instrument.applyImmediately) {
-                log.warn(
-                    "Unable to find {}. Live instrument {} cannot be applied immediately",
-                    className, instrument.instrument
-                )
-                throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
-                    .toEventBusException()
-            } else if (clazz == null) {
-                log.info(
-                    "Unable to find {}. Live instrument {} will be applied when the class is loaded",
-                    className, instrument.instrument
-                )
-                return
+            if (clazz == null) {
+                if (instrument.instrument.applyImmediately) {
+                    log.warn(
+                        "Unable to find {}. Live instrument {} cannot be applied immediately",
+                        className, instrument.instrument
+                    )
+                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
+                        .toEventBusException()
+                } else {
+                    log.info(
+                        "Unable to find {}. Live instrument {} will be applied when the class is loaded",
+                        className, instrument.instrument
+                    )
+                    return
+                }
             }
 
             try {
