@@ -31,6 +31,7 @@ import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ActiveLiveInstrument
 import spp.probe.services.common.transform.LiveTransformer
 import spp.probe.services.error.LiveInstrumentException
+import spp.probe.services.error.LiveInstrumentException.ErrorType
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.platform.ProcessorAddress
 import java.lang.instrument.Instrumentation
@@ -105,8 +106,7 @@ object LiveInstrumentService {
                         "Unable to find {}. Live instrument {} cannot be applied immediately",
                         className, instrument.instrument
                     )
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
-                        .toEventBusException()
+                    throw LiveInstrumentException(ErrorType.CLASS_NOT_FOUND, className).toEventBusException()
                 } else {
                     log.info(
                         "Unable to find {}. Live instrument {} will be applied when the class is loaded",
@@ -164,8 +164,7 @@ object LiveInstrumentService {
                     ActiveLiveInstrument(liveInstrument, expression)
                 } catch (ex: ParseException) {
                     log.warn(ex, "Failed to parse condition: {}", liveInstrument.condition)
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
-                        .toEventBusException()
+                    throw LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.message).toEventBusException()
                 }
             } else {
                 ActiveLiveInstrument(liveInstrument)
