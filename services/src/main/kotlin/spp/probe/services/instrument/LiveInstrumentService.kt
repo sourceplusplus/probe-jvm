@@ -123,11 +123,10 @@ object LiveInstrumentService {
                     inst.retransformClasses(innerClazz)
                     innerClazz = transformer.innerClasses.poll()
                 }
-                instrument.isLive = true
 
                 if (instrument.isRemoval) {
                     if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
-                } else {
+                } else if (instrument.isLive) {
                     if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument.id)
                     LiveInstrumentRemote.EVENT_CONSUMER.accept(
                         ProcessorAddress.LIVE_INSTRUMENT_APPLIED,

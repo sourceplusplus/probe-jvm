@@ -145,12 +145,14 @@ class LiveInstrumentTransformer(
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
+                    instrument.isLive = true
                 }
 
                 is LiveLog -> {
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
+                    instrument.isLive = true
                 }
 
                 is LiveMeter -> {
@@ -164,6 +166,7 @@ class LiveInstrumentTransformer(
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
+                    instrument.isLive = true
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
@@ -399,6 +402,7 @@ class LiveInstrumentTransformer(
                     }
 
                     putInstrumentAfterReturn(instrument, opcode != Opcodes.RETURN)
+                    instrument.isLive = true
                 }
             }
         }
@@ -572,21 +576,21 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
+        methodActiveInstruments.filter { it.instrument is LiveSpan }.forEach {
             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-            visitLdcInsn(it.id)
+            visitLdcInsn(it.instrument.id)
             visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
+            it.isLive = true
         }
 
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveMeter }
-            .filter { it.meterType == MeterType.METHOD_TIMER }
-            .forEach {
-                startTimer(it.id!!)
-            }
+        methodActiveInstruments.filter { (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER }.forEach {
+            startTimer(it.instrument.id!!)
+            it.isLive = true
+        }
     }
 
     private fun execVisitFinallyBlock() {
