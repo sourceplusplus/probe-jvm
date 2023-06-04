@@ -18,6 +18,7 @@ package spp.probe.services.common.model
 
 import org.springframework.expression.Expression
 import spp.protocol.instrument.LiveInstrument
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ActiveLiveInstrument @JvmOverloads constructor(
     val instrument: LiveInstrument,
@@ -31,7 +32,7 @@ class ActiveLiveInstrument @JvmOverloads constructor(
         }
     }
     var isRemoval = false
-    var isLive = false
+    var sendAppliedEvent = AtomicBoolean(false)
 
     val isFinished: Boolean
         get() = if (instrument.expiresAt != null && System.currentTimeMillis() >= instrument.expiresAt!!) {

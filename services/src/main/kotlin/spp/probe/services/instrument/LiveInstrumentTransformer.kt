@@ -121,14 +121,14 @@ class LiveInstrumentTransformer(
         this.line = line
 
         mv.visitLineNumber(line, start)
+        val concrete = classMetadata.concreteClass || methodName == "invokeSuspend" //todo: improve
         val lineInstruments = LiveInstrumentService.getInstruments(
             className.replace("/", ".").substringBefore("\$"), line
         ).filter {
             //filter line instruments outside current scope
             val scope = it.instrument.location.scope
             if (scope != LocationScope.BOTH) {
-                (classMetadata.concreteClass && scope == LocationScope.LINE)
-                        || (!classMetadata.concreteClass && scope == LocationScope.LAMBDA)
+                (concrete && scope == LocationScope.LINE) || (!concrete && scope == LocationScope.LAMBDA)
             } else true
         }
 
@@ -145,14 +145,14 @@ class LiveInstrumentTransformer(
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
-                    instrument.isLive = true
+                    instrument.sendAppliedEvent.set(true)
                 }
 
                 is LiveLog -> {
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
-                    instrument.isLive = true
+                    instrument.sendAppliedEvent.set(true)
                 }
 
                 is LiveMeter -> {
@@ -166,7 +166,7 @@ class LiveInstrumentTransformer(
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
-                    instrument.isLive = true
+                    instrument.sendAppliedEvent.set(true)
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
@@ -402,7 +402,7 @@ class LiveInstrumentTransformer(
                     }
 
                     putInstrumentAfterReturn(instrument, opcode != Opcodes.RETURN)
-                    instrument.isLive = true
+                    instrument.sendAppliedEvent.set(true)
                 }
             }
         }
@@ -584,12 +584,12 @@ class LiveInstrumentTransformer(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-            it.isLive = true
+            it.sendAppliedEvent.set(true)
         }
 
         methodActiveInstruments.filter { (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER }.forEach {
             startTimer(it.instrument.id!!)
-            it.isLive = true
+            it.sendAppliedEvent.set(true)
         }
     }
 
