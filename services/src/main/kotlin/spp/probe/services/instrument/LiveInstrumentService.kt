@@ -49,8 +49,6 @@ object LiveInstrumentService {
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
-    internal val instrumentsMap: Map<String, ActiveLiveInstrument>
-        get() = HashMap(instruments)
     private val transformer = LiveTransformer()
 
     init {
@@ -323,5 +321,10 @@ object LiveInstrumentService {
         val context = SimpleEvaluationContext.forReadOnlyDataBinding()
             .withRootObject(rootObject).build()
         return liveInstrument.expression!!.getValue(context, Boolean::class.java) ?: false
+    }
+
+    // visible for testing
+    fun getInstruments(): Map<String, ActiveLiveInstrument> {
+        return HashMap(instruments)
     }
 }
