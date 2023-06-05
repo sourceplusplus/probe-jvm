@@ -30,8 +30,6 @@ class ObjectMapTest : AbstractSerializeTest {
 
     @Test
     fun `sw meter map`() {
-        ProbeConfiguration.variableControl.put("max_object_depth", 10)
-        ProbeConfiguration.variableControl.put("max_object_size", Integer.MAX_VALUE)
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
