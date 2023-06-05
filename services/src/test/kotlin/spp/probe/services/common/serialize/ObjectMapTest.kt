@@ -31,6 +31,7 @@ class ObjectMapTest : AbstractSerializeTest {
     @Test
     fun `sw meter map`() {
         ProbeConfiguration.variableControl.put("max_object_depth", 10)
+        ProbeConfiguration.variableControl.put("max_object_size", Integer.MAX_VALUE)
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
             Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
         }
@@ -44,7 +45,6 @@ class ObjectMapTest : AbstractSerializeTest {
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(map))
         assertEquals(Integer.toHexString(System.identityHashCode(map)), json.getString("@id"))
         assertEquals("java.util.concurrent.ConcurrentHashMap", json.getString("@class"))
-        println(json)
         assertEquals(4, json.size())
 
         val meter1 = JsonObject.mapFrom(json.map.values.filterIsInstance<Map<*, *>>().find {
