@@ -16,7 +16,6 @@
  */
 package spp.probe.services.instrument
 
-import io.vertx.core.Vertx
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.services.LiveInstrumentRemote
@@ -31,6 +30,10 @@ import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
+
+    companion object {
+        val threadLocal: ThreadLocal<Queue<Class<*>>> = ThreadLocal.withInitial { ConcurrentLinkedQueue() }
+    }
 
     private val log = LogManager.getLogger(QueuedLiveInstrumentApplier::class.java)
     private val transformer = LiveTransformer()
@@ -134,12 +137,11 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
     }
 
     private fun transformNextClass(workLoad: WorkLoad, instrumentation: Instrumentation) {
-        Vertx.currentContext().putLocal("workload", workLoad)
         instrumentation.retransformClasses(workLoad.clazz)
         if (workLoad.innerClasses.isNotEmpty()) {
-            workLoad.clazz = workLoad.innerClasses.poll()
+            workLoad.clazz = threadLocal.get().poll()
         }
-        Vertx.currentContext().removeLocal("workload")
+        threadLocal.remove()
     }
 
     data class WorkLoad(

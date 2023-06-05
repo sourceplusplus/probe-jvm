@@ -16,7 +16,6 @@
  */
 package spp.probe.services.common.transform
 
-import io.vertx.core.Vertx
 import net.bytebuddy.jar.asm.ClassReader
 import net.bytebuddy.jar.asm.ClassWriter
 import net.bytebuddy.jar.asm.Opcodes
@@ -52,12 +51,11 @@ class LiveTransformer : ClassFileTransformer {
             return null
         }
 
-        val workLoad = Vertx.currentContext().getLocal<QueuedLiveInstrumentApplier.WorkLoad>("workload")
         val classMetadata = ClassMetadata()
         this.classMetadata = classMetadata
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
-        workLoad.innerClasses.addAll(classMetadata.innerClasses)
+        QueuedLiveInstrumentApplier.threadLocal.get().addAll(classMetadata.innerClasses)
         if (classMetadata.innerClasses.isNotEmpty()) {
             log.info("Found inner classes for $className: ${classMetadata.innerClasses}")
         }
