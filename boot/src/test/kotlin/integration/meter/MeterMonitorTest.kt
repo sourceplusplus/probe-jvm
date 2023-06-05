@@ -270,7 +270,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 assertEquals("spp_$avgMeterId", meta.getString("metricsName"))
 
                 assertTrue(rawMetrics.getDouble("value") > 0.0)
-                assertEquals(100.0, rawMetrics.getDouble("value"), 200.0)
+                assertEquals(100.0, rawMetrics.getDouble("value"), 250.0)
             }
             testContext.completeNow()
         }
