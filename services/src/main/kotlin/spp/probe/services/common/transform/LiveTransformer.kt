@@ -29,13 +29,11 @@ import java.io.File
 import java.io.FileOutputStream
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
-import java.util.concurrent.ConcurrentLinkedQueue
 
 class LiveTransformer : ClassFileTransformer {
 
     private val log = LogManager.getLogger(LiveTransformer::class.java)
     private val hasActiveTransformations = mutableSetOf<String>()
-    val innerClasses = ConcurrentLinkedQueue<Class<*>>()
     internal lateinit var classMetadata: ClassMetadata //visible for testing
     internal var transformAll: Boolean = false //visible for testing
 
@@ -59,7 +57,6 @@ class LiveTransformer : ClassFileTransformer {
         this.classMetadata = classMetadata
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
-        innerClasses.addAll(classMetadata.innerClasses)
         workLoad.innerClasses.addAll(classMetadata.innerClasses)
         if (classMetadata.innerClasses.isNotEmpty()) {
             log.info("Found inner classes for $className: ${classMetadata.innerClasses}")
