@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import net.bytebuddy.jar.asm.Type
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
@@ -34,6 +35,8 @@ import java.time.*
 import java.util.concurrent.atomic.AtomicReference
 
 class CappedTypeAdapterFactory : TypeAdapterFactory {
+
+    private val log = LogManager.getLogger(CappedTypeAdapterFactory::class.java)
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
         return object : TypeAdapter<T>() {
@@ -558,6 +561,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
     }
 
     private fun appendExceptionOccurred(jsonWriter: JsonWriter, value: Any?, objSize: Long, e: Exception) {
+        log.error("Exception occurred while serializing object", e)
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("EXCEPTION_OCCURRED")
