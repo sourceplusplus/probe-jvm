@@ -22,7 +22,6 @@ import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -35,7 +34,6 @@ import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.MethodTimerAvgRule
 import spp.protocol.view.rule.MethodTimerCountRule
 
-@Disabled
 class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     private fun doTest() {

@@ -22,7 +22,6 @@ import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -39,7 +38,6 @@ import java.io.Serializable
 import java.util.*
 import java.util.function.Supplier
 
-@Disabled
 class MeterGaugeTest : ProbeIntegrationTest() {
 
     private fun doTest() {
