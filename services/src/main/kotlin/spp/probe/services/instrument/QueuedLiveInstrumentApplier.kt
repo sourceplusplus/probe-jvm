@@ -16,6 +16,7 @@
  */
 package spp.probe.services.instrument
 
+import io.vertx.core.Vertx
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.services.LiveInstrumentRemote
@@ -80,17 +81,19 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
             }
         }
 
-        queue.add(WorkLoad(clazz, instrument, inst))
+        if (instrument.instrument.applyImmediately) {
+            doTransform(WorkLoad(clazz, instrument, inst))
+        } else {
+            queue.add(WorkLoad(clazz, instrument, inst))
+        }
     }
 
     init {
         ProbeConfiguration.instrumentation!!.addTransformer(transformer, true)
         timer.schedule(object : TimerTask() {
             override fun run() {
-                while (true) {
-                    val workLoad = queue.poll() ?: break
-                    doTransform(workLoad)
-                }
+                val workLoad = queue.poll() ?: return
+                doTransform(workLoad)
             }
         }, 500, 500)
     }
@@ -101,12 +104,9 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
         val instrumentation = workLoad.instrumentation
 
         try {
-            instrumentation.retransformClasses(clazz)
-            var innerClazz = transformer.innerClasses.poll()
-            while (innerClazz != null) {
-                queue.add(WorkLoad(innerClazz, instrument, instrumentation))
-                innerClazz = transformer.innerClasses.poll()
-            }
+            do {
+                transformNextClass(workLoad, instrumentation)
+            } while (workLoad.innerClasses.isNotEmpty())
 
             if (instrument.isRemoval) {
                 if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
@@ -131,9 +131,19 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
         }
     }
 
-    private data class WorkLoad(
-        val clazz: Class<*>,
+    private fun transformNextClass(workLoad: WorkLoad, instrumentation: Instrumentation) {
+        Vertx.currentContext().putLocal("workload", workLoad)
+        instrumentation.retransformClasses(workLoad.clazz)
+        if (workLoad.innerClasses.isNotEmpty()) {
+            workLoad.clazz = workLoad.innerClasses.poll()
+        }
+        Vertx.currentContext().removeLocal("workload")
+    }
+
+    data class WorkLoad(
+        var clazz: Class<*>,
         val instrument: ActiveLiveInstrument,
-        val instrumentation: Instrumentation
+        val instrumentation: Instrumentation,
+        val innerClasses: Queue<Class<*>> = ConcurrentLinkedQueue()
     )
 }

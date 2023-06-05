@@ -16,6 +16,7 @@
  */
 package spp.probe.services.common.transform
 
+import io.vertx.core.Vertx
 import net.bytebuddy.jar.asm.ClassReader
 import net.bytebuddy.jar.asm.ClassWriter
 import net.bytebuddy.jar.asm.Opcodes
@@ -23,6 +24,7 @@ import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.model.ClassMetadata
 import spp.probe.services.instrument.LiveInstrumentService
+import spp.probe.services.instrument.QueuedLiveInstrumentApplier
 import java.io.File
 import java.io.FileOutputStream
 import java.lang.instrument.ClassFileTransformer
@@ -52,11 +54,13 @@ class LiveTransformer : ClassFileTransformer {
             return null
         }
 
+        val workLoad = Vertx.currentContext().getLocal<QueuedLiveInstrumentApplier.WorkLoad>("workload")
         val classMetadata = ClassMetadata()
         this.classMetadata = classMetadata
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
         innerClasses.addAll(classMetadata.innerClasses)
+        workLoad.innerClasses.addAll(classMetadata.innerClasses)
         if (classMetadata.innerClasses.isNotEmpty()) {
             log.info("Found inner classes for $className: ${classMetadata.innerClasses}")
         }
