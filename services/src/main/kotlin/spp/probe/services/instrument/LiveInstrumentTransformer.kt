@@ -145,14 +145,14 @@ class LiveInstrumentTransformer(
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
-                    instrument.sendAppliedEvent.set(true)
+                    instrument.isApplied = true
                 }
 
                 is LiveLog -> {
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
-                    instrument.sendAppliedEvent.set(true)
+                    instrument.isApplied = true
                 }
 
                 is LiveMeter -> {
@@ -166,7 +166,7 @@ class LiveInstrumentTransformer(
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
-                    instrument.sendAppliedEvent.set(true)
+                    instrument.isApplied = true
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
@@ -402,7 +402,7 @@ class LiveInstrumentTransformer(
                     }
 
                     putInstrumentAfterReturn(instrument, opcode != Opcodes.RETURN)
-                    instrument.sendAppliedEvent.set(true)
+                    instrument.isApplied = true
                 }
             }
         }
@@ -584,12 +584,12 @@ class LiveInstrumentTransformer(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
-            it.sendAppliedEvent.set(true)
+            it.isApplied = true
         }
 
         methodActiveInstruments.filter { (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER }.forEach {
             startTimer(it.instrument.id!!)
-            it.sendAppliedEvent.set(true)
+            it.isApplied = true
         }
     }
 

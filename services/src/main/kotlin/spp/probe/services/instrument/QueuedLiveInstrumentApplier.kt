@@ -92,8 +92,10 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
         ProbeConfiguration.instrumentation!!.addTransformer(transformer, true)
         timer.schedule(object : TimerTask() {
             override fun run() {
-                val workLoad = queue.poll() ?: return
-                doTransform(workLoad)
+                while (true) {
+                    val workLoad = queue.poll() ?: break
+                    doTransform(workLoad)
+                }
             }
         }, 500, 500)
     }
@@ -110,7 +112,7 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
 
             if (instrument.isRemoval) {
                 if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
-            } else if (instrument.sendAppliedEvent.compareAndSet(true, false)) {
+            } else if (instrument.isApplied) {
                 if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument.id)
                 LiveInstrumentRemote.EVENT_CONSUMER.accept(
                     ProcessorAddress.LIVE_INSTRUMENT_APPLIED,

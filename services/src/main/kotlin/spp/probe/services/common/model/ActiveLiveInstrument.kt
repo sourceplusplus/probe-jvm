@@ -32,7 +32,7 @@ class ActiveLiveInstrument @JvmOverloads constructor(
         }
     }
     var isRemoval = false
-    var sendAppliedEvent = AtomicBoolean(false)
+    var isApplied = false
 
     val isFinished: Boolean
         get() = if (instrument.expiresAt != null && System.currentTimeMillis() >= instrument.expiresAt!!) {

@@ -100,7 +100,7 @@ object LiveInstrumentService {
             val removedInstrument = instruments.remove(instrumentId)
             if (removedInstrument != null) {
                 removedInstrument.isRemoval = true
-                if (removedInstrument.sendAppliedEvent.get()) {
+                if (removedInstrument.isApplied) {
                     liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
@@ -111,7 +111,7 @@ object LiveInstrumentService {
                 val removedInstrument = instruments.remove(it.instrument.id)
                 if (removedInstrument != null) {
                     removedInstrument.isRemoval = true
-                    if (removedInstrument.sendAppliedEvent.get()) {
+                    if (removedInstrument.isApplied) {
                         liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
@@ -126,7 +126,7 @@ object LiveInstrumentService {
         val removedInstrument = instruments.remove(instrumentId)
         if (removedInstrument != null) {
             removedInstrument.isRemoval = true
-            if (removedInstrument.sendAppliedEvent.get()) {
+            if (removedInstrument.isApplied) {
                 liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
             }
             removeInstrument(removedInstrument.instrument, ex)
