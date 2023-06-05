@@ -128,7 +128,9 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                         else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                     }
                 } else {
-                    if (isTimeType(value)) {
+                    if (value is Number) {
+                        jsonWriter.value(value)
+                    } else if (isTimeType(value)) {
                         writeTimeType(value, jsonWriter)
                     } else if (shouldUnwrap(value)) {
                         val sw = StringWriter()
