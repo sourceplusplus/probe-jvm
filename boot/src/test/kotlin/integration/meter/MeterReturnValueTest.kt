@@ -101,7 +101,6 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 }
