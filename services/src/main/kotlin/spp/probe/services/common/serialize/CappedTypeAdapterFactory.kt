@@ -152,6 +152,8 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                         jsonWriter.javaClass.getDeclaredField("product").apply {
                             isAccessible = true
                         }.set(jsonWriter, jsonObject)
+                    } else if (isIgnored(value)) {
+                        appendIgnored(jsonWriter, value)
                     } else if (isExported(value)) {
                         doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
                     } else {
@@ -580,6 +582,17 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         jsonWriter.endObject()
     }
 
+    private fun appendIgnored(jsonWriter: JsonWriter, value: Any) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("IGNORED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value::class.java.name)
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.endObject()
+    }
+
     private fun isExported(value: Any): Boolean {
         val jvmVersion = ProbeConfiguration.jvmMajorVersion
         if (jvmVersion < 9) {
@@ -590,6 +603,17 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         return value::class.java.`package` == null ||
                 module::class.java.getDeclaredMethod("isExported", String::class.java)
                     .invoke(module, value::class.java.`package`.name) as Boolean
+    }
+
+    private fun isIgnored(value: Any): Boolean {
+        //todo: more dynamic (i.e. variable control)
+        return when {
+            value.javaClass.name.startsWith("com.zaxxer.hikari") -> true
+            value.javaClass.name.startsWith("io.grpc.internal") -> true
+            value.javaClass.name.startsWith("com.google.protobuf") -> true
+            value.javaClass.name.startsWith("org.apache.skywalking.apm.plugin") -> true
+            else -> false
+        }
     }
 
     private fun shouldUnwrap(value: Any): Boolean {
