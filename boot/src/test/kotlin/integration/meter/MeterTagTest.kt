@@ -75,10 +75,7 @@ class MeterTagTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(meterId),
-                viewConfig = LiveViewConfig(
-                    "test",
-                    listOf(meterId)
-                )
+                viewConfig = LiveViewConfig("test", listOf(meterId))
             )
         ).await().subscriptionId!!
 
