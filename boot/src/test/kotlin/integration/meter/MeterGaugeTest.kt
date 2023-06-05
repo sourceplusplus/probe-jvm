@@ -127,7 +127,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
-                MeterGaugeTest::class.qualifiedName!!,
+                MeterGaugeTest::class.java.name,
                 45,
                 "spp-test-probe"
             ),

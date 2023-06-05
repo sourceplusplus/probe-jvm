@@ -48,7 +48,7 @@ class LogLocationTest : ProbeIntegrationTest() {
 
                     val location = item.logResult.logs.first().location
                     assertNotNull(location)
-                    assertEquals(LogLocationTest::class.qualifiedName!!, location!!.source)
+                    assertEquals(LogLocationTest::class.java.name, location!!.source)
                     assertEquals(36, location.line)
 
                     testContext.completeNow()
