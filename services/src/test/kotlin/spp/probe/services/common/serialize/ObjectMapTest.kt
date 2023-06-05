@@ -42,6 +42,9 @@ class ObjectMapTest : AbstractSerializeTest {
         map[meterId2] = Counter(meterId2, CounterMode.INCREMENT).apply { increment(3.0) }
 
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(map))
+        assertEquals(Integer.toHexString(System.identityHashCode(map)), json.getString("@id"))
+        assertEquals("java.util.concurrent.ConcurrentHashMap", json.getString("@class"))
+        println(json)
         assertEquals(4, json.size())
 
         val meter1 = JsonObject.mapFrom(json.map.values.filterIsInstance<Map<*, *>>().find {
