@@ -44,8 +44,6 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
     @Test
     fun `constructor count`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
-
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -53,7 +51,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
                 MyObject::class.java.name + ".<init>()",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
@@ -85,6 +83,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Live view event: ${it.body()}")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -104,7 +103,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
