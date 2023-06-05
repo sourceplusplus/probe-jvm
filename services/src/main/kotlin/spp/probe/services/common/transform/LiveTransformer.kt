@@ -37,8 +37,8 @@ class LiveTransformer : ClassFileTransformer {
     internal var transformAll: Boolean = false //visible for testing
 
     override fun transform(
-        loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
+        loader: ClassLoader?, className: String, classBeingRedefined: Class<*>?,
+        protectionDomain: ProtectionDomain?, classfileBuffer: ByteArray
     ): ByteArray? {
         val qualifiedClassName = className.replace('/', '.')
         val classInstruments = LiveInstrumentService.getInstrumentsForClass(qualifiedClassName)
