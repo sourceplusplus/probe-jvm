@@ -110,8 +110,10 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
 
         try {
             do {
-                transformNextClass(workLoad, instrumentation)
-            } while (workLoad.innerClasses.isNotEmpty())
+                instrumentation.retransformClasses(workLoad.clazz)
+                workLoad.clazz = threadLocal.get().poll()
+            } while (workLoad.clazz != null)
+            threadLocal.remove()
 
             if (instrument.isRemoval) {
                 if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
@@ -136,18 +138,9 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
         }
     }
 
-    private fun transformNextClass(workLoad: WorkLoad, instrumentation: Instrumentation) {
-        instrumentation.retransformClasses(workLoad.clazz)
-        if (workLoad.innerClasses.isNotEmpty()) {
-            workLoad.clazz = threadLocal.get().poll()
-        }
-        threadLocal.remove()
-    }
-
-    data class WorkLoad(
-        var clazz: Class<*>,
+    private data class WorkLoad(
+        var clazz: Class<*>?,
         val instrument: ActiveLiveInstrument,
-        val instrumentation: Instrumentation,
-        val innerClasses: Queue<Class<*>> = ConcurrentLinkedQueue()
+        val instrumentation: Instrumentation
     )
 }
