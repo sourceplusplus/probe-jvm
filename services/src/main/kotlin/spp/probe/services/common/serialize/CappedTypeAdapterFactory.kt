@@ -143,7 +143,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                             else -> value
                         }
                         innerJsonWriter.name("value")
-                        doWrite(unwrappedValue!!, innerJsonWriter)
+                        doWrite(unwrappedValue, innerJsonWriter)
                         innerJsonWriter.endObject()
 
                         val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
