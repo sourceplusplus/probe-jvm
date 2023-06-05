@@ -42,7 +42,6 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
 
     @Test
     fun `string return value`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -51,7 +50,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
                 41,
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             hitLimit = 1
         )
