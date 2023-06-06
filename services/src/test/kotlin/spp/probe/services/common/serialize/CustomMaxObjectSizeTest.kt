@@ -58,13 +58,12 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
 
     @Test
     fun `custom max size by name`() {
-        ProbeConfiguration.variableControl.put("max_object_size", 0)
         ProbeConfiguration.variableControlByName.put(
             "fakeMaxSizeString",
-            JsonObject().put("max_object_size", 1025)
+            JsonObject().put("max_object_size", 1024 * 1024 + 2)
         )
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
-            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
+            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024 * 1024 + 1)
         }
 
         val fakeMaxSizeString = "fakeMaxSizeObject"
@@ -73,8 +72,8 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString)).let {
             assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
             assertEquals("java.lang.String", it.getString("@class"))
-            assertEquals(1024, it.getInteger("@skip[size]"))
-            assertEquals(0, it.getInteger("@skip[max]"))
+            assertEquals(1024 * 1024 + 1, it.getInteger("@skip[size]"))
+            assertEquals(1024 * 1024, it.getInteger("@skip[max]"))
             assertNotNull(it.getString("@id"))
         }
 
@@ -82,8 +81,8 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(fakeMaxSizeString, "fakeMaxSizeString2")).let {
             assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
             assertEquals("java.lang.String", it.getString("@class"))
-            assertEquals(1024, it.getInteger("@skip[size]"))
-            assertEquals(0, it.getInteger("@skip[max]"))
+            assertEquals(1024 * 1024 + 1, it.getInteger("@skip[size]"))
+            assertEquals(1024 * 1024, it.getInteger("@skip[max]"))
             assertNotNull(it.getString("@id"))
         }
 
@@ -97,15 +96,14 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
     fun `custom max size by inner name`() {
         ProbeConfiguration.variableControlByType.put(
             "spp.probe.services.common.serialize.CustomMaxObjectSizeTest\$OuterObject",
-            JsonObject().put("max_object_size", 1025)
+            JsonObject().put("max_object_size", 1024 * 1024 + 2)
         )
-        ProbeConfiguration.variableControl.put("max_object_size", 0)
         ProbeConfiguration.variableControlByName.put(
             "fakeMaxSizeString",
-            JsonObject().put("max_object_size", 1025)
+            JsonObject().put("max_object_size", 1024 * 1024 + 2)
         )
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
-            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
+            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024 * 1024 + 1)
         }
 
         JsonObject(ModelSerializer.INSTANCE.toExtendedJson(OuterObject())).let {
@@ -116,8 +114,8 @@ class CustomMaxObjectSizeTest : AbstractSerializeTest {
             it.getJsonObject("fakeMaxSizeString2").let {
                 assertEquals("MAX_SIZE_EXCEEDED", it.getString("@skip"))
                 assertEquals("java.lang.String", it.getString("@class"))
-                assertEquals(1024, it.getInteger("@skip[size]"))
-                assertEquals(0, it.getInteger("@skip[max]"))
+                assertEquals(1024 * 1024 + 1, it.getInteger("@skip[size]"))
+                assertEquals(1024 * 1024, it.getInteger("@skip[max]"))
                 assertNotNull(it.getString("@id"))
             }
         }
