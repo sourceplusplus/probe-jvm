@@ -34,7 +34,6 @@ import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.MethodTimerAvgRule
 import spp.protocol.view.rule.MethodTimerCountRule
-import spp.protocol.view.rule.LiveViewRule
 
 @Isolated
 class MeterMethodTimerTest : ProbeIntegrationTest() {

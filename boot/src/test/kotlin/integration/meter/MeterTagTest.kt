@@ -41,8 +41,6 @@ class MeterTagTest : ProbeIntegrationTest() {
 
     @Test
     fun `test meter tags`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "test-meter-tags-$uuid"
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
