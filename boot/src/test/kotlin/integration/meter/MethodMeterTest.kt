@@ -20,54 +20,56 @@ import integration.ProbeIntegrationTest
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
-import spp.protocol.instrument.meter.*
+import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MetricValue
+import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.ViewRule
+import java.util.concurrent.ThreadLocalRandom
 
-class MeterTagTest : ProbeIntegrationTest() {
+class MethodMeterTest : ProbeIntegrationTest() {
 
-    private fun doTest(index: Int) {
-        var i = index % 2 == 0
+    private fun doTest(boolean: Boolean) {
+        if (boolean) {
+            ThreadLocalRandom.current().nextBoolean()
+        } else {
+            ThreadLocalRandom.current().nextBoolean()
+        }
     }
 
     @Test
-    fun `test meter tags`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "test-meter-tags-$uuid"
+    fun `method count test`(): Unit = runBlocking {
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
-            meterTags = listOf(
-                MeterTag(
-                    "tag2",
-                    MeterValueType.VALUE_EXPRESSION,
-                    "localVariables[i]"
-                )
-            ),
-            meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
-                MeterTagTest::class.java.name,
-                40,
-                "spp-test-probe"
+                MethodMeterTest::class.java.name + ".doTest(...)",
+                service = "spp-test-probe"
             ),
-            id = testNameAsUniqueInstrumentId,
-            applyImmediately = true,
-            hitLimit = -1
+            id = meterId,
+            applyImmediately = true
         )
 
         viewService.saveRule(
             ViewRule(
-                liveMeter.id!!,
-                "(${liveMeter.id}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
+                name = liveMeter.id!!,
+                exp = buildString {
+                    append("(")
+                    append(liveMeter.id)
+                    append(".sum(['service', 'instance'])")
+                    append(".downsampling(SUM)")
+                    append(")")
+                    append(".instance(['service'], ['instance'], Layer.GENERAL)")
+                },
                 meterIds = listOf(liveMeter.id!!)
             )
         ).await()
@@ -75,7 +77,10 @@ class MeterTagTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.id!!),
-                viewConfig = LiveViewConfig("test", listOf(liveMeter.id!!))
+                viewConfig = LiveViewConfig(
+                    "test",
+                    listOf(liveMeter.id!!)
+                )
             )
         ).await().subscriptionId!!
 
@@ -83,33 +88,24 @@ class MeterTagTest : ProbeIntegrationTest() {
         getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
-            val summation = rawMetrics.getJsonObject("value")
-            log.info("summation: $summation")
+            testContext.verify {
+                val meta = rawMetrics.getJsonObject("meta")
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
-            val trueCount = summation.getInteger("true")
-            val falseCount = summation.getInteger("false")
-            if (trueCount + falseCount >= 10) {
-                testContext.verify {
-                    assertEquals(5, trueCount)
-                    assertEquals(5, falseCount)
-                    assertEquals(10, trueCount + falseCount)
-                }
-                testContext.completeNow()
+                assertEquals(1, rawMetrics.getLong("value"))
             }
+            testContext.completeNow()
         }
 
-        assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
+        instrumentService.addLiveInstrument(liveMeter).await()
 
-        repeat(10) {
-            doTest(it)
-            delay(1000)
-        }
+        log.info("Triggering meter")
+        doTest(ThreadLocalRandom.current().nextBoolean())
 
-        errorOnTimeout(testContext, 30)
+        errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
+        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
-        assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }
 }

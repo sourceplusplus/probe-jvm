@@ -41,9 +41,9 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun testVariableControl(): Unit = runBlocking {
+    fun `max object size control`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-max-object-size-variable-control"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())

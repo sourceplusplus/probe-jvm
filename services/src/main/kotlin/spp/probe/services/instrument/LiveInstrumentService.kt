@@ -29,27 +29,21 @@ import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ModelSerializer
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.common.model.ActiveLiveInstrument
-import spp.probe.services.common.transform.LiveTransformer
 import spp.probe.services.error.LiveInstrumentException
+import spp.probe.services.error.LiveInstrumentException.ErrorType
 import spp.protocol.instrument.LiveInstrument
 import spp.protocol.platform.ProcessorAddress
-import java.lang.instrument.Instrumentation
-import java.lang.instrument.UnmodifiableClassException
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.streams.toList
 
 object LiveInstrumentService {
 
-    val parser = SpelExpressionParser(
-        SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, LiveInstrumentService::class.java.classLoader)
-    )
-
+    val parser = SpelExpressionParser(SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, javaClass.classLoader))
     private val log = LogManager.getLogger(LiveInstrumentService::class.java)
     private val instruments: MutableMap<String, ActiveLiveInstrument> = ConcurrentHashMap()
     private val timer = Timer("LiveInstrumentScheduler", true)
-    internal val instrumentsMap: Map<String, ActiveLiveInstrument>
-        get() = HashMap(instruments)
+    var liveInstrumentApplier: LiveInstrumentApplier = QueuedLiveInstrumentApplier()
 
     init {
         timer.schedule(object : TimerTask() {
@@ -57,9 +51,7 @@ object LiveInstrumentService {
                 if (log.isDebugEnable) log.debug("Running LiveInstrumentScheduler")
                 val removeInstruments: MutableList<ActiveLiveInstrument> = ArrayList()
                 instruments.values.forEach {
-                    if (it.instrument.expiresAt != null
-                        && System.currentTimeMillis() >= it.instrument.expiresAt!!
-                    ) {
+                    if (it.instrument.expiresAt != null && System.currentTimeMillis() >= it.instrument.expiresAt!!) {
                         removeInstruments.add(it)
                     }
                 }
@@ -68,83 +60,6 @@ object LiveInstrumentService {
                 removeInstruments.forEach { removeInstrument(it.instrument, null) }
             }
         }, 5000, 5000)
-    }
-
-    var liveInstrumentApplier = object : LiveInstrumentApplier {
-        override fun apply(inst: Instrumentation, instrument: ActiveLiveInstrument) {
-            if (log.isInfoEnable) {
-                if (instrument.isRemoval) {
-                    log.info("Attempting to remove live instrument: {}", instrument.instrument)
-                } else {
-                    log.info("Attempting to apply live instrument: {}", instrument.instrument)
-                }
-            }
-
-            val className = if (instrument.instrument.location.source.contains("(")) {
-                instrument.instrument.location.source.substringBefore("(").substringBeforeLast(".")
-            } else {
-                instrument.instrument.location.source
-            }
-
-            if (log.isInfoEnable) log.info("Searching for {} in all loaded classes", className)
-            val clazz: Class<*>? = inst.allLoadedClasses.find { it.name == className }
-            if (clazz != null) {
-                if (log.isInfoEnable) log.info("Found {} in all loaded classes", clazz)
-            }
-
-            if (clazz == null) {
-                if (log.isDebugEnable) log.debug("{} not found", className)
-                if (instrument.instrument.applyImmediately) {
-                    log.warn(
-                        "Unable to find {}. Live instrument {} cannot be applied immediately",
-                        className, instrument.instrument
-                    )
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CLASS_NOT_FOUND, className)
-                        .toEventBusException()
-                } else if (!instrument.isRemoval) {
-                    timer.schedule(object : TimerTask() {
-                        override fun run() {
-                            apply(inst, instrument)
-                        }
-                    }, 5000)
-                }
-                return
-            }
-
-            val transformer = LiveTransformer(className)
-            try {
-                inst.addTransformer(transformer, true)
-                inst.retransformClasses(clazz)
-                transformer.innerClasses.forEach {
-                    inst.retransformClasses(it)
-                }
-                instrument.isLive = true
-
-                if (instrument.isRemoval) {
-                    if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument)
-                } else {
-                    if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument)
-                    LiveInstrumentRemote.EVENT_CONSUMER.accept(
-                        ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
-                        ModelSerializer.INSTANCE.toJson(instrument.instrument)
-                    )
-                }
-            } catch (ex: Throwable) {
-                log.warn(ex, "Failed to apply live instrument: {}", instrument)
-
-                //remove and re-transform
-                removeInstrument(instrument.instrument, ex)
-                inst.addTransformer(transformer, true)
-                try {
-                    inst.retransformClasses(clazz)
-                } catch (e: UnmodifiableClassException) {
-                    log.warn(e, "Failed to re-transform class: {}", clazz)
-                    throw RuntimeException(e)
-                }
-            } finally {
-                inst.removeTransformer(transformer)
-            }
-        }
     }
 
     fun clearAll() {
@@ -162,8 +77,7 @@ object LiveInstrumentService {
                     ActiveLiveInstrument(liveInstrument, expression)
                 } catch (ex: ParseException) {
                     log.warn(ex, "Failed to parse condition: {}", liveInstrument.condition)
-                    throw LiveInstrumentException(LiveInstrumentException.ErrorType.CONDITIONAL_FAILED, ex.message)
-                        .toEventBusException()
+                    throw LiveInstrumentException(ErrorType.CONDITIONAL_FAILED, ex.message).toEventBusException()
                 }
             } else {
                 ActiveLiveInstrument(liveInstrument)
@@ -186,7 +100,7 @@ object LiveInstrumentService {
             val removedInstrument = instruments.remove(instrumentId)
             if (removedInstrument != null) {
                 removedInstrument.isRemoval = true
-                if (removedInstrument.isLive) {
+                if (removedInstrument.isApplied) {
                     liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                     return listOf(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                 }
@@ -197,7 +111,7 @@ object LiveInstrumentService {
                 val removedInstrument = instruments.remove(it.instrument.id)
                 if (removedInstrument != null) {
                     removedInstrument.isRemoval = true
-                    if (removedInstrument.isLive) {
+                    if (removedInstrument.isApplied) {
                         liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
                         removedInstruments.add(ModelSerializer.INSTANCE.toJson(removedInstrument.instrument))
                     }
@@ -208,11 +122,24 @@ object LiveInstrumentService {
         return emptyList()
     }
 
-    private fun removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
-        if (ex != null) {
-            log.warn(ex, "Removing erroneous live instrument: {}", instrument)
+    fun removeInstrument(instrumentId: String, ex: Throwable) {
+        val removedInstrument = instruments.remove(instrumentId)
+        if (removedInstrument != null) {
+            removedInstrument.isRemoval = true
+            if (removedInstrument.isApplied) {
+                liveInstrumentApplier.apply(ProbeConfiguration.instrumentation!!, removedInstrument)
+            }
+            removeInstrument(removedInstrument.instrument, ex)
         } else {
-            log.info("Removing live instrument: {}", instrument)
+            log.warn(ex, "Unable to find instrument: {}", instrumentId)
+        }
+    }
+
+    fun removeInstrument(instrument: LiveInstrument, ex: Throwable?) {
+        if (ex != null) {
+            log.warn(ex, "Removing erroneous live instrument: {}", instrument.id)
+        } else {
+            log.info("Removing live instrument: {}", instrument.id)
         }
 
         removeInstrument(instrument.location.source, instrument.location.line, instrument.id)
@@ -229,9 +156,21 @@ object LiveInstrumentService {
         )
     }
 
+    fun getInstrumentsForClass(source: String): List<ActiveLiveInstrument> {
+        return instruments.values.stream().filter {
+            var className = it.instrument.location.source
+            if (className.contains("(")) {
+                className = className.substringBefore("(").substringBeforeLast(".")
+            }
+            source.startsWith(className)
+        }.toList()
+    }
+
     fun getInstruments(source: String): List<ActiveLiveInstrument> {
         return instruments.values.stream().filter {
-            it.instrument.location.source == source
+            it.instrument.location.source == source ||
+                    (it.instrument.location.source.endsWith("(...)")
+                            && source.startsWith(it.instrument.location.source.substringBefore("(...)")))
         }.toList()
     }
 
@@ -254,7 +193,7 @@ object LiveInstrumentService {
     fun isHit(instrumentId: String): Boolean {
         if (log.isTraceEnabled) log.trace("Checking if instrument is hit: $instrumentId")
         val instrument = instruments[instrumentId] ?: return false
-        if (instrument.throttle?.isRateLimited() == true) {
+        if (instrument.throttle.isRateLimited()) {
             if (log.isTraceEnabled) log.trace("Instrument is rate limited: $instrumentId")
             return false
         }
@@ -295,8 +234,13 @@ object LiveInstrumentService {
 
     private fun evaluateCondition(liveInstrument: ActiveLiveInstrument): Boolean {
         val rootObject = ContextReceiver[liveInstrument.instrument.id!!, false]
-        val context = SimpleEvaluationContext.forReadWriteDataBinding()
+        val context = SimpleEvaluationContext.forReadOnlyDataBinding()
             .withRootObject(rootObject).build()
         return liveInstrument.expression!!.getValue(context, Boolean::class.java) ?: false
+    }
+
+    // visible for testing
+    fun getInstruments(): Map<String, ActiveLiveInstrument> {
+        return HashMap(instruments)
     }
 }

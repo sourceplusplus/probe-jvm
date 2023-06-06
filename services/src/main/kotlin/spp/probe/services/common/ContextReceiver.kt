@@ -30,12 +30,15 @@ import org.apache.skywalking.apm.agent.core.meter.MeterFactory
 import org.apache.skywalking.apm.agent.core.remote.LogReportServiceClient
 import org.apache.skywalking.apm.network.common.v3.KeyStringValuePair
 import org.apache.skywalking.apm.network.logging.v3.*
-import org.springframework.expression.spel.support.StandardEvaluationContext
+import org.springframework.expression.spel.support.SimpleEvaluationContext
 import spp.probe.monitors.ObjectLifespanMonitor
 import spp.probe.services.instrument.LiveInstrumentService
-import spp.protocol.instrument.*
-import spp.protocol.instrument.meter.MeterTagValueType
+import spp.protocol.instrument.LiveBreakpoint
+import spp.protocol.instrument.LiveLog
+import spp.protocol.instrument.LiveMeter
+import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 import java.io.ByteArrayInputStream
 import java.io.ObjectInputStream
@@ -167,13 +170,13 @@ object ContextReceiver {
         val thisObject = ProbeMemory.getLocalVariables(meterId, false)["this"]?.second
         val contextMap = ContextReceiver[liveMeter.id!!, true]
 
-        //calculate meter tags
         val tagMap = HashMap<String, String>()
         liveMeter.meterTags.forEach {
-            if (it.valueType == MeterTagValueType.VALUE) {
+            if (it.valueType == MeterValueType.VALUE) {
                 tagMap[it.key] = it.value
-            } else if (it.valueType == MeterTagValueType.VALUE_EXPRESSION) {
-                val context = StandardEvaluationContext(contextMap)
+            } else if (it.valueType == MeterValueType.VALUE_EXPRESSION) {
+                val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                    .withRootObject(contextMap).build()
                 val expression = LiveInstrumentService.parser.parseExpression(it.value)
                 val value = try {
                     expression.getValue(context, Any::class.java)
@@ -186,96 +189,34 @@ object ContextReceiver {
         }
         val tagStr = tagMap.entries.joinToString(",") { "${it.key}=${it.value}" }
 
-        val baseMeter = ProbeMemory.computeGlobal("spp.base-meter:$meterId{$tagStr}") {
-            log.info("Initial trigger of live meter: $meterId. Tags: $tagStr")
-            when (liveMeter.meterType) {
-                MeterType.COUNT -> {
-                    return@computeGlobal MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix())
-                        .mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
-                        .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+        //calculate meter partition
+        val partitions = mutableListOf<String>()
+        liveMeter.meterPartitions.forEach {
+            val value = if (it.valueType == MeterValueType.VALUE) {
+                it.value
+            } else if (it.valueType == MeterValueType.VALUE_EXPRESSION) {
+                val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                    .withRootObject(contextMap).build()
+                val expression = LiveInstrumentService.parser.parseExpression(it.value)
+                val value = try {
+                    expression.getValue(context, Any::class.java)
+                } catch (e: Exception) {
+                    log.error("Failed to evaluate expression: ${it.value}", e)
+                    null
                 }
-
-                MeterType.GAUGE -> {
-                    if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
-                        val supplier: Supplier<Double> = Supplier<Double> {
-                            ObjectLifespanMonitor.getLifespan(thisObject!!, false)
-                        }
-                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
-                            .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-                    } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
-                        val decoded = Base64.getDecoder().decode(liveMeter.metricValue!!.value)
-
-                        @Suppress("UNCHECKED_CAST")
-                        val supplier = ObjectInputStream(
-                            ByteArrayInputStream(decoded)
-                        ).readObject() as Supplier<Double>
-                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix(), supplier)
-                            .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-                    } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
-                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val context = StandardEvaluationContext(contextMap)
-                            val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
-                            val value = expression.getValue(context, Any::class.java)
-                            if (value is Number) {
-                                value.toDouble()
-                            } else {
-                                //todo: remove instrument
-                                log.error("Unsupported expression value type: ${value?.javaClass?.name}")
-                                Double.MIN_VALUE
-                            }
-                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-                    } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
-                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            val context = StandardEvaluationContext(contextMap)
-                            val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
-                            val value = expression.getValue(context, Any::class.java)
-
-                            //send gauge log
-                            val logTags = LogTags.newBuilder()
-                                .addData(
-                                    KeyStringValuePair.newBuilder()
-                                        .setKey("meter_id").setValue(liveMeter.id).build()
-                                ).addData(
-                                    KeyStringValuePair.newBuilder()
-                                        .setKey("metric_id").setValue(liveMeter.toMetricId()).build()
-                                )
-                            val builder = LogData.newBuilder()
-                                .setTimestamp(System.currentTimeMillis())
-                                .setService(Config.Agent.SERVICE_NAME)
-                                .setServiceInstance(Config.Agent.INSTANCE_NAME)
-                                .setTags(logTags.build())
-                                .setBody(
-                                    LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
-                                        .setText(TextLog.newBuilder().setText(value.toString()).build()).build()
-                                )
-                            val logData =
-                                if (-1 == ContextManager.getSpanId()) builder else builder.setTraceContext(
-                                    TraceContext.newBuilder()
-                                        .setTraceId(ContextManager.getGlobalTraceId())
-                                        .setSpanId(ContextManager.getSpanId())
-                                        .setTraceSegmentId(ContextManager.getSegmentId())
-                                        .build()
-                                )
-                            logReport.produce(logData)
-
-                            Double.MIN_VALUE
-                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-                    } else {
-                        return@computeGlobal MeterFactory.gauge(liveMeter.toMetricIdWithoutPrefix()) {
-                            liveMeter.metricValue!!.value.toDouble()
-                        }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-                    }
-                }
-
-                MeterType.HISTOGRAM -> return@computeGlobal MeterFactory.histogram(
-                    "histogram_" + meterId.replace("-", "_")
-                )
-                    .steps(listOf(0.0)) //todo: dynamic
-                    .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
-
-                else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
-            }
+                value?.toString()
+            } else null
+            value?.let { partitions.add(value) }
         }
+        val partition = if (partitions.isEmpty()) "" else {
+            LiveMeter.formatMeterName("_" + partitions.joinToString("_") { it })
+        }
+
+        liveMeter.meterPartitions.flatMap { it.keys }.forEach {
+            getOrCreateBaseMeter(it + partition, tagStr, liveMeter, tagMap, thisObject, contextMap)
+        }
+        val meterName = liveMeter.id + partition
+        val baseMeter = getOrCreateBaseMeter(meterName, tagStr, liveMeter, tagMap, thisObject, contextMap)
         when (liveMeter.meterType) {
             MeterType.COUNT -> if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER) {
                 (baseMeter as Counter).increment(liveMeter.metricValue!!.value.toLong().toDouble())
@@ -297,6 +238,104 @@ object ContextReceiver {
             } else {
                 throw UnsupportedOperationException("todo") //todo: this
             }
+
+            else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
+        }
+    }
+
+    private fun getOrCreateBaseMeter(
+        meterName: String,
+        tagStr: String,
+        liveMeter: LiveMeter,
+        tagMap: HashMap<String, String>,
+        thisObject: Any?,
+        contextMap: ContextMap
+    ) = ProbeMemory.computeGlobal("spp.base-meter:$meterName{$tagStr}") {
+        log.info("Initial creation of live meter: $meterName. Tags: $tagStr")
+        when (liveMeter.meterType) {
+            MeterType.COUNT -> {
+                return@computeGlobal MeterFactory.counter(meterName)
+                    .mode(CounterMode.valueOf(liveMeter.meta.getOrDefault("metric.mode", "INCREMENT") as String))
+                    .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+            }
+
+            MeterType.GAUGE -> {
+                if (liveMeter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN) {
+                    val supplier: Supplier<Double> = Supplier<Double> {
+                        ObjectLifespanMonitor.getLifespan(thisObject!!, false)
+                    }
+                    return@computeGlobal MeterFactory.gauge(meterName, supplier)
+                        .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+                } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_SUPPLIER) {
+                    val decoded = Base64.getDecoder().decode(liveMeter.metricValue!!.value)
+
+                    @Suppress("UNCHECKED_CAST")
+                    val supplier = ObjectInputStream(
+                        ByteArrayInputStream(decoded)
+                    ).readObject() as Supplier<Double>
+                    return@computeGlobal MeterFactory.gauge(meterName, supplier)
+                        .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+                } else if (liveMeter.metricValue?.valueType == MetricValueType.NUMBER_EXPRESSION) {
+                    return@computeGlobal MeterFactory.gauge(meterName) {
+                        val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                            .withRootObject(contextMap).build()
+                        val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
+                        val value = expression.getValue(context, Any::class.java)
+                        if (value is Number) {
+                            value.toDouble()
+                        } else {
+                            //todo: remove instrument
+                            log.error("Unsupported expression value type: ${value?.javaClass?.name}")
+                            Double.MIN_VALUE
+                        }
+                    }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+                } else if (liveMeter.metricValue?.valueType == MetricValueType.VALUE_EXPRESSION) {
+                    return@computeGlobal MeterFactory.gauge(meterName) {
+                        val context = SimpleEvaluationContext.forReadOnlyDataBinding()
+                            .withRootObject(contextMap).build()
+                        val expression = LiveInstrumentService.parser.parseExpression(liveMeter.metricValue!!.value)
+                        val value = expression.getValue(context, Any::class.java)
+
+                        //send gauge log
+                        val logTags = LogTags.newBuilder()
+                            .addData(
+                                KeyStringValuePair.newBuilder()
+                                    .setKey("meter_id").setValue(liveMeter.id).build()
+                            ).addData(
+                                KeyStringValuePair.newBuilder()
+                                    .setKey("metric_id").setValue(liveMeter.id).build()
+                            )
+                        val builder = LogData.newBuilder()
+                            .setTimestamp(System.currentTimeMillis())
+                            .setService(Config.Agent.SERVICE_NAME)
+                            .setServiceInstance(Config.Agent.INSTANCE_NAME)
+                            .setTags(logTags.build())
+                            .setBody(
+                                LogDataBody.newBuilder().setType(LogDataBody.ContentCase.TEXT.name)
+                                    .setText(TextLog.newBuilder().setText(value.toString()).build()).build()
+                            )
+                        val logData =
+                            if (-1 == ContextManager.getSpanId()) builder else builder.setTraceContext(
+                                TraceContext.newBuilder()
+                                    .setTraceId(ContextManager.getGlobalTraceId())
+                                    .setSpanId(ContextManager.getSpanId())
+                                    .setTraceSegmentId(ContextManager.getSegmentId())
+                                    .build()
+                            )
+                        logReport.produce(logData)
+
+                        Double.MIN_VALUE
+                    }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+                } else {
+                    return@computeGlobal MeterFactory.gauge(meterName) {
+                        liveMeter.metricValue!!.value.toDouble()
+                    }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
+                }
+            }
+
+            MeterType.HISTOGRAM -> return@computeGlobal MeterFactory.histogram(meterName)
+                .steps(listOf(0.0)) //todo: dynamic
+                .apply { tagMap.forEach { tag(it.key, it.value) } }.build()
 
             else -> throw UnsupportedOperationException("Unsupported meter type: ${liveMeter.meterType}")
         }
@@ -327,7 +366,7 @@ object ContextReceiver {
         if (log.isTraceEnabled) log.trace("Live meter (startTimer): $liveMeter")
 
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-meter") {
-            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_meter").apply {
+            MeterFactory.counter(liveMeter.id + "_timer_meter").apply {
                 mode(CounterMode.RATE)
             }.build()
         }.increment(1.0)
@@ -340,7 +379,7 @@ object ContextReceiver {
 
         val duration = System.currentTimeMillis() - startTime
         ProbeMemory.computeGlobal("spp.base-meter:$meterId:timer-sum") {
-            MeterFactory.counter(liveMeter.toMetricIdWithoutPrefix() + "_timer_duration_sum").apply {
+            MeterFactory.counter(liveMeter.id + "_timer_duration_sum").apply {
                 mode(CounterMode.RATE)
             }.build()
         }.increment(duration.toDouble())

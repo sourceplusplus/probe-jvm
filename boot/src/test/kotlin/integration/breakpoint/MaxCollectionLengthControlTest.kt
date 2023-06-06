@@ -43,9 +43,9 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun testVariableControl(): Unit = runBlocking {
+    fun `max collection length control`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-max-collection-length-variable-control"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())

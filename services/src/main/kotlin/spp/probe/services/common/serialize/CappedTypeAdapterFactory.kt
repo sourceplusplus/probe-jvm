@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import net.bytebuddy.jar.asm.Type
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
@@ -30,8 +31,12 @@ import java.io.IOException
 import java.io.StringWriter
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
+import java.time.*
+import java.util.concurrent.atomic.AtomicReference
 
 class CappedTypeAdapterFactory : TypeAdapterFactory {
+
+    private val log = LogManager.getLogger(CappedTypeAdapterFactory::class.java)
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
         return object : TypeAdapter<T>() {
@@ -123,7 +128,33 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                         else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                     }
                 } else {
-                    if (isExported(value)) {
+                    if (value is Number) {
+                        jsonWriter.value(value)
+                    } else if (isTimeType(value)) {
+                        writeTimeType(value, jsonWriter)
+                    } else if (shouldUnwrap(value)) {
+                        val sw = StringWriter()
+                        val innerJsonWriter = JsonWriter(sw)
+                        innerJsonWriter.beginObject()
+                        innerJsonWriter.name("@id")
+                        innerJsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+                        innerJsonWriter.name("@class")
+                        innerJsonWriter.value(value::class.java.name)
+                        val unwrappedValue = when (value) {
+                            is AtomicReference<*> -> value.get()
+                            else -> value
+                        }
+                        innerJsonWriter.name("value")
+                        doWrite(unwrappedValue, innerJsonWriter)
+                        innerJsonWriter.endObject()
+
+                        val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+                        jsonWriter.javaClass.getDeclaredField("product").apply {
+                            isAccessible = true
+                        }.set(jsonWriter, jsonObject)
+                    } else if (isIgnored(value)) {
+                        appendIgnored(jsonWriter, value)
+                    } else if (isExported(value)) {
                         doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
                     } else {
                         val sw = StringWriter()
@@ -209,6 +240,288 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         }
     }
 
+    private fun writeInstant(value: Instant, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("seconds")
+            value(value.epochSecond)
+            name("nanos")
+            value(value.nano)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeDuration(value: Duration, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("seconds")
+            value(value.seconds)
+            name("nanos")
+            value(value.nano)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeLocalDate(value: LocalDate, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("year")
+            value(value.year)
+            name("month")
+            value(value.monthValue)
+            name("day")
+            value(value.dayOfMonth)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeLocalTime(value: LocalTime, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("hour")
+            value(value.hour)
+            name("minute")
+            value(value.minute)
+            name("second")
+            value(value.second)
+            name("nano")
+            value(value.nano)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeLocalDateTime(value: LocalDateTime, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("date")
+            writeLocalDate(value.toLocalDate(), this)
+            name("time")
+            writeLocalTime(value.toLocalTime(), this)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeZoneOffset(value: ZoneOffset, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("totalSeconds")
+            value(value.totalSeconds)
+            name("id")
+            value(value.id)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeOffsetTime(value: OffsetTime, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("time")
+            writeLocalTime(value.toLocalTime(), this)
+            name("offset")
+            writeZoneOffset(value.offset, this)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeOffsetDateTime(value: OffsetDateTime, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("dateTime")
+            writeLocalDateTime(value.toLocalDateTime(), this)
+            name("offset")
+            writeZoneOffset(value.offset, this)
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun writeZonedDateTime(value: ZonedDateTime, jsonWriter: JsonWriter) {
+        val sw = StringWriter()
+        if (jsonWriter is JsonTreeWriter) {
+            JsonWriter(sw)
+        } else {
+            jsonWriter
+        }.apply {
+            beginObject()
+            name("@id")
+            value(Integer.toHexString(System.identityHashCode(value)))
+            name("@class")
+            value(value::class.java.name)
+            name("dateTime")
+            writeLocalDateTime(value.toLocalDateTime(), this)
+            name("offset")
+            writeZoneOffset(value.offset, this)
+            if (value.zone is ZoneOffset) {
+                name("zone")
+                writeZoneOffset(value.zone as ZoneOffset, this)
+            } //todo: else
+            endObject()
+        }
+
+        if (jsonWriter is JsonTreeWriter) {
+            val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
+            jsonWriter.javaClass.getDeclaredField("product").apply {
+                isAccessible = true
+            }.set(jsonWriter, jsonObject)
+        }
+    }
+
+    private fun isTimeType(value: Any): Boolean {
+        return when (value) {
+            is Instant -> true
+            is Duration -> true
+            is LocalDate -> true
+            is LocalTime -> true
+            is LocalDateTime -> true
+            is ZoneOffset -> true
+            is OffsetTime -> true
+            is OffsetDateTime -> true
+            is ZonedDateTime -> true
+            else -> false
+        }
+    }
+
+    private fun writeTimeType(value: Any, jsonWriter: JsonWriter) {
+        when (value) {
+            is Instant -> writeInstant(value, jsonWriter)
+            is Duration -> writeDuration(value, jsonWriter)
+            is LocalDate -> writeLocalDate(value, jsonWriter)
+            is LocalTime -> writeLocalTime(value, jsonWriter)
+            is LocalDateTime -> writeLocalDateTime(value, jsonWriter)
+            is ZoneOffset -> writeZoneOffset(value, jsonWriter)
+            is OffsetTime -> writeOffsetTime(value, jsonWriter)
+            is OffsetDateTime -> writeOffsetDateTime(value, jsonWriter)
+            is ZonedDateTime -> writeZonedDateTime(value, jsonWriter)
+        }
+    }
+
     /**
      * @param newObject maps write exception to self, other collections create new object
      */
@@ -252,6 +565,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
     }
 
     private fun appendExceptionOccurred(jsonWriter: JsonWriter, value: Any?, objSize: Long, e: Exception) {
+        log.error("Exception occurred while serializing object", e)
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("EXCEPTION_OCCURRED")
@@ -260,7 +574,20 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         jsonWriter.name("@size")
         jsonWriter.value(objSize)
         jsonWriter.name("@cause")
-        jsonWriter.value(e.message)
+        jsonWriter.value(e.message ?: e.toString())
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
+        jsonWriter.name("@toString")
+        jsonWriter.value(value.toString())
+        jsonWriter.endObject()
+    }
+
+    private fun appendIgnored(jsonWriter: JsonWriter, value: Any) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("IGNORED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value::class.java.name)
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.endObject()
@@ -276,6 +603,24 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         return value::class.java.`package` == null ||
                 module::class.java.getDeclaredMethod("isExported", String::class.java)
                     .invoke(module, value::class.java.`package`.name) as Boolean
+    }
+
+    private fun isIgnored(value: Any): Boolean {
+        //todo: more dynamic (i.e. variable control)
+        return when {
+            value.javaClass.name.startsWith("com.zaxxer.hikari") -> true
+            value.javaClass.name.startsWith("io.grpc.internal") -> true
+            value.javaClass.name.startsWith("com.google.protobuf") -> true
+            value.javaClass.name.startsWith("org.apache.skywalking.apm.plugin") -> true
+            else -> false
+        }
+    }
+
+    private fun shouldUnwrap(value: Any): Boolean {
+        return when (value) {
+            is AtomicReference<*> -> true
+            else -> false
+        }
     }
 
     @Suppress("unused")

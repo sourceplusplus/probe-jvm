@@ -25,7 +25,6 @@ import io.vertx.core.net.NetClientOptions
 import io.vertx.core.net.NetSocket
 import io.vertx.ext.bridge.BridgeEventType
 import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameHelper
-import io.vertx.ext.eventbus.bridge.tcp.impl.protocol.FrameParser
 import io.vertx.junit5.VertxExtension
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
@@ -34,6 +33,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -46,7 +47,7 @@ import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscriberA
 import spp.protocol.service.SourceServices.Subscribe.toLiveInstrumentSubscription
 import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscriberAddress
 import spp.protocol.service.SourceServices.Subscribe.toLiveViewSubscription
-import spp.protocol.service.extend.TCPServiceFrameParser
+import spp.protocol.service.extend.TCPServiceSocket
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -55,15 +56,30 @@ abstract class ProbeIntegrationTest {
 
     val log: Logger by lazy { LoggerFactory.getLogger(this::class.java.name) }
 
+    var testName: String? = null
+    val testNameAsInstrumentId: String
+        get() {
+            return "spp_" + testName!!.replace("-", "_").replace(" ", "_")
+                .lowercase().substringBefore("(")
+        }
+    val testNameAsUniqueInstrumentId: String
+        get() {
+            return testNameAsInstrumentId + "_" + UUID.randomUUID().toString().replace("-", "")
+        }
+
+    @BeforeEach
+    open fun setUp(testInfo: TestInfo) {
+        testName = testInfo.displayName
+    }
+
     companion object {
-        private val log by lazy { LoggerFactory.getLogger(this::class.java.name) }
         lateinit var vertx: Vertx
         lateinit var instrumentService: LiveInstrumentService
         lateinit var viewService: LiveViewService
-        lateinit var socket: NetSocket
+        private lateinit var socket: NetSocket
         private val serviceHost = System.getenv("SPP_PLATFORM_HOST") ?: "localhost"
         private const val servicePort = 12800
-        private val authToken: String? by lazy { fetchAuthToken() }
+        private val accessToken: String? by lazy { fetchAccessToken() }
 
         @Synchronized
         @BeforeAll
@@ -74,12 +90,7 @@ abstract class ProbeIntegrationTest {
             }
             vertx = Vertx.vertx()
             socket = setupTcp(vertx)
-            socket.handler(FrameParser(object : TCPServiceFrameParser(vertx, socket) {
-                override fun handle(event: AsyncResult<JsonObject>) {
-                    log.info("Got frame: " + event.result())
-                    super.handle(event)
-                }
-            }))
+            TCPServiceSocket(vertx, socket)
             setupHandler(socket, vertx, SourceServices.LIVE_INSTRUMENT)
             setupHandler(socket, vertx, SourceServices.LIVE_VIEW)
 
@@ -88,8 +99,8 @@ abstract class ProbeIntegrationTest {
             val pc = InstanceConnection(UUID.randomUUID().toString(), System.currentTimeMillis())
             val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
 
             val promise = Promise.promise<Void>()
@@ -118,11 +129,11 @@ abstract class ProbeIntegrationTest {
 
             promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
-                .apply { authToken?.let { setToken(it) } }
+                .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
             viewService = ServiceProxyBuilder(vertx)
-                .apply { authToken?.let { setToken(it) } }
+                .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_VIEW)
                 .build(LiveViewService::class.java)
         }
@@ -132,8 +143,8 @@ abstract class ProbeIntegrationTest {
 
             //send register
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
@@ -150,8 +161,8 @@ abstract class ProbeIntegrationTest {
 
             //send register
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
@@ -189,8 +200,8 @@ abstract class ProbeIntegrationTest {
             return tcpSocket
         }
 
-        private fun fetchAuthToken() = runBlocking {
-            val tokenUri = "/api/new-token?access_token=change-me"
+        private fun fetchAccessToken() = runBlocking {
+            val tokenUri = "/api/new-token?authorization_code=change-me"
             val req = vertx.createHttpClient(HttpClientOptions())
                 .request(
                     RequestOptions()
@@ -216,5 +227,22 @@ abstract class ProbeIntegrationTest {
         } else {
             throw RuntimeException("Test timed out")
         }
+    }
+
+    private val lineLabels = mutableMapOf<String, Int>()
+    private var setupLineLabels = false
+
+    fun addLineLabel(label: String, getLineNumber: () -> Int) {
+        lineLabels[label] = getLineNumber.invoke()
+    }
+
+    fun getLineNumber(label: String): Int {
+        return lineLabels[label] ?: throw IllegalArgumentException("No line label found for $label")
+    }
+
+    fun setupLineLabels(invoke: () -> Unit) {
+        setupLineLabels = true
+        invoke.invoke()
+        setupLineLabels = false
     }
 }

@@ -50,7 +50,7 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `lambda only test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-lambda-only"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
@@ -99,7 +99,7 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `same line only test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-same-line-only"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
@@ -143,7 +143,7 @@ class LambdaTest : ProbeIntegrationTest() {
     @Test
     fun `same line lambda test`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-same-line-lambda"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
@@ -188,7 +188,7 @@ class LambdaTest : ProbeIntegrationTest() {
     fun `lambda and line test`(): Unit = runBlocking {
         val hitCount = AtomicInteger(0)
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-lambda-and-line"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
@@ -225,8 +225,5 @@ class LambdaTest : ProbeIntegrationTest() {
         doLambdaAndLineTest()
 
         errorOnTimeout(testContext)
-
-        //todo: hit limit should take care of this automatically
-        assertNotNull(instrumentService.removeLiveInstrument(instrumentId).await())
     }
 }

@@ -66,12 +66,12 @@ dependencies {
 
     //implementation("com.google.code.gson:gson:$gsonVersion")
     implementation(files("../.ext/gson-2.8.6-SNAPSHOT.jar"))
-    implementation("org.springframework:spring-expression:5.3.25")
+    implementation("org.springframework:spring-expression:5.3.26")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("plus.sourceplus:protocol:$projectVersion")
     testImplementation("io.vertx:vertx-core:$vertxVersion")
-    testImplementation("org.mockito:mockito-core:4.+")
+    testImplementation("org.mockito:mockito-core:4.11.0")
     testImplementation("org.apache.skywalking:apm-agent-core:$skywalkingAgentVersion")
     testImplementation(projectDependency(":common"))
 }

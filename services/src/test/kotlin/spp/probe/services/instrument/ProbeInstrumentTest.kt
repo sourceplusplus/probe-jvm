@@ -61,10 +61,10 @@ class ProbeInstrumentTest {
         )
         LiveInstrumentService.applyInstrument(liveBreakpoint)
 
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
         val location = LiveSourceLocation("com.example.Test", 5)
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
-        val bp = LiveInstrumentService.instrumentsMap.values.stream().findFirst().get()
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
+        val bp = LiveInstrumentService.getInstruments().values.stream().findFirst().get()
         assertEquals(location, bp.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
@@ -90,8 +90,8 @@ class ProbeInstrumentTest {
 
         assertEquals(bp1, bp2)
         val location = LiveSourceLocation("com.example.Test", 5)
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
-        val bp = LiveInstrumentService.instrumentsMap.values.stream().findFirst().get()
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
+        val bp = LiveInstrumentService.getInstruments().values.stream().findFirst().get()
         assertEquals(location, bp.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
@@ -116,7 +116,7 @@ class ProbeInstrumentTest {
         val bp2 = LiveInstrumentService.applyInstrument(liveBp2)
 
         assertNotEquals(bp1, bp2)
-        assertEquals(2, LiveInstrumentService.instrumentsMap.size.toLong())
+        assertEquals(2, LiveInstrumentService.getInstruments().size.toLong())
     }
 
 
@@ -131,10 +131,10 @@ class ProbeInstrumentTest {
         )
         LiveInstrumentService.applyInstrument(liveLog)
 
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
         val location = LiveSourceLocation("com.example.Test", 5)
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
-        val log = LiveInstrumentService.instrumentsMap.values.stream().findFirst().get()
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
+        val log = LiveInstrumentService.getInstruments().values.stream().findFirst().get()
         assertEquals(location, log.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
@@ -164,8 +164,8 @@ class ProbeInstrumentTest {
 
         assertEquals(log1, log2)
         val location = LiveSourceLocation("com.example.Test", 5)
-        assertEquals(1, LiveInstrumentService.instrumentsMap.size.toLong())
-        val log = LiveInstrumentService.instrumentsMap.values.stream().findFirst().get()
+        assertEquals(1, LiveInstrumentService.getInstruments().size.toLong())
+        val log = LiveInstrumentService.getInstruments().values.stream().findFirst().get()
         assertEquals(location, log.instrument.location)
         assertEquals(
             parser.parseExpression("1==1").expressionString,
@@ -194,6 +194,6 @@ class ProbeInstrumentTest {
         val log2 = LiveInstrumentService.applyInstrument(liveLog2)
 
         assertNotEquals(log1, log2)
-        assertEquals(2, LiveInstrumentService.instrumentsMap.size.toLong())
+        assertEquals(2, LiveInstrumentService.getInstruments().size.toLong())
     }
 }

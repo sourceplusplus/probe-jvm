@@ -63,11 +63,23 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
             .handler { handleInstrumentationRequest(it) }
     }
 
+    override fun registerRemote() {
+        FrameHelper.sendFrame(
+            BridgeEventType.REGISTER.name.lowercase(),
+            ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID,
+            null,
+            ProbeConfiguration.probeMessageHeaders,
+            false,
+            JsonObject(),
+            ProbeConfiguration.tcpSocket
+        )
+    }
+
     override fun isInstrumentEnabled(instrumentId: String): Boolean {
         return try {
             LiveInstrumentService.isInstrumentEnabled(instrumentId)
-        } catch (e: Throwable) {
-            log.error("Failed to check if instrument is enabled", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(instrumentId, t)
             false
         }
     }
@@ -75,8 +87,8 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun isHit(instrumentId: String): Boolean {
         return try {
             LiveInstrumentService.isHit(instrumentId)
-        } catch (e: Throwable) {
-            log.error("Failed to check if instrument is hit", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(instrumentId, t)
             false
         }
     }
@@ -84,48 +96,48 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun putBreakpoint(breakpointId: String, ex: Throwable) {
         try {
             ContextReceiver.putBreakpoint(breakpointId, ex)
-        } catch (e: Throwable) {
-            log.error("Failed to put breakpoint", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(breakpointId, t)
         }
     }
 
     override fun putLog(logId: String, logFormat: String, vararg logArguments: String?) {
         try {
             ContextReceiver.putLog(logId, logFormat, *logArguments)
-        } catch (e: Throwable) {
-            log.error("Failed to put log", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(logId, t)
         }
     }
 
     override fun putMeter(meterId: String) {
         try {
             ContextReceiver.putMeter(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to put meter", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
     override fun openLocalSpan(spanId: String) {
         try {
             ContextReceiver.openLocalSpan(spanId)
-        } catch (e: Throwable) {
-            log.error("Failed to open local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
     }
 
     override fun closeLocalSpan(spanId: String) {
         try {
             ContextReceiver.closeLocalSpan(spanId, null)
-        } catch (e: Throwable) {
-            log.error("Failed to close local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
     }
 
     override fun closeLocalSpanAndThrowException(throwable: Throwable, spanId: String): Throwable {
         try {
             ContextReceiver.closeLocalSpan(spanId, throwable)
-        } catch (e: Throwable) {
-            log.error("Failed to close local span", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(spanId, t)
         }
         throw throwable
     }
@@ -153,25 +165,34 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
     override fun startTimer(meterId: String) {
         try {
             ContextReceiver.startTimer(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to start timer", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
     override fun stopTimer(meterId: String) {
         try {
             ContextReceiver.stopTimer(meterId)
-        } catch (e: Throwable) {
-            log.error("Failed to stop timer", e)
+        } catch (t: Throwable) {
+            LiveInstrumentService.removeInstrument(meterId, t)
         }
     }
 
     private fun handleInstrumentationRequest(it: Message<JsonObject>) {
         try {
             val command = LiveInstrumentCommand(it.body())
+            if (log.isInfoEnable) log.info("Received command: $command")
+
             when (command.commandType) {
-                CommandType.ADD_LIVE_INSTRUMENT -> addInstrument(command)
-                CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstrument(command)
+                CommandType.ADD_LIVE_INSTRUMENT -> addInstruments(command)
+                CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstruments(command)
+                CommandType.SET_INITIAL_INSTRUMENTS -> {
+                    try {
+                        addInstruments(command)
+                    } finally {
+                        vertx.eventBus().publish(INITIAL_INSTRUMENTS_SET, JsonObject())
+                    }
+                }
             }
         } catch (ex: Throwable) {
             publishCommandError(it, ex)
@@ -196,19 +217,22 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         )
     }
 
-    private fun addInstrument(command: LiveInstrumentCommand) {
-        if (log.isInfoEnable) log.info("Adding instrument: $command")
-        LiveInstrumentService.applyInstrument(command.instruments.first()) //todo: check for multiple
+    private fun addInstruments(command: LiveInstrumentCommand) {
+        command.instruments.forEach {
+            if (log.isInfoEnable) log.info("Adding instrument: $it")
+            LiveInstrumentService.applyInstrument(it)
+        }
     }
 
-    private fun removeInstrument(command: LiveInstrumentCommand) {
-        if (log.isInfoEnable) log.info("Removing instrument: $command")
+    private fun removeInstruments(command: LiveInstrumentCommand) {
         for (breakpoint in command.instruments) {
+            if (log.isInfoEnable) log.info("Removing instrument: $breakpoint")
             val breakpointId = breakpoint.id
             val location = breakpoint.location
             LiveInstrumentService.removeInstrument(location.source, location.line, breakpointId)
         }
         for (location in command.locations) {
+            if (log.isInfoEnable) log.info("Removing instrument: $location")
             LiveInstrumentService.removeInstrument(location.source, location.line, null)
         }
     }

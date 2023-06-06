@@ -211,14 +211,14 @@ object ProbeConfiguration {
                 val clientId = it.getString("client_id")
                 val clientSecret = it.getString("client_secret")
                 val tenantId = it.getString("tenant_id")
-                val authToken = "$clientId:$clientSecret".let {
+                val clientAuth = "$clientId:$clientSecret".let {
                     if (tenantId != null) {
                         "$it:$tenantId"
                     } else {
                         it
                     }
                 }
-                arrayOf("skywalking.agent.authentication", authToken)
+                arrayOf("skywalking.agent.authentication", clientAuth)
             }
         ).filterNotNull().toMutableSet()
     }
@@ -243,7 +243,12 @@ object ProbeConfiguration {
 
     val sslEnabled: Boolean
         get() {
-            return spp.getBoolean("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") == "true")
+            return spp.getValue("ssl_enabled")?.toString().toBoolean()
+        }
+
+    val waitForPlatform: Boolean
+        get() {
+            return spp.getValue("wait_for_platform", "true").toString().toBoolean()
         }
 
     private fun toProperties(config: Map<String, Any>?): List<Array<String>> {

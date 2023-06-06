@@ -19,6 +19,11 @@ package spp.probe.remotes
 import io.vertx.core.AbstractVerticle
 
 abstract class ILiveInstrumentRemote : AbstractVerticle() {
+    companion object {
+        const val INITIAL_INSTRUMENTS_SET = "INITIAL_INSTRUMENTS_SET"
+    }
+
+    abstract fun registerRemote()
     abstract fun isInstrumentEnabled(instrumentId: String): Boolean
     abstract fun isHit(instrumentId: String): Boolean
     abstract fun putBreakpoint(breakpointId: String, ex: Throwable)

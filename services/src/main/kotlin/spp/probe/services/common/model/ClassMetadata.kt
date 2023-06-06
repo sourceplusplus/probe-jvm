@@ -21,7 +21,7 @@ import net.bytebuddy.jar.asm.Type
 import java.io.Serializable
 import java.util.regex.Pattern
 
-class ClassMetadata(val outerClass: Boolean) : Serializable {
+class ClassMetadata : Serializable {
 
     companion object {
         private val ignoredVariables = Pattern.compile(
@@ -32,6 +32,7 @@ class ClassMetadata(val outerClass: Boolean) : Serializable {
         )
     }
 
+    var concreteClass = true
     val innerClasses = mutableListOf<Class<*>>()
     val fields = mutableListOf<ClassField>()
     val staticFields = mutableListOf<ClassField>()

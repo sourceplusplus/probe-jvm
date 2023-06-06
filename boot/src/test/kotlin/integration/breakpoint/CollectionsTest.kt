@@ -53,7 +53,7 @@ class CollectionsTest : ProbeIntegrationTest() {
     @Test
     fun testCollections(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val breakpointId = "breakpoint-collections"
+        val breakpointId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())

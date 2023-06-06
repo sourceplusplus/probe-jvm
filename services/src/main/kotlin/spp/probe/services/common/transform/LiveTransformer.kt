@@ -22,41 +22,50 @@ import net.bytebuddy.jar.asm.Opcodes
 import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.model.ClassMetadata
+import spp.probe.services.instrument.LiveInstrumentService
+import spp.probe.services.instrument.QueuedLiveInstrumentApplier
 import java.io.File
 import java.io.FileOutputStream
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
-class LiveTransformer(private val className: String) : ClassFileTransformer {
+class LiveTransformer : ClassFileTransformer {
 
     private val log = LogManager.getLogger(LiveTransformer::class.java)
-    private var isOuterClass = true
-    val innerClasses = mutableListOf<Class<*>>()
-    lateinit var classMetadata: ClassMetadata
+    private val hasActiveTransformations = mutableSetOf<String>()
+    internal lateinit var classMetadata: ClassMetadata //visible for testing
+    internal var transformAll: Boolean = false //visible for testing
 
     override fun transform(
-        loader: ClassLoader, className: String, classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain, classfileBuffer: ByteArray
+        loader: ClassLoader?, className: String, classBeingRedefined: Class<*>?,
+        protectionDomain: ProtectionDomain?, classfileBuffer: ByteArray
     ): ByteArray? {
-        if (!className.replace('/', '.').startsWith(this.className)) {
+        val qualifiedClassName = className.replace('/', '.')
+        val classInstruments = LiveInstrumentService.getInstrumentsForClass(qualifiedClassName)
+        if (classInstruments.isNotEmpty() || transformAll) {
+            hasActiveTransformations.add(qualifiedClassName)
+            log.info("Transforming class: $className. Active instruments: ${classInstruments.size}")
+        } else if (hasActiveTransformations.remove(qualifiedClassName)) {
+            log.info("Removing transformations for class: $className. Active instruments: ${classInstruments.size}")
+        } else {
             return null
         }
-        log.trace("Transforming class: $className")
 
-        classMetadata = ClassMetadata(isOuterClass)
+        val classMetadata = ClassMetadata()
+        this.classMetadata = classMetadata
         val classReader = ClassReader(classfileBuffer)
         classReader.accept(MetadataCollector(className, classMetadata), ClassReader.SKIP_FRAMES)
-        if (isOuterClass) {
-            innerClasses.addAll(classMetadata.innerClasses)
-            isOuterClass = false
+        QueuedLiveInstrumentApplier.threadLocal.get().addAll(classMetadata.innerClasses)
+        if (classMetadata.innerClasses.isNotEmpty()) {
+            log.info("Found inner classes for $className: ${classMetadata.innerClasses}")
         }
 
         val classWriter = ClassWriter(computeFlag(classReader))
         val classVisitor = LiveClassVisitor(classWriter, classMetadata)
         try {
             classReader.accept(classVisitor, ClassReader.SKIP_FRAMES)
-        } catch (e: Exception) {
-            log.error("Failed to transform class: $className", e)
+        } catch (t: Throwable) {
+            log.error("Failed to transform class: $className", t)
             return null
         }
 

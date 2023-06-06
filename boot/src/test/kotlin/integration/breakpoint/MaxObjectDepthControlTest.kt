@@ -42,9 +42,9 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun `max depth variable control`(): Unit = runBlocking {
+    fun `max object depth variable control`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-max-depth-variable-control"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
@@ -95,7 +95,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
     @Test
     fun `max depth variable control by name`(): Unit = runBlocking {
         val testContext = VertxTestContext()
-        val instrumentId = "breakpoint-max-depth-variable-control-by-name"
+        val instrumentId = testNameAsUniqueInstrumentId
         getLiveInstrumentSubscription(instrumentId).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())

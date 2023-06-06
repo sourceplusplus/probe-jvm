@@ -19,14 +19,17 @@ package spp.probe.services.common.transform
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import spp.probe.ProbeConfiguration
+import java.lang.instrument.Instrumentation
 
 class LiveTransformerTest {
 
     @Test
     fun metadataTest() {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
-        val transformer = LiveTransformer(LabelLines::class.java.name)
+        val transformer = LiveTransformer().apply { transformAll = true }
         transformer.transform(
             LabelLines::class.java.classLoader,
             LabelLines::class.java.name.replace('.', '/'),

@@ -38,7 +38,7 @@ class LineNumberTest : ProbeIntegrationTest() {
 
     @Test
     fun testLineNumber(): Unit = runBlocking {
-        val breakpointId = "line-number-test"
+        val breakpointId = testNameAsUniqueInstrumentId
         val testContext = VertxTestContext()
         getLiveInstrumentSubscription(breakpointId).handler {
             testContext.verify {
