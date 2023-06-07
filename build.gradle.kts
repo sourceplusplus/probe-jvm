@@ -118,11 +118,6 @@ detekt {
     buildUponDefaultConfig = true
     config.setFrom(arrayOf(File(project.rootDir, "detekt.yml")))
 }
-tasks.getByName("detekt").dependsOn(
-    "boot:detekt",
-    "common:detekt",
-    "services:detekt",
-)
 
 spotless {
     kotlin {
