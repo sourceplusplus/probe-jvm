@@ -48,7 +48,7 @@ enum class ModelSerializer {
             override fun <T> create(gson: Gson, typeToken: TypeToken<T>): TypeAdapter<T>? {
                 return if (ignoredTypes.contains(typeToken.rawType.name)) {
                     object : TypeAdapter<T>() {
-                        override fun write(jsonWriter: JsonWriter, ignored: T?) {}
+                        override fun write(jsonWriter: JsonWriter, ignored: T?) = Unit
                         override fun read(jsonReader: JsonReader): T? {
                             return null
                         }

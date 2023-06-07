@@ -138,6 +138,7 @@ object SourceProbe {
         }
     }
 
+    @Suppress("TooGenericExceptionThrown", "PrintStackTrace") // no logging framework available yet
     private fun bootProbe() {
         try {
             val agentClassLoader = Class.forName(
@@ -151,7 +152,7 @@ object SourceProbe {
                 it.printStackTrace()
                 exitProcess(-1)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             throw RuntimeException(e)
         }
@@ -262,13 +263,14 @@ object SourceProbe {
         return promise.future()
     }
 
+    @Suppress("PrintStackTrace") // no logging framework available yet
     private fun invokeAgent() {
         if (ProbeConfiguration.isNotQuiet) println("SourceProbe finished setup")
         try {
             val skywalkingPremain = Class.forName("org.apache.skywalking.apm.agent.SkyWalkingAgent")
                 .getMethod("premain", String::class.java, Instrumentation::class.java)
             skywalkingPremain.invoke(null, null, instrumentation)
-        } catch (ex: Exception) {
+        } catch (ex: Throwable) {
             ex.printStackTrace()
         }
     }
@@ -308,10 +310,7 @@ object SourceProbe {
         ZipInputStream(
             Objects.requireNonNull(
                 SourceProbe::class.java.classLoader.getResourceAsStream(
-                    String.format(
-                        "skywalking-agent-%s.zip",
-                        skywalkingVersion
-                    )
+                    String.format(Locale.ENGLISH, "skywalking-agent-%s.zip", skywalkingVersion)
                 )
             )
         ).use { zis ->

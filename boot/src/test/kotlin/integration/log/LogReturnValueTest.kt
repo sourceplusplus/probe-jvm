@@ -31,6 +31,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class LogReturnValueTest : ProbeIntegrationTest() {
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doStringTest(): String {
         return "Hello World"
     }
@@ -58,7 +59,7 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     listOf("@return"),
                     location = LiveSourceLocation(
                         source = LogReturnValueTest::class.java.name,
-                        line = 36,
+                        line = 37,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

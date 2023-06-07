@@ -34,6 +34,7 @@ import java.lang.reflect.Modifier
 import java.time.*
 import java.util.concurrent.atomic.AtomicReference
 
+@Suppress("TooManyFunctions", "LongMethod")
 class CappedTypeAdapterFactory : TypeAdapterFactory {
 
     private val log = LogManager.getLogger(CappedTypeAdapterFactory::class.java)

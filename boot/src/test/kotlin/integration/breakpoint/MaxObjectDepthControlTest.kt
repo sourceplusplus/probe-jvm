@@ -172,8 +172,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     class DeepObject5 {
                         val deepObject6 = DeepObject6()
 
-                        class DeepObject6 {
-                        }
+                        class DeepObject6
                     }
                 }
             }
@@ -201,8 +200,7 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                             class DeeperObject7 {
                                 val deeperObject8 = DeeperObject8()
 
-                                class DeeperObject8 {
-                                }
+                                class DeeperObject8
                             }
                         }
                     }

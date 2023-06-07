@@ -110,8 +110,7 @@ class CustomMaxObjectDepthTest : AbstractSerializeTest {
                     class DeepObject5 {
                         val deepObject6 = DeepObject6()
 
-                        class DeepObject6 {
-                        }
+                        class DeepObject6
                     }
                 }
             }
@@ -134,8 +133,7 @@ class CustomMaxObjectDepthTest : AbstractSerializeTest {
                     class MultiDeepObject5 {
                         val multiDeepObject6 = MultiDeepObject6()
 
-                        class MultiDeepObject6 {
-                        }
+                        class MultiDeepObject6
                     }
                 }
             }

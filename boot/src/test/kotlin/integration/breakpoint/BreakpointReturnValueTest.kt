@@ -31,6 +31,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class BreakpointReturnValueTest : ProbeIntegrationTest() {
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doStringTest(): String {
         return "Hello World"
     }
@@ -62,7 +63,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 36,
+                        line = 37,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
@@ -77,6 +78,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
     }
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doIntegerTest(): Integer {
         return 200 as Integer
     }
@@ -108,7 +110,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 82,
+                        line = 84,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
@@ -123,6 +125,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
     }
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doIntTest(): Int {
         return 200
     }
@@ -154,7 +157,7 @@ class BreakpointReturnValueTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = BreakpointReturnValueTest::class.java.name,
-                        line = 128,
+                        line = 131,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

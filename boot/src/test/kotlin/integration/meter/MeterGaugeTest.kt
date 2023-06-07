@@ -41,6 +41,7 @@ import java.util.function.Supplier
 
 class MeterGaugeTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         var i = 11
     }

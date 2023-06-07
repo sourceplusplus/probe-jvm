@@ -34,6 +34,7 @@ import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 
+@Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod")
 class LiveInstrumentTransformer(
     private val className: String,
     private val methodName: String,

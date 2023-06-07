@@ -38,11 +38,7 @@ class UnsafeSerializeTest : AbstractSerializeTest {
         var httpPort: Int = 0
 
         fun init() {
-            try {
-                server = HttpServer.create(InetSocketAddress("0.0.0.0", httpPort), 0)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            server = HttpServer.create(InetSocketAddress("0.0.0.0", httpPort), 0)
             server!!.createContext("/", this)
             server!!.executor = null
             server!!.start()

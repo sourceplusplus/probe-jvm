@@ -35,6 +35,7 @@ import spp.protocol.view.rule.ViewRule
 
 class MeterTagTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest(index: Int) {
         var i = index % 2 == 0
     }
@@ -54,7 +55,7 @@ class MeterTagTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterTagTest::class.java.name,
-                40,
+                41,
                 "spp-test-probe"
             ),
             id = testNameAsUniqueInstrumentId,
