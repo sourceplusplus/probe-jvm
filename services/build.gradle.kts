@@ -115,7 +115,6 @@ tasks {
     getByName("jar").dependsOn("shadowJar")
 
     test {
-        failFast = true
         useJUnitPlatform()
 
         testLogging {

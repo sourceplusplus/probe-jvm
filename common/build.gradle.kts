@@ -36,7 +36,6 @@ dependencies {
 
 tasks {
     test {
-        failFast = true
         useJUnitPlatform()
 
         testLogging {
