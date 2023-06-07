@@ -36,6 +36,7 @@ import spp.protocol.view.rule.ViewRule
 
 class MeterReturnValueTest : ProbeIntegrationTest() {
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doStringTest(): String {
         return "Hello World"
     }
@@ -47,7 +48,7 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 MeterReturnValueTest::class.java.name,
-                41,
+                42,
                 "spp-test-probe"
             ),
             id = testNameAsUniqueInstrumentId,
