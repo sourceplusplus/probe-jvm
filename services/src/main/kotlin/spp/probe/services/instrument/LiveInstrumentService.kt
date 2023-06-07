@@ -35,8 +35,9 @@ import spp.protocol.instrument.LiveInstrument
 import spp.protocol.platform.ProcessorAddress
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.streams.toList
+import kotlin.streams.toList as toKotlinList
 
+@Suppress("CyclomaticComplexMethod")
 object LiveInstrumentService {
 
     val parser = SpelExpressionParser(SpelParserConfiguration(SpelCompilerMode.IMMEDIATE, javaClass.classLoader))
@@ -163,7 +164,7 @@ object LiveInstrumentService {
                 className = className.substringBefore("(").substringBeforeLast(".")
             }
             source.startsWith(className)
-        }.toList()
+        }.toKotlinList()
     }
 
     fun getInstruments(source: String): List<ActiveLiveInstrument> {
@@ -171,14 +172,14 @@ object LiveInstrumentService {
             it.instrument.location.source == source ||
                     (it.instrument.location.source.endsWith("(...)")
                             && source.startsWith(it.instrument.location.source.substringBefore("(...)")))
-        }.toList()
+        }.toKotlinList()
     }
 
     fun getInstruments(source: String, line: Int): List<ActiveLiveInstrument> {
         return instruments.values.stream().filter {
             (it.instrument.location.source == source || it.instrument.location.source.startsWith(source + "\$"))
                     && it.instrument.location.line == line
-        }.toList()
+        }.toKotlinList()
     }
 
     fun getInstrument(instrumentId: String): LiveInstrument? {

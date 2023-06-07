@@ -62,8 +62,7 @@ class MaxObjectDepthTest : AbstractSerializeTest {
                     class DeepObject5 {
                         val deepObject6 = DeepObject6()
 
-                        class DeepObject6 {
-                        }
+                        class DeepObject6
                     }
                 }
             }

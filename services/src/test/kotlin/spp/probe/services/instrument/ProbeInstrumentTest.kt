@@ -117,7 +117,6 @@ class ProbeInstrumentTest {
         assertEquals(2, LiveInstrumentService.getInstruments().size.toLong())
     }
 
-
     @Test
     fun addLog() {
         val liveLog = LiveLog(

@@ -28,15 +28,13 @@ import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.instrument.LiveInstrumentService
-import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
-import java.util.*
 import java.util.function.BiConsumer
 
-@Suppress("unused")
+@Suppress("unused", "TooManyFunctions", "CyclomaticComplexMethod")
 class LiveInstrumentRemote : ILiveInstrumentRemote() {
 
     companion object {

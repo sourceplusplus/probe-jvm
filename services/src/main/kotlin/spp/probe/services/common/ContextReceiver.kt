@@ -45,6 +45,7 @@ import java.io.ObjectInputStream
 import java.util.*
 import java.util.function.Supplier
 
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 object ContextReceiver {
 
     private val log = LogManager.getLogger(ContextReceiver::class.java)
@@ -387,11 +388,16 @@ object ContextReceiver {
 
     private fun encodeObject(breakpoint: LiveBreakpoint, varName: String, varData: Triple<String, Any?, Int>): String? {
         val value = varData.second ?: return String.format(
-            "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s,\"@line\":%s}", varData.first, null, varData.third
+            Locale.ENGLISH,
+            "{\"@class\":\"%s\",\"@null\":true,\"$varName\":%s,\"@line\":%s}",
+            varData.first,
+            null,
+            varData.third
         )
 
         return try {
             String.format(
+                Locale.ENGLISH,
                 "{\"@class\":\"%s\",\"@id\":\"%s\",\"$varName\":%s,\"@line\":%s}",
                 value.javaClass.name, Integer.toHexString(System.identityHashCode(value)),
                 ModelSerializer.INSTANCE.toExtendedJson(value, varName, breakpoint),

@@ -30,14 +30,23 @@ class LiveClassVisitor(
     private lateinit var className: String
 
     override fun visit(
-        version: Int, access: Int, name: String, signature: String?, superName: String, interfaces: Array<out String>?
+        version: Int,
+        access: Int,
+        name: String,
+        signature: String?,
+        superName: String,
+        interfaces: Array<out String>?
     ) {
         super.visit(version, access, name, signature, superName, interfaces)
         className = name
     }
 
     override fun visitMethod(
-        access: Int, name: String, desc: String, signature: String?, exceptions: Array<out String>?
+        access: Int,
+        name: String,
+        desc: String,
+        signature: String?,
+        exceptions: Array<out String>?
     ): MethodVisitor {
         return LiveInstrumentTransformer(
             className, name, desc, access, classMetadata, super.visitMethod(access, name, desc, signature, exceptions)
