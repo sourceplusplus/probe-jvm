@@ -16,6 +16,7 @@
  */
 package spp.probe.services.common.transform
 
+@Suppress("UNUSED_VARIABLE")
 class LabelLines {
     fun labelLines() {
         for (z in 0..10) {
