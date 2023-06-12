@@ -59,7 +59,28 @@ object ProbeConfiguration {
     var customProbeFile: String? = null
 
     fun load() {
-        localProperties = loadConfigProperties(customProbeFile)
+        localProperties = loadConfigProperties(customProbeFile).apply {
+            //ensure defaults
+            if (getJsonObject("spp") == null) {
+                put("spp", JsonObject())
+            }
+            if (getJsonObject("spp").getValue("platform_port") == null) {
+                getJsonObject("spp").put("platform_port", 12800)
+            }
+
+            //provide optional formats
+            val platformHost = getJsonObject("spp").getString("platform_host")
+            if (platformHost?.startsWith("http") == true) {
+                getJsonObject("spp").put("ssl_enabled", platformHost.startsWith("https"))
+
+                if (platformHost.substringAfter("://").contains(":")) {
+                    getJsonObject("spp").put("platform_port", platformHost.substringAfter("://").substringAfter(":"))
+                    getJsonObject("spp").put("platform_host", platformHost.substringAfter("://").substringBefore(":"))
+                } else {
+                    getJsonObject("spp").put("platform_host", platformHost.substringAfter("://"))
+                }
+            }
+        }
     }
 
     internal fun loadConfigProperties(customProbeFile: String?): JsonObject {
