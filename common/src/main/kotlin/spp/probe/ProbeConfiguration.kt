@@ -262,7 +262,7 @@ object ProbeConfiguration {
     private fun toString(key: String, value: Any?): List<Array<String>> {
         val values: MutableList<Array<String>> = ArrayList()
         if (value is List<*>) {
-            val lst = value as List<Any>
+            val lst = value as List<Any?>
             for (`val` in lst) {
                 if (`val` is Map<*, *> || `val` is List<*>) {
                     values.addAll(toString(key, `val`))
@@ -271,7 +271,7 @@ object ProbeConfiguration {
                 }
             }
         } else {
-            val map = value as Map<String, Any>?
+            val map = value as Map<*, *>?
             for (mapKey in map!!.keys) {
                 if (map[mapKey] is Map<*, *> || map[mapKey] is List<*>) {
                     values.addAll(toString("$key.$mapKey", map[mapKey]))
