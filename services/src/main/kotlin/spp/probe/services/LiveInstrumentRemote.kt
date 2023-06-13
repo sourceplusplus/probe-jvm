@@ -32,6 +32,7 @@ import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.BiConsumer
 
 @Suppress("unused", "TooManyFunctions", "CyclomaticComplexMethod")
@@ -39,6 +40,7 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
 
     companion object {
         private val log = LogManager.getLogger(LiveInstrumentRemote::class.java)
+        private val initialInstrumentsSet = AtomicBoolean()
 
         var EVENT_CONSUMER = BiConsumer(fun(address: String?, json: String?) {
             if (log.isTraceEnabled) log.trace("Publishing event: $address, $json")
@@ -189,13 +191,14 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
             if (log.isInfoEnable) log.info("Received command: $command")
 
             when (command.commandType) {
-                CommandType.ADD_LIVE_INSTRUMENT -> addInstruments(command)
                 CommandType.REMOVE_LIVE_INSTRUMENT -> removeInstruments(command)
-                CommandType.SET_INITIAL_INSTRUMENTS -> {
+                CommandType.ADD_LIVE_INSTRUMENT -> {
                     try {
                         addInstruments(command)
                     } finally {
-                        vertx.eventBus().publish(INITIAL_INSTRUMENTS_SET, JsonObject())
+                        if (initialInstrumentsSet.compareAndSet(false, true)) {
+                            vertx.eventBus().publish(INITIAL_INSTRUMENTS_SET, JsonObject())
+                        }
                     }
                 }
             }
