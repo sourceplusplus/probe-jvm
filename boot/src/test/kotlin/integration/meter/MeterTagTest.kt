@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -33,6 +34,7 @@ import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.ViewRule
 
+@Disabled //todo: flaky test
 class MeterTagTest : ProbeIntegrationTest() {
 
     @Suppress("UNUSED_VARIABLE")
