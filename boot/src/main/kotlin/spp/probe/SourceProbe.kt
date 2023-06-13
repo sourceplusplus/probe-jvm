@@ -107,6 +107,10 @@ object SourceProbe {
         }
 
         ProbeConfiguration.load()
+        if (ProbeConfiguration.spp.getString("enabled") == "false") {
+            if (ProbeConfiguration.isNotQuiet) println("SourceProbe is disabled")
+            return
+        }
         if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via premain. args: $args")
         if (isAgentInitialized) {
             if (ProbeConfiguration.isNotQuiet) println("SourceProbe is already initialized")
