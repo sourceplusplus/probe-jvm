@@ -104,7 +104,6 @@ tasks.test {
         exclude("integration/**", "**/*IntegrationTest.class", "**/*ITTest.class")
     }
 
-    failFast = true
     useJUnitPlatform()
 
     testLogging {

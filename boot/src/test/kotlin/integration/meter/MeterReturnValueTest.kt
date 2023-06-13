@@ -36,22 +36,22 @@ import spp.protocol.view.rule.ViewRule
 
 class MeterReturnValueTest : ProbeIntegrationTest() {
 
+    @Suppress("FunctionOnlyReturningConstant")
     private fun doStringTest(): String {
         return "Hello World"
     }
 
     @Test
     fun `string return value`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 MeterReturnValueTest::class.java.name,
-                41,
+                42,
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             hitLimit = 1
         )
@@ -101,7 +101,6 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 }

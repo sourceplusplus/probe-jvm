@@ -174,7 +174,7 @@ class TimeBreakpointTest : ProbeIntegrationTest() {
         instrumentService.addLiveInstrument(
             LiveBreakpoint(
                 location = LiveSourceLocation(
-                    TimeBreakpointTest::class.qualifiedName!!,
+                    TimeBreakpointTest::class.java.name,
                     49,
                     "spp-test-probe"
                 ),

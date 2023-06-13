@@ -19,24 +19,13 @@ package spp.probe.util
 import io.vertx.core.spi.logging.LogDelegate
 import io.vertx.core.spi.logging.LogDelegateFactory
 
+@Suppress("EmptyFunctionBlock")
 class NopLogDelegateFactory : LogDelegateFactory {
     private val nop: LogDelegate = object : LogDelegate {
-        override fun isWarnEnabled(): Boolean {
-            return false
-        }
-
-        override fun isInfoEnabled(): Boolean {
-            return false
-        }
-
-        override fun isDebugEnabled(): Boolean {
-            return false
-        }
-
-        override fun isTraceEnabled(): Boolean {
-            return false
-        }
-
+        override fun isWarnEnabled(): Boolean = false
+        override fun isInfoEnabled(): Boolean = false
+        override fun isDebugEnabled(): Boolean = false
+        override fun isTraceEnabled(): Boolean = false
         override fun fatal(message: Any) {}
         override fun fatal(message: Any, t: Throwable) {}
         override fun error(message: Any) {}

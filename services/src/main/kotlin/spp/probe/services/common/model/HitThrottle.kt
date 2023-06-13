@@ -20,38 +20,38 @@ import spp.protocol.instrument.throttle.ThrottleStep
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
-class HitThrottle(private val limit: Int, private val step: ThrottleStep) {
+open class HitThrottle(private val limit: Int, private val step: ThrottleStep) {
 
     private val lastReset = AtomicLong(-1)
     private val hitCount = AtomicInteger(0)
+    val totalHitCount = AtomicInteger(0)
+    val totalLimitedCount = AtomicInteger(0)
 
-    private val _totalHitCount = AtomicInteger(0)
-    val totalHitCount: Int
-        get() = _totalHitCount.get()
-
-
-    private val _totalLimitedCount = AtomicInteger(0)
-    val totalLimitedCount: Int
-        get() = _totalLimitedCount.get()
-
-    fun isRateLimited(): Boolean {
+    open fun isRateLimited(): Boolean {
         if (hitCount.getAndIncrement() < limit) {
             if (lastReset.get() == -1L) {
                 lastReset.set(System.currentTimeMillis())
             }
 
-            _totalHitCount.incrementAndGet()
+            totalHitCount.incrementAndGet()
             return false
         }
 
         return if (System.currentTimeMillis() - lastReset.get() > step.toMillis(1)) {
             hitCount.set(1)
-            _totalHitCount.incrementAndGet()
+            totalHitCount.incrementAndGet()
             lastReset.set(System.currentTimeMillis())
             false
         } else {
-            _totalLimitedCount.incrementAndGet()
+            totalLimitedCount.incrementAndGet()
             true
+        }
+    }
+
+    class NOP : HitThrottle(-1, ThrottleStep.SECOND) {
+        override fun isRateLimited(): Boolean {
+            totalHitCount.incrementAndGet()
+            return false
         }
     }
 }

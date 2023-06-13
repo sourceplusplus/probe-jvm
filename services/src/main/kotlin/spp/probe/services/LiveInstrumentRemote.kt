@@ -28,15 +28,13 @@ import spp.probe.remotes.ILiveInstrumentRemote
 import spp.probe.services.common.ContextReceiver
 import spp.probe.services.common.ProbeMemory
 import spp.probe.services.instrument.LiveInstrumentService
-import spp.protocol.instrument.*
 import spp.protocol.instrument.command.CommandType
 import spp.protocol.instrument.command.LiveInstrumentCommand
 import spp.protocol.platform.ProbeAddress
 import spp.protocol.platform.ProcessorAddress
-import java.util.*
 import java.util.function.BiConsumer
 
-@Suppress("unused")
+@Suppress("unused", "TooManyFunctions", "CyclomaticComplexMethod")
 class LiveInstrumentRemote : ILiveInstrumentRemote() {
 
     companion object {
@@ -61,7 +59,14 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
+
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            dispatchUncaughtException(t, e)
+        }
     }
+
+    @Suppress("UNUSED_PARAMETER") // used by instrument spp_uncaught_exception
+    private fun dispatchUncaughtException(t: Thread, e: Throwable) = Unit
 
     override fun registerRemote() {
         FrameHelper.sendFrame(

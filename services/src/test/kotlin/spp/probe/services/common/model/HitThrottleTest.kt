@@ -31,8 +31,8 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 100, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        assertEquals(5f, hitThrottle.totalHitCount.toFloat(), 1f)
-        assertEquals(45f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(5f, hitThrottle.totalHitCount.get().toFloat(), 1f)
+        assertEquals(45f, hitThrottle.totalLimitedCount.get().toFloat(), 1f)
     }
 
     @Test
@@ -42,8 +42,8 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        assertEquals(10f, hitThrottle.totalHitCount.toFloat(), 1f)
-        assertEquals(12f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(10f, hitThrottle.totalHitCount.get().toFloat(), 1f)
+        assertEquals(12f, hitThrottle.totalLimitedCount.get().toFloat(), 1f)
     }
 
     @Test
@@ -53,7 +53,7 @@ class HitThrottleTest {
         val beeperHandle = scheduler.scheduleAtFixedRate({ hitThrottle.isRateLimited() }, 0, 225, TimeUnit.MILLISECONDS)
         scheduler.schedule({ beeperHandle.cancel(true) }, 5, TimeUnit.SECONDS).get()
         scheduler.shutdown()
-        assertEquals(20f, hitThrottle.totalHitCount.toFloat(), 1f)
-        assertEquals(3f, hitThrottle.totalLimitedCount.toFloat(), 1f)
+        assertEquals(20f, hitThrottle.totalHitCount.get().toFloat(), 1f)
+        assertEquals(3f, hitThrottle.totalLimitedCount.get().toFloat(), 1f)
     }
 }

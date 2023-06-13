@@ -37,6 +37,7 @@ import spp.protocol.view.rule.ViewRule
 
 class MeterPartitionTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest(index: Int) {
         var i = index % 2 == 0
     }
@@ -56,7 +57,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterPartitionTest::class.java.name,
-                42,
+                43,
                 "spp-test-probe"
             ),
             id = meterId,

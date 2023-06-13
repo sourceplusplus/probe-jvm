@@ -2,7 +2,7 @@ import java.io.FileOutputStream
 import java.net.URL
 
 plugins {
-    id("com.diffplug.spotless") apply false
+    id("com.diffplug.spotless")
     id("io.gitlab.arturbosch.detekt")
     id("com.avast.gradle.docker-compose")
     id("org.jetbrains.kotlin.jvm") apply false
@@ -65,6 +65,17 @@ subprojects {
             licenseHeader(formattedLicenseHeader)
         }
     }
+
+    apply(plugin = "io.gitlab.arturbosch.detekt")
+    detekt {
+        parallel = true
+        buildUponDefaultConfig = true
+        config.setFrom(arrayOf(File(project.rootDir, "detekt.yml")))
+    }
+
+    dependencies {
+        detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.0")
+    }
 }
 
 tasks {
@@ -96,4 +107,54 @@ tasks {
 
 dockerCompose {
     waitForTcpPorts.set(false)
+}
+
+dependencies {
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.0")
+}
+
+detekt {
+    parallel = true
+    buildUponDefaultConfig = true
+    config.setFrom(arrayOf(File(project.rootDir, "detekt.yml")))
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+
+        val startYear = 2022
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val copyrightYears = if (startYear == currentYear) {
+            "$startYear"
+        } else {
+            "$startYear-$currentYear"
+        }
+
+        val protocolProject = findProject(":protocol") ?: rootProject
+        val licenseHeader = Regex("( . Copyright [\\S\\s]+)")
+            .find(File(protocolProject.projectDir, "LICENSE").readText())!!
+            .value.lines().joinToString("\n") {
+                if (it.trim().isEmpty()) {
+                    " *"
+                } else {
+                    " * " + it.trim()
+                }
+            }
+        val formattedLicenseHeader = buildString {
+            append("/*\n")
+            append(
+                licenseHeader.replace(
+                    "Copyright [yyyy] [name of copyright owner]",
+                    "Source++, the continuous feedback platform for developers.\n" +
+                            " * Copyright (C) $copyrightYears CodeBrig, Inc."
+                ).replace(
+                    "http://www.apache.org/licenses/LICENSE-2.0",
+                    "    http://www.apache.org/licenses/LICENSE-2.0"
+                )
+            )
+            append("/")
+        }
+        licenseHeader(formattedLicenseHeader)
+    }
 }

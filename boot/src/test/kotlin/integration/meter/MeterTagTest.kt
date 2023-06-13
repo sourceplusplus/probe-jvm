@@ -32,17 +32,16 @@ import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.ViewRule
-import java.util.*
 
 class MeterTagTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest(index: Int) {
         var i = index % 2 == 0
     }
 
     @Test
     fun `test meter tags`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -59,26 +58,23 @@ class MeterTagTest : ProbeIntegrationTest() {
                 41,
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             hitLimit = -1
         )
 
         viewService.saveRule(
             ViewRule(
-                meterId,
-                "($meterId.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
-                meterIds = listOf(meterId)
+                liveMeter.id!!,
+                "(${liveMeter.id}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(meterId),
-                viewConfig = LiveViewConfig(
-                    "test",
-                    listOf(meterId)
-                )
+                entityIds = mutableSetOf(liveMeter.id!!),
+                viewConfig = LiveViewConfig("test", listOf(liveMeter.id!!))
             )
         ).await().subscriptionId!!
 
@@ -111,8 +107,8 @@ class MeterTagTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext, 30)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
-        assertNotNull(viewService.deleteRule(meterId).await())
+        assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }
 }

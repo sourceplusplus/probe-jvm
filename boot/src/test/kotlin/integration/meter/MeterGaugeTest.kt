@@ -40,6 +40,7 @@ import java.util.function.Supplier
 
 class MeterGaugeTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         var i = 11
     }
@@ -60,8 +61,8 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
-                MeterGaugeTest::class.qualifiedName!!,
-                45,
+                MeterGaugeTest::class.java.name,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -127,8 +128,8 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
-                MeterGaugeTest::class.qualifiedName!!,
-                45,
+                MeterGaugeTest::class.java.name,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,

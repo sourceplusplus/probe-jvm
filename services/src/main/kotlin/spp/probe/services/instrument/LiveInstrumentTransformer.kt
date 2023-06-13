@@ -34,6 +34,7 @@ import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 
+@Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod")
 class LiveInstrumentTransformer(
     private val className: String,
     private val methodName: String,
@@ -121,14 +122,14 @@ class LiveInstrumentTransformer(
         this.line = line
 
         mv.visitLineNumber(line, start)
+        val concrete = classMetadata.concreteClass || methodName == "invokeSuspend" //todo: improve
         val lineInstruments = LiveInstrumentService.getInstruments(
             className.replace("/", ".").substringBefore("\$"), line
         ).filter {
             //filter line instruments outside current scope
             val scope = it.instrument.location.scope
             if (scope != LocationScope.BOTH) {
-                (classMetadata.concreteClass && scope == LocationScope.LINE)
-                        || (!classMetadata.concreteClass && scope == LocationScope.LAMBDA)
+                (concrete && scope == LocationScope.LINE) || (!concrete && scope == LocationScope.LAMBDA)
             } else true
         }
 
@@ -145,12 +146,14 @@ class LiveInstrumentTransformer(
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
+                    instrument.isApplied = true
                 }
 
                 is LiveLog -> {
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
+                    instrument.isApplied = true
                 }
 
                 is LiveMeter -> {
@@ -164,6 +167,7 @@ class LiveInstrumentTransformer(
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
+                    instrument.isApplied = true
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
@@ -399,6 +403,7 @@ class LiveInstrumentTransformer(
                     }
 
                     putInstrumentAfterReturn(instrument, opcode != Opcodes.RETURN)
+                    instrument.isApplied = true
                 }
             }
         }
@@ -572,21 +577,21 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
+        methodActiveInstruments.filter { it.instrument is LiveSpan }.forEach {
             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-            visitLdcInsn(it.id)
+            visitLdcInsn(it.instrument.id)
             visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
+            it.isApplied = true
         }
 
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveMeter }
-            .filter { it.meterType == MeterType.METHOD_TIMER }
-            .forEach {
-                startTimer(it.id!!)
-            }
+        methodActiveInstruments.filter { (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER }.forEach {
+            startTimer(it.instrument.id!!)
+            it.isApplied = true
+        }
     }
 
     private fun execVisitFinallyBlock() {

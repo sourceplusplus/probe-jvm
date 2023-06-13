@@ -23,6 +23,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
 import net.bytebuddy.jar.asm.Type
+import org.apache.skywalking.apm.agent.core.logging.api.LogManager
 import org.springframework.objenesis.instantiator.util.UnsafeUtils
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
@@ -33,7 +34,10 @@ import java.lang.reflect.Modifier
 import java.time.*
 import java.util.concurrent.atomic.AtomicReference
 
+@Suppress("TooManyFunctions", "LongMethod")
 class CappedTypeAdapterFactory : TypeAdapterFactory {
+
+    private val log = LogManager.getLogger(CappedTypeAdapterFactory::class.java)
 
     override fun <T> create(gson: Gson, type: TypeToken<T>): TypeAdapter<T> {
         return object : TypeAdapter<T>() {
@@ -125,7 +129,9 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                         else -> throw IllegalArgumentException("Unsupported array type: " + value.javaClass.name)
                     }
                 } else {
-                    if (isTimeType(value)) {
+                    if (value is Number) {
+                        jsonWriter.value(value)
+                    } else if (isTimeType(value)) {
                         writeTimeType(value, jsonWriter)
                     } else if (shouldUnwrap(value)) {
                         val sw = StringWriter()
@@ -140,13 +146,15 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
                             else -> value
                         }
                         innerJsonWriter.name("value")
-                        doWrite(unwrappedValue!!, innerJsonWriter)
+                        doWrite(unwrappedValue, innerJsonWriter)
                         innerJsonWriter.endObject()
 
                         val jsonObject = JsonParser.parseString(sw.toString()).asJsonObject
                         jsonWriter.javaClass.getDeclaredField("product").apply {
                             isAccessible = true
                         }.set(jsonWriter, jsonObject)
+                    } else if (isIgnored(value)) {
+                        appendIgnored(jsonWriter, value)
                     } else if (isExported(value)) {
                         doWrite(jsonWriter, value as T, value.javaClass as Class<T>, objSize)
                     } else {
@@ -558,6 +566,7 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
     }
 
     private fun appendExceptionOccurred(jsonWriter: JsonWriter, value: Any?, objSize: Long, e: Exception) {
+        log.error("Exception occurred while serializing object", e)
         jsonWriter.beginObject()
         jsonWriter.name("@skip")
         jsonWriter.value("EXCEPTION_OCCURRED")
@@ -566,11 +575,22 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         jsonWriter.name("@size")
         jsonWriter.value(objSize)
         jsonWriter.name("@cause")
-        jsonWriter.value(e.message)
+        jsonWriter.value(e.message ?: e.toString())
         jsonWriter.name("@id")
         jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.name("@toString")
         jsonWriter.value(value.toString())
+        jsonWriter.endObject()
+    }
+
+    private fun appendIgnored(jsonWriter: JsonWriter, value: Any) {
+        jsonWriter.beginObject()
+        jsonWriter.name("@skip")
+        jsonWriter.value("IGNORED")
+        jsonWriter.name("@class")
+        jsonWriter.value(value::class.java.name)
+        jsonWriter.name("@id")
+        jsonWriter.value(Integer.toHexString(System.identityHashCode(value)))
         jsonWriter.endObject()
     }
 
@@ -584,6 +604,17 @@ class CappedTypeAdapterFactory : TypeAdapterFactory {
         return value::class.java.`package` == null ||
                 module::class.java.getDeclaredMethod("isExported", String::class.java)
                     .invoke(module, value::class.java.`package`.name) as Boolean
+    }
+
+    private fun isIgnored(value: Any): Boolean {
+        //todo: more dynamic (i.e. variable control)
+        return when {
+            value.javaClass.name.startsWith("com.zaxxer.hikari") -> true
+            value.javaClass.name.startsWith("io.grpc.internal") -> true
+            value.javaClass.name.startsWith("com.google.protobuf") -> true
+            value.javaClass.name.startsWith("org.apache.skywalking.apm.plugin") -> true
+            else -> false
+        }
     }
 
     private fun shouldUnwrap(value: Any): Boolean {

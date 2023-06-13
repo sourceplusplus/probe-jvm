@@ -31,6 +31,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class LineNumberTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         val a = 1
         val b = "test"
@@ -48,8 +49,8 @@ class LineNumberTest : ProbeIntegrationTest() {
                     val vars = item.stackTrace.first().variables
                     assertEquals(3, vars.size)
 
-                    assertEquals(35, vars.first { it.name == "a" }.lineNumber)
-                    assertEquals(36, vars.first { it.name == "b" }.lineNumber)
+                    assertEquals(36, vars.first { it.name == "a" }.lineNumber)
+                    assertEquals(37, vars.first { it.name == "b" }.lineNumber)
 
                     testContext.completeNow()
                 }
@@ -61,7 +62,7 @@ class LineNumberTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LineNumberTest::class.java.name,
-                        line = 37,
+                        line = 38,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

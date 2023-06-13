@@ -42,8 +42,6 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     @Test
     fun `method timer meter`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
-
         val liveMeter = LiveMeter(
             MeterType.METHOD_TIMER,
             MetricValue(MetricValueType.NUMBER, ""),
@@ -51,7 +49,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
                 MeterMethodTimerTest::class.java.name + ".doTest()",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
@@ -91,14 +89,14 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
-        for (i in 0 until 10) {
+        repeat(10) {
             doTest()
         }
 
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 }

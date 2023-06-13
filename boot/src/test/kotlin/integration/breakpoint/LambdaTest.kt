@@ -222,8 +222,5 @@ class LambdaTest : ProbeIntegrationTest() {
         doLambdaAndLineTest()
 
         errorOnTimeout(testContext)
-
-        //todo: hit limit should take care of this automatically
-        assertNotNull(instrumentService.removeLiveInstrument(instrumentId).await())
     }
 }

@@ -31,6 +31,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class ProbeBreakpointTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         val a = 1
         val b = 'a'
@@ -65,7 +66,7 @@ class ProbeBreakpointTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = ProbeBreakpointTest::class.java.name,
-                        line = 44,
+                        line = 45,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,
