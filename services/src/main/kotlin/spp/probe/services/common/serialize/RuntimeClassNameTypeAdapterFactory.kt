@@ -110,7 +110,9 @@ import java.io.IOException
  * .registerTypeAdapterFactory(shapeAdapterFactory)
  * .create();
 `</pre> *
- * Like `GsonBuilder`, this API supports chaining: <pre>   `RuntimeTypeAdapterFactory<Shape> shapeAdapterFactory = RuntimeTypeAdapterFactory.of(Shape.class)
+ * Like `GsonBuilder`, this API supports chaining:
+ * <pre>
+ * `RuntimeTypeAdapterFactory<Shape> shapeAdapterFactory = RuntimeTypeAdapterFactory.of(Shape.class)
  * .registerSubtype(Rectangle.class)
  * .registerSubtype(Circle.class)
  * .registerSubtype(Diamond.class);
@@ -126,7 +128,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
 
     init {
         if (typeFieldName == null || baseType == null) {
-            throw NullPointerException()
+            throw NullPointerException("typeFieldName == null || baseType == null")
         }
         this.baseType = baseType
         this.typeFieldName = typeFieldName
@@ -174,8 +176,9 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                 } else if (jsonElement.isJsonNull) {
                     null
                 } else {
-                    val delegate = gson.getDelegateAdapter(this@RuntimeClassNameTypeAdapterFactory, type)
-                        ?: throw JsonParseException("cannot deserialize $baseType; did you forget to register a subtype?")
+                    val delegate = gson.getDelegateAdapter(
+                        this@RuntimeClassNameTypeAdapterFactory, type
+                    ) ?: throw JsonParseException("cannot deserialize $baseType; did you forget to register a subtype?")
                     delegate.fromJsonTree(jsonElement)
                 }
             }
@@ -206,7 +209,7 @@ class RuntimeClassNameTypeAdapterFactory<T> private constructor(baseType: Class<
                                 val fieldValue = try {
                                     it.isAccessible = true
                                     it.get(value)
-                                } catch (e: Exception) {
+                                } catch (ignored: Exception) {
                                     CappedTypeAdapterFactory.getFieldValue(it, value)
                                 }
                                 if (fieldValue === value) {

@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package spp.probe.services.common.transform
+package spp.probe
 
-@Suppress("UNUSED_VARIABLE")
-class LabelLines {
-    fun labelLines() {
-        for (z in 0..10) {
-        }
-        val i = 0; val b = i + 1
-    }
+import org.apache.skywalking.apm.agent.core.boot.BootService
+import org.apache.skywalking.apm.agent.core.boot.ServiceManager
+import org.apache.skywalking.apm.agent.core.meter.MeterService
+
+/**
+ * Ensures straggler metrics are sent before the JVM shuts down.
+ */
+class ShutdownService : BootService {
+    override fun prepare() = Unit
+    override fun boot() = Unit
+    override fun onComplete() = Unit
+    override fun shutdown() = ServiceManager.INSTANCE.findService(MeterService::class.java).run()
+    override fun priority(): Int = Int.MAX_VALUE
 }

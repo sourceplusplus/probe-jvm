@@ -30,10 +30,11 @@ import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.LiveSpan
 import spp.protocol.instrument.location.LocationScope
-import spp.protocol.instrument.meter.MeterTagValueType
 import spp.protocol.instrument.meter.MeterType
+import spp.protocol.instrument.meter.MeterValueType
 import spp.protocol.instrument.meter.MetricValueType
 
+@Suppress("TooManyFunctions", "LongMethod", "CyclomaticComplexMethod")
 class LiveInstrumentTransformer(
     private val className: String,
     private val methodName: String,
@@ -68,7 +69,7 @@ class LiveInstrumentTransformer(
     private val methodUniqueName = methodName + desc
     private var currentBeginLabel: NewLabel? = null
     private var inOriginalCode = true
-    private var methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
+    private val methodActiveInstruments = mutableListOf<ActiveLiveInstrument>()
     private var line = 0
     private lateinit var currentLabel: Label
     private val labelRanges = mutableMapOf<Label, Int>()
@@ -102,7 +103,11 @@ class LiveInstrumentTransformer(
 
         val qualifiedClassName = className.replace('/', '.')
         val qualifiedMethodName = "$qualifiedClassName.$methodName(${qualifiedArgs.joinToString(",")})"
-        methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
+
+        //only apply method instruments to non-synthetic methods
+        if (access and Opcodes.ACC_SYNTHETIC == 0) {
+            methodActiveInstruments += LiveInstrumentService.getInstruments(qualifiedMethodName)
+        }
     }
 
     override fun visitLabel(label: Label) {
@@ -117,14 +122,14 @@ class LiveInstrumentTransformer(
         this.line = line
 
         mv.visitLineNumber(line, start)
+        val concrete = classMetadata.concreteClass || methodName == "invokeSuspend" //todo: improve
         val lineInstruments = LiveInstrumentService.getInstruments(
             className.replace("/", ".").substringBefore("\$"), line
         ).filter {
             //filter line instruments outside current scope
             val scope = it.instrument.location.scope
             if (scope != LocationScope.BOTH) {
-                (classMetadata.concreteClass && scope == LocationScope.LINE)
-                        || (!classMetadata.concreteClass && scope == LocationScope.LAMBDA)
+                (concrete && scope == LocationScope.LINE) || (!concrete && scope == LocationScope.LAMBDA)
             } else true
         }
 
@@ -141,23 +146,28 @@ class LiveInstrumentTransformer(
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
+                    instrument.isApplied = true
                 }
 
                 is LiveLog -> {
                     captureSnapshot(instrument.instrument.id!!)
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
+                    instrument.isApplied = true
                 }
 
                 is LiveMeter -> {
                     val meter = instrument.instrument
                     if (instrument.expression != null || meter.metricValue?.valueType?.isExpression() == true) {
                         captureSnapshot(meter.id!!)
-                    } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+                    } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
+                        captureSnapshot(meter.id!!)
+                    } else if (meter.meterPartitions.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
                         captureSnapshot(meter.id!!)
                     }
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
+                    instrument.isApplied = true
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
@@ -393,6 +403,7 @@ class LiveInstrumentTransformer(
                     }
 
                     putInstrumentAfterReturn(instrument, opcode != Opcodes.RETURN)
+                    instrument.isApplied = true
                 }
             }
         }
@@ -566,21 +577,21 @@ class LiveInstrumentTransformer(
     }
 
     private fun execVisitBeforeFirstTryCatchBlock() {
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveSpan }.forEach {
+        methodActiveInstruments.filter { it.instrument is LiveSpan }.forEach {
             mv.visitFieldInsn(Opcodes.GETSTATIC, PROBE_INTERNAL_NAME, REMOTE_FIELD, REMOTE_DESCRIPTOR)
 
-            visitLdcInsn(it.id)
+            visitLdcInsn(it.instrument.id)
             visitMethodInsn(
                 Opcodes.INVOKEVIRTUAL, REMOTE_INTERNAL_NAME,
                 "openLocalSpan", OPEN_CLOSE_SPAN_DESC, false
             )
+            it.isApplied = true
         }
 
-        methodActiveInstruments.mapNotNull { it.instrument as? LiveMeter }
-            .filter { it.meterType == MeterType.METHOD_TIMER }
-            .forEach {
-                startTimer(it.id!!)
-            }
+        methodActiveInstruments.filter { (it.instrument as? LiveMeter)?.meterType == MeterType.METHOD_TIMER }.forEach {
+            startTimer(it.instrument.id!!)
+            it.isApplied = true
+        }
     }
 
     private fun execVisitFinallyBlock() {
@@ -709,7 +720,9 @@ class LiveInstrumentTransformer(
     private fun shouldCaptureSnapshot(meter: LiveMeter): Boolean {
         return if (meter.metricValue?.valueType?.isExpression() == true) {
             true
-        } else if (meter.meterTags.any { it.valueType == MeterTagValueType.VALUE_EXPRESSION }) {
+        } else if (meter.meterTags.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
+            true
+        } else if (meter.meterPartitions.any { it.valueType == MeterValueType.VALUE_EXPRESSION }) {
             true
         } else meter.metricValue?.valueType == MetricValueType.OBJECT_LIFESPAN
     }

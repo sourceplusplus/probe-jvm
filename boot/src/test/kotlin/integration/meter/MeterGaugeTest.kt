@@ -31,7 +31,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 import java.io.ByteArrayOutputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
@@ -40,6 +40,7 @@ import java.util.function.Supplier
 
 class MeterGaugeTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         var i = 11
     }
@@ -60,8 +61,8 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
-                MeterGaugeTest::class.qualifiedName!!,
-                45,
+                MeterGaugeTest::class.java.name,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -69,24 +70,25 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRule(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".downsampling(LATEST)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -97,7 +99,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 //check within a second
                 val suppliedTime = rawMetrics.getLong("value")
@@ -126,8 +128,8 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
-                MeterGaugeTest::class.qualifiedName!!,
-                45,
+                MeterGaugeTest::class.java.name,
+                46,
                 "spp-test-probe"
             ),
             id = meterId,
@@ -135,24 +137,25 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         )
 
         viewService.saveRule(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".downsampling(LATEST)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -163,7 +166,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 val iValue = rawMetrics.getLong("value")
                 assertEquals(iValue, 11)

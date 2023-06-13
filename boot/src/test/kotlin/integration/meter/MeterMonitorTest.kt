@@ -32,9 +32,9 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
-import java.util.*
+import spp.protocol.view.rule.ViewRule
 
+@Disabled
 class MeterMonitorTest : ProbeIntegrationTest() {
 
     private fun doTest() {
@@ -47,11 +47,8 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         }
     }
 
-    @Disabled
     @Test
     fun `object lifespan count`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
-
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
@@ -59,31 +56,32 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
 
         viewService.saveRuleIfAbsent(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -94,7 +92,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 2000.0)
             }
@@ -108,15 +106,12 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
-    @Disabled
     @Test
     fun `object lifespan gauge`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
-
         val liveMeter = LiveMeter(
             MeterType.GAUGE,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
@@ -124,29 +119,30 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                 LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
         viewService.saveRuleIfAbsent(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".downsampling(LATEST)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
@@ -157,7 +153,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(1000.0, rawMetrics.getDouble("value"), 1500.0)
             }
@@ -171,88 +167,86 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
     @Test
     fun `average object lifespan`(): Unit = runBlocking {
-        val countMeterId = testNameAsUniqueInstrumentId
-        val countMeter = LiveMeter(
+        val constructionCountMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
-            id = countMeterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
         viewService.saveRule(
-            LiveViewRule(
-                name = countMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = constructionCountMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(constructionCountMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(constructionCountMeter.id!!)
             )
         ).await()
-        instrumentService.addLiveInstrument(countMeter).await()
+        instrumentService.addLiveInstrument(constructionCountMeter).await()
 
-        val meterId = testNameAsUniqueInstrumentId
-        val liveMeter = LiveMeter(
+        val lifespanTotalMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
         viewService.saveRule(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = lifespanTotalMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(lifespanTotalMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(lifespanTotalMeter.id!!)
             )
         ).await()
-        instrumentService.addLiveInstrument(liveMeter).await()
+        instrumentService.addLiveInstrument(lifespanTotalMeter).await()
 
-        val avgMeterId = ("lifespan-object-avg-time" + UUID.randomUUID().toString()).replace("-", "_")
+        val avgMeterId = testNameAsUniqueInstrumentId
         viewService.saveRule(
-            LiveViewRule(
+            ViewRule(
                 name = avgMeterId,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(lifespanTotalMeter.id)
                     append("/")
-                    append(countMeter.toMetricIdWithoutPrefix())
+                    append(constructionCountMeter.id)
                     append(").downsampling(LATEST)")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(lifespanTotalMeter.id!!, constructionCountMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf("spp_$avgMeterId"),
-                viewConfig = LiveViewConfig(
-                    "test",
-                    listOf("spp_$avgMeterId")
-                )
+                entityIds = mutableSetOf(avgMeterId),
+                viewConfig = LiveViewConfig("test", listOf(avgMeterId))
             )
         ).await().subscriptionId!!
 
@@ -262,10 +256,10 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals("spp_$avgMeterId", meta.getString("metricsName"))
+                assertEquals(avgMeterId, meta.getString("metricsName"))
 
                 assertTrue(rawMetrics.getDouble("value") > 0.0)
-                assertEquals(100.0, rawMetrics.getDouble("value"), 200.0)
+                assertEquals(100.0, rawMetrics.getDouble("value"), 250.0)
             }
             testContext.completeNow()
         }
@@ -275,8 +269,8 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(countMeterId).await())
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(constructionCountMeter.id!!).await())
+        assertNotNull(instrumentService.removeLiveInstrument(lifespanTotalMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 

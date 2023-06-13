@@ -91,13 +91,26 @@ object SourceProbe {
 
         configureAgent(false)
         bootProbe()
-        connectToPlatform().toCompletionStage().toCompletableFuture().get()
+
+        val connect = connectToPlatform()
+        if (ProbeConfiguration.waitForPlatform) {
+            connect.toCompletionStage().toCompletableFuture().get()
+        }
     }
 
     @JvmStatic
     fun premain(args: String?, inst: Instrumentation) {
-        ProbeConfiguration.customProbeFile = args
+        if (System.getenv("SPP_PROBE_CONFIG_FILE") != null) {
+            ProbeConfiguration.customProbeFile = System.getenv("SPP_PROBE_CONFIG_FILE")
+        } else {
+            ProbeConfiguration.customProbeFile = args
+        }
+
         ProbeConfiguration.load()
+        if (ProbeConfiguration.spp.getString("enabled") == "false") {
+            if (ProbeConfiguration.isNotQuiet) println("SourceProbe is disabled")
+            return
+        }
         if (ProbeConfiguration.isNotQuiet) println("SourceProbe initiated via premain. args: $args")
         if (isAgentInitialized) {
             if (ProbeConfiguration.isNotQuiet) println("SourceProbe is already initialized")
@@ -122,9 +135,14 @@ object SourceProbe {
         configureAgent(true)
         invokeAgent()
         bootProbe()
-        connectToPlatform().toCompletionStage().toCompletableFuture().get()
+
+        val connect = connectToPlatform()
+        if (ProbeConfiguration.waitForPlatform) {
+            connect.toCompletionStage().toCompletableFuture().get()
+        }
     }
 
+    @Suppress("TooGenericExceptionThrown", "PrintStackTrace") // no logging framework available yet
     private fun bootProbe() {
         try {
             val agentClassLoader = Class.forName(
@@ -138,7 +156,7 @@ object SourceProbe {
                 it.printStackTrace()
                 exitProcess(-1)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             throw RuntimeException(e)
         }
@@ -249,13 +267,14 @@ object SourceProbe {
         return promise.future()
     }
 
+    @Suppress("PrintStackTrace") // no logging framework available yet
     private fun invokeAgent() {
         if (ProbeConfiguration.isNotQuiet) println("SourceProbe finished setup")
         try {
             val skywalkingPremain = Class.forName("org.apache.skywalking.apm.agent.SkyWalkingAgent")
                 .getMethod("premain", String::class.java, Instrumentation::class.java)
             skywalkingPremain.invoke(null, null, instrumentation)
-        } catch (ex: Exception) {
+        } catch (ex: Throwable) {
             ex.printStackTrace()
         }
     }
@@ -295,10 +314,7 @@ object SourceProbe {
         ZipInputStream(
             Objects.requireNonNull(
                 SourceProbe::class.java.classLoader.getResourceAsStream(
-                    String.format(
-                        "skywalking-agent-%s.zip",
-                        skywalkingVersion
-                    )
+                    String.format(Locale.ENGLISH, "skywalking-agent-%s.zip", skywalkingVersion)
                 )
             )
         ).use { zis ->

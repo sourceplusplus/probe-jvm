@@ -21,7 +21,6 @@ import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveLog
 import spp.protocol.instrument.event.LiveInstrumentEvent
@@ -31,6 +30,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class ProbeLogTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         val a = 1
         val b = 'a'
@@ -41,13 +41,30 @@ class ProbeLogTest : ProbeIntegrationTest() {
         val g = 1L
         val h: Short = 1
         val i: Byte = 1
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun testPrimitives(): Unit = runBlocking {
+        setupLineLabels {
+            doTest()
+        }
+
         val testContext = VertxTestContext()
-        val logId = "probe-log-test"
-        getLiveInstrumentSubscription(logId).handler {
+        val instrument = instrumentService.addLiveInstrument(
+            LiveLog(
+                logFormat = "{} {} {}",
+                logArguments = listOf("a", "b", "c"),
+                location = LiveSourceLocation(
+                    source = ProbeLogTest::class.java.name,
+                    line = getLineNumber("done"),
+                    service = "spp-test-probe"
+                ),
+                applyImmediately = true,
+                id = testNameAsUniqueInstrumentId
+            )
+        ).await()
+        getLiveInstrumentSubscription(instrument.id!!).handler {
             testContext.verify {
                 val event = LiveInstrumentEvent.fromJson(it.body())
                 if (event.eventType == LiveInstrumentEventType.LOG_HIT) {
@@ -58,22 +75,6 @@ class ProbeLogTest : ProbeIntegrationTest() {
                 }
             }
         }
-
-        assertNotNull(
-            instrumentService.addLiveInstrument(
-                LiveLog(
-                    logFormat = "{} {} {}",
-                    logArguments = listOf("a", "b", "c"),
-                    location = LiveSourceLocation(
-                        source = ProbeLogTest::class.java.name,
-                        line = 44,
-                        service = "spp-test-probe"
-                    ),
-                    applyImmediately = true,
-                    id = logId
-                )
-            ).await()
-        )
 
         log.info("Triggering log")
         doTest()

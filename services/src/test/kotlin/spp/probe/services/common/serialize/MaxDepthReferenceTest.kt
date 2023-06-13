@@ -27,6 +27,7 @@ import spp.probe.services.common.ModelSerializer
  * with respect to the top level object's depth.
  */
 @Disabled
+@Suppress("UNUSED_VARIABLE")
 class MaxDepthReferenceTest : AbstractSerializeTest {
 
     @Test

@@ -31,12 +31,18 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class LogLocationTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         var i = 0
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun `log location`(): Unit = runBlocking {
+        setupLineLabels {
+            doTest()
+        }
+
         val testContext = VertxTestContext()
         val instrumentId = "log-location"
         getLiveInstrumentSubscription(instrumentId).handler {
@@ -48,8 +54,8 @@ class LogLocationTest : ProbeIntegrationTest() {
 
                     val location = item.logResult.logs.first().location
                     assertNotNull(location)
-                    assertEquals(LogLocationTest::class.qualifiedName!!, location!!.source)
-                    assertEquals(36, location.line)
+                    assertEquals(LogLocationTest::class.java.name, location!!.source)
+                    assertEquals(getLineNumber("done"), location.line)
 
                     testContext.completeNow()
                 }
@@ -62,7 +68,7 @@ class LogLocationTest : ProbeIntegrationTest() {
                     "Hello World",
                     location = LiveSourceLocation(
                         source = LogLocationTest::class.java.name,
-                        line = 36,
+                        line = getLineNumber("done"),
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

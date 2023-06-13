@@ -32,7 +32,7 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
+import spp.protocol.view.rule.ViewRule
 
 class MeterConstructorCountTest : ProbeIntegrationTest() {
 
@@ -44,8 +44,6 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
 
     @Test
     fun `constructor count`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
-
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -53,42 +51,44 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
                 MyObject::class.java.name + ".<init>()",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
             meta = mapOf("metric.mode" to "RATE")
         )
 
         viewService.saveRule(
-            LiveViewRule(
-                name = liveMeter.toMetricIdWithoutPrefix(),
+            ViewRule(
+                name = liveMeter.id!!,
                 exp = buildString {
                     append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix())
+                    append(liveMeter.id)
                     append(".sum(['service', 'instance'])")
                     append(".downsampling(SUM)")
                     append(")")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
-                }
+                },
+                meterIds = listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.toMetricId()),
+                entityIds = mutableSetOf(liveMeter.id!!),
                 viewConfig = LiveViewConfig(
                     "test",
-                    listOf(liveMeter.toMetricId())
+                    listOf(liveMeter.id!!)
                 )
             )
         ).await().subscriptionId!!
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Live view event: ${it.body()}")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
                 val meta = rawMetrics.getJsonObject("meta")
-                assertEquals(liveMeter.toMetricId(), meta.getString("metricsName"))
+                assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
                 assertEquals(10, rawMetrics.getLong("value"))
             }
@@ -103,7 +103,7 @@ class MeterConstructorCountTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 

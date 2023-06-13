@@ -45,7 +45,11 @@ class MetadataCollector(
     }
 
     override fun visitMethod(
-        access: Int, methodName: String, desc: String, signature: String?, exceptions: Array<out String>?
+        access: Int,
+        methodName: String,
+        desc: String,
+        signature: String?,
+        exceptions: Array<out String>?
     ): MethodVisitor {
         val superMV = super.visitMethod(access, methodName, desc, signature, exceptions)
         val methodUniqueName = methodName + desc
@@ -66,8 +70,12 @@ class MetadataCollector(
             }
 
             override fun visitLocalVariable(
-                name: String, desc: String, signature: String?,
-                start: Label, end: Label, index: Int
+                name: String,
+                desc: String,
+                signature: String?,
+                start: Label,
+                end: Label,
+                index: Int
             ) {
                 val startLabel = labelRanges[start]!!
                 val endLabel = labelRanges[end]!!

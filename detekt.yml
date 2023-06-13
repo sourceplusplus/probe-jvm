@@ -1,0 +1,53 @@
+# Default detekt configuration:
+# https://github.com/detekt/detekt/blob/master/detekt-core/src/main/resources/default-detekt-config.yml
+
+build:
+  maxIssues: 6 #todo: zero out
+
+formatting:
+  Indentation:
+    active: false
+  CommentSpacing:
+    active: false
+  NoWildcardImports:
+    active: false
+  ChainWrapping:
+    active: false
+  Wrapping:
+    active: false
+  ArgumentListWrapping:
+    active: false
+  MultiLineIfElse:
+    active: false
+  AnnotationOnSeparateLine:
+    active: false
+
+style:
+  MagicNumber:
+    active: false
+  ForbiddenComment:
+    active: false
+  ReturnCount:
+    active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    excludes: [ '**/test/**' ]
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  TooGenericExceptionThrown:
+    excludes: [ '**/test/**' ]
+
+complexity:
+  NestedBlockDepth:
+    threshold: 5
+  TooManyFunctions:
+    thresholdInClasses: 15
+    thresholdInObjects: 15
+  LongParameterList:
+    functionThreshold: 10
+    constructorThreshold: 10
+  LongMethod:
+    excludes: [ '**/test/**' ]

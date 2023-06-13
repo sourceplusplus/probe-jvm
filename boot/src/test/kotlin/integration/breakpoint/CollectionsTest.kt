@@ -33,6 +33,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 
 class CollectionsTest : ProbeIntegrationTest() {
 
+    @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         val emptyList = emptyList<String>()
         val byteArr = byteArrayOf(1, 2, 3)
@@ -180,7 +181,7 @@ class CollectionsTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = CollectionsTest::class.java.name,
-                        line = 51,
+                        line = 52,
                         service = "spp-test-probe"
                     ),
                     applyImmediately = true,

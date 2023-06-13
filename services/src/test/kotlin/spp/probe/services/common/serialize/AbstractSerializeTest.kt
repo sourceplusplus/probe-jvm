@@ -29,6 +29,10 @@ interface AbstractSerializeTest {
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         ProbeConfiguration.variableControlByName.clear()
         ProbeConfiguration.variableControlByType.clear()
+        ProbeConfiguration.variableControl.put("max_object_depth", 10)
+        ProbeConfiguration.variableControl.put("max_object_depth", 5)
+        ProbeConfiguration.variableControl.put("max_object_size", 1024L * 1024L) //1MB
+        ProbeConfiguration.variableControl.put("max_collection_length", 100)
         ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
     }
 }

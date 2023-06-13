@@ -25,7 +25,7 @@ import spp.probe.services.common.ModelSerializer
 class MaxObjectDepthTest : AbstractSerializeTest {
 
     @Test
-    fun `max depth exceeded`() {
+    fun `max object depth exceeded`() {
         val deepObject = DeepObject1()
         val json = JsonObject(ModelSerializer.INSTANCE.toExtendedJson(deepObject))
 
@@ -62,8 +62,7 @@ class MaxObjectDepthTest : AbstractSerializeTest {
                     class DeepObject5 {
                         val deepObject6 = DeepObject6()
 
-                        class DeepObject6 {
-                        }
+                        class DeepObject6
                     }
                 }
             }

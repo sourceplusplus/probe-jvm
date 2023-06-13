@@ -59,7 +59,28 @@ object ProbeConfiguration {
     var customProbeFile: String? = null
 
     fun load() {
-        localProperties = loadConfigProperties(customProbeFile)
+        localProperties = loadConfigProperties(customProbeFile).apply {
+            //ensure defaults
+            if (getJsonObject("spp") == null) {
+                put("spp", JsonObject())
+            }
+            if (getJsonObject("spp").getValue("platform_port") == null) {
+                getJsonObject("spp").put("platform_port", 12800)
+            }
+
+            //provide optional formats
+            val platformHost = getJsonObject("spp").getString("platform_host")
+            if (platformHost?.startsWith("http") == true) {
+                getJsonObject("spp").put("ssl_enabled", platformHost.startsWith("https"))
+
+                if (platformHost.substringAfter("://").contains(":")) {
+                    getJsonObject("spp").put("platform_port", platformHost.substringAfter("://").substringAfter(":"))
+                    getJsonObject("spp").put("platform_host", platformHost.substringAfter("://").substringBefore(":"))
+                } else {
+                    getJsonObject("spp").put("platform_host", platformHost.substringAfter("://"))
+                }
+            }
+        }
     }
 
     internal fun loadConfigProperties(customProbeFile: String?): JsonObject {
@@ -211,14 +232,14 @@ object ProbeConfiguration {
                 val clientId = it.getString("client_id")
                 val clientSecret = it.getString("client_secret")
                 val tenantId = it.getString("tenant_id")
-                val authToken = "$clientId:$clientSecret".let {
+                val clientAuth = "$clientId:$clientSecret".let {
                     if (tenantId != null) {
                         "$it:$tenantId"
                     } else {
                         it
                     }
                 }
-                arrayOf("skywalking.agent.authentication", authToken)
+                arrayOf("skywalking.agent.authentication", clientAuth)
             }
         ).filterNotNull().toMutableSet()
     }
@@ -243,7 +264,12 @@ object ProbeConfiguration {
 
     val sslEnabled: Boolean
         get() {
-            return spp.getValue("ssl_enabled", System.getenv("SPP_HTTP_SSL_ENABLED") == "true").toString().toBoolean()
+            return spp.getValue("ssl_enabled")?.toString().toBoolean()
+        }
+
+    val waitForPlatform: Boolean
+        get() {
+            return spp.getValue("wait_for_platform", "true").toString().toBoolean()
         }
 
     private fun toProperties(config: Map<String, Any>?): List<Array<String>> {
@@ -257,7 +283,7 @@ object ProbeConfiguration {
     private fun toString(key: String, value: Any?): List<Array<String>> {
         val values: MutableList<Array<String>> = ArrayList()
         if (value is List<*>) {
-            val lst = value as List<Any>
+            val lst = value as List<Any?>
             for (`val` in lst) {
                 if (`val` is Map<*, *> || `val` is List<*>) {
                     values.addAll(toString(key, `val`))
@@ -266,7 +292,7 @@ object ProbeConfiguration {
                 }
             }
         } else {
-            val map = value as Map<String, Any>?
+            val map = value as Map<*, *>?
             for (mapKey in map!!.keys) {
                 if (map[mapKey] is Map<*, *> || map[mapKey] is List<*>) {
                     values.addAll(toString("$key.$mapKey", map[mapKey]))

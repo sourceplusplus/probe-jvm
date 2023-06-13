@@ -17,6 +17,7 @@
 package integration.meter
 
 import integration.ProbeIntegrationTest
+import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
@@ -31,9 +32,10 @@ import spp.protocol.instrument.meter.*
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
+import spp.protocol.view.rule.RulePartition
 import spp.protocol.view.rule.ViewRule
 
-class MeterTagTest : ProbeIntegrationTest() {
+class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Suppress("UNUSED_VARIABLE")
     private fun doTest(index: Int) {
@@ -41,53 +43,66 @@ class MeterTagTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun `test meter tags`(): Unit = runBlocking {
+    fun `test meter partitions`(): Unit = runBlocking {
+        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
-            meterTags = listOf(
-                MeterTag(
-                    "tag2",
-                    MeterValueType.VALUE_EXPRESSION,
-                    "localVariables[i]"
+            meterPartitions = listOf(
+                MeterPartition(
+                    valueType = MeterValueType.VALUE_EXPRESSION,
+                    value = "localVariables[i]"
                 )
             ),
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
-                MeterTagTest::class.java.name,
-                41,
+                MeterPartitionTest::class.java.name,
+                43,
                 "spp-test-probe"
             ),
-            id = testNameAsUniqueInstrumentId,
-            applyImmediately = true,
-            hitLimit = -1
+            id = meterId,
+            applyImmediately = true
         )
 
         viewService.saveRule(
             ViewRule(
                 liveMeter.id!!,
-                "(${liveMeter.id}.sum(['service', 'tag2']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
-                meterIds = listOf(liveMeter.id!!)
+                "(the_count.sum(['service']).downsampling(SUM)).service(['service'], Layer.GENERAL)",
+                listOf(
+                    RulePartition(
+                        "the_count",
+                        "${liveMeter.id}_\$partition\$"
+                    )
+                ),
+                listOf(liveMeter.id!!)
             )
         ).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
-                entityIds = mutableSetOf(liveMeter.id!!),
-                viewConfig = LiveViewConfig("test", listOf(liveMeter.id!!))
+                entityIds = mutableSetOf("${liveMeter.id}_true", "${liveMeter.id}_false"),
+                viewConfig = LiveViewConfig(
+                    "test",
+                    listOf("${liveMeter.id}_true", "${liveMeter.id}_false")
+                )
             )
         ).await().subscriptionId!!
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
             val liveViewEvent = LiveViewEvent(it.body())
-            val rawMetrics = JsonObject(liveViewEvent.metricsData)
-            val summation = rawMetrics.getJsonObject("value")
-            log.info("summation: $summation")
+            val rawMetrics = JsonArray(liveViewEvent.metricsData)
+            log.info("Raw metrics: $rawMetrics")
 
-            val trueCount = summation.getInteger("true")
-            val falseCount = summation.getInteger("false")
-            if (trueCount + falseCount >= 10) {
+            val trueCount = (rawMetrics.find {
+                (it as JsonObject).getString("metric_type") == "${liveMeter.id}_true"
+            } as JsonObject).getInteger("value")
+            println(trueCount)
+            val falseCount = (rawMetrics.find {
+                (it as JsonObject).getString("metric_type") == "${liveMeter.id}_false"
+            } as JsonObject).getInteger("value")
+            println(falseCount)
+            if (trueCount + falseCount == 10) {
                 testContext.verify {
                     assertEquals(5, trueCount)
                     assertEquals(5, falseCount)
@@ -100,14 +115,14 @@ class MeterTagTest : ProbeIntegrationTest() {
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
         repeat(10) {
+            delay(500)
             doTest(it)
-            delay(1000)
         }
 
         errorOnTimeout(testContext, 30)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
+        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
         assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }

@@ -19,12 +19,15 @@ package spp.probe.services.common.transform
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import spp.probe.ProbeConfiguration
+import java.lang.instrument.Instrumentation
 
 class LiveTransformerTest {
 
     @Test
     fun metadataTest() {
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
         ProbeConfiguration.localProperties = JsonObject().put("spp", JsonObject())
         val transformer = LiveTransformer().apply { transformAll = true }
         transformer.transform(
@@ -48,20 +51,20 @@ class LiveTransformerTest {
         assertEquals("I", varZ.desc)
         assertEquals(1, varZ.startLabel)
         assertEquals(2, varZ.endLabel)
-        assertEquals(20, varZ.line) //todo: fix
+        assertEquals(21, varZ.line) //todo: fix
 
         val varI = labelLinesVars[1]
         assertEquals("i", varI.name)
         assertEquals("I", varI.desc)
         assertEquals(3, varI.startLabel)
         assertEquals(5, varI.endLabel)
-        assertEquals(22, varI.line) //todo: fix
+        assertEquals(23, varI.line) //todo: fix
 
         val varB = labelLinesVars[2]
         assertEquals("b", varB.name)
         assertEquals("I", varB.desc)
         assertEquals(4, varB.startLabel)
         assertEquals(5, varB.endLabel)
-        assertEquals(23, varB.line)
+        assertEquals(24, varB.line)
     }
 }

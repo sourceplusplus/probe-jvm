@@ -60,11 +60,12 @@ abstract class ProbeIntegrationTest {
     var testName: String? = null
     val testNameAsInstrumentId: String
         get() {
-            return testName!!.replace(" ", "-").lowercase().substringBefore("(")
+            return "spp_" + testName!!.replace("-", "_").replace(" ", "_")
+                .lowercase().substringBefore("(")
         }
     val testNameAsUniqueInstrumentId: String
         get() {
-            return testNameAsInstrumentId + "-" + UUID.randomUUID().toString().replace("-", "")
+            return testNameAsInstrumentId + "_" + UUID.randomUUID().toString().replace("-", "")
         }
 
     @BeforeEach
@@ -79,7 +80,7 @@ abstract class ProbeIntegrationTest {
         private lateinit var socket: NetSocket
         private val serviceHost = System.getenv("SPP_PLATFORM_HOST") ?: "localhost"
         private const val servicePort = 12800
-        private val authToken: String? by lazy { fetchAuthToken() }
+        private val accessToken: String? by lazy { fetchAccessToken() }
 
         @BeforeAll
         @JvmStatic
@@ -95,8 +96,8 @@ abstract class ProbeIntegrationTest {
             val pc = InstanceConnection(UUID.randomUUID().toString(), System.currentTimeMillis())
             val consumer: MessageConsumer<Boolean> = vertx.eventBus().localConsumer(replyAddress)
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
 
             val promise = Promise.promise<Void>()
@@ -125,11 +126,11 @@ abstract class ProbeIntegrationTest {
 
             promise.future().await()
             instrumentService = ServiceProxyBuilder(vertx)
-                .apply { authToken?.let { setToken(it) } }
+                .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
                 .build(LiveInstrumentService::class.java)
             viewService = ServiceProxyBuilder(vertx)
-                .apply { authToken?.let { setToken(it) } }
+                .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_VIEW)
                 .build(LiveViewService::class.java)
         }
@@ -147,8 +148,8 @@ abstract class ProbeIntegrationTest {
 
             //send register
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
@@ -165,8 +166,8 @@ abstract class ProbeIntegrationTest {
 
             //send register
             val headers = JsonObject()
-            if (authToken != null) {
-                headers.put("auth-token", authToken)
+            if (accessToken != null) {
+                headers.put("auth-token", accessToken)
             }
             FrameHelper.sendFrame(
                 BridgeEventType.REGISTER.name.lowercase(),
@@ -204,8 +205,8 @@ abstract class ProbeIntegrationTest {
             return tcpSocket
         }
 
-        private fun fetchAuthToken() = runBlocking {
-            val tokenUri = "/api/new-token?access_token=change-me"
+        private fun fetchAccessToken() = runBlocking {
+            val tokenUri = "/api/new-token?authorization_code=change-me"
             val req = vertx.createHttpClient(HttpClientOptions())
                 .request(
                     RequestOptions()

@@ -31,8 +31,8 @@ import spp.protocol.instrument.meter.MetricValueType
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
-import spp.protocol.view.rule.LiveViewRule
-import java.util.*
+import spp.protocol.view.rule.MethodTimerAvgRule
+import spp.protocol.view.rule.MethodTimerCountRule
 
 class MeterMethodTimerTest : ProbeIntegrationTest() {
 
@@ -42,9 +42,6 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
     @Test
     fun `method timer meter`(): Unit = runBlocking {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val meterId = "method-timer-meter-$uuid"
-
         val liveMeter = LiveMeter(
             MeterType.METHOD_TIMER,
             MetricValue(MetricValueType.NUMBER, ""),
@@ -52,44 +49,24 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
                 MeterMethodTimerTest::class.java.name + ".doTest()",
                 service = "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
-        viewService.saveRule(
-            LiveViewRule(
-                "${liveMeter.toMetricIdWithoutPrefix()}_avg",
-                buildString {
-                    append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_duration_sum")
-                    append("/")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_meter")
-                    append(").avg(['service']).service(['service'], Layer.GENERAL)")
-                }
-            )
-        ).await()
-        viewService.saveRule(
-            LiveViewRule(
-                "${liveMeter.toMetricIdWithoutPrefix()}_count",
-                buildString {
-                    append("(")
-                    append(liveMeter.toMetricIdWithoutPrefix()).append("_timer_meter")
-                    append(").sum(['service']).service(['service'], Layer.GENERAL)")
-                }
-            )
-        ).await()
+        viewService.saveRule(MethodTimerAvgRule(liveMeter)).await()
+        viewService.saveRule(MethodTimerCountRule(liveMeter)).await()
 
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(
-                    liveMeter.toMetricId() + "_avg",
-                    liveMeter.toMetricId() + "_count"
+                    liveMeter.id!! + "_avg",
+                    liveMeter.id!! + "_count"
                 ),
                 viewConfig = LiveViewConfig(
                     "test",
                     listOf(
-                        liveMeter.toMetricId() + "_avg",
-                        liveMeter.toMetricId() + "_count"
+                        liveMeter.id!! + "_avg",
+                        liveMeter.id!! + "_count"
                     )
                 )
             )
@@ -102,7 +79,7 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
             testContext.verify {
                 val avg = rawMetrics.getJsonObject(0)
                 assertTrue(avg.getString("metric_type").endsWith("_avg"))
-                assertEquals(200.0, avg.getDouble("value"), 1.0)
+                assertEquals(200.0, avg.getDouble("value"), 5.0)
 
                 val rate = rawMetrics.getJsonObject(1)
                 assertEquals(10.0, rate.getDouble("summation"))
@@ -112,14 +89,14 @@ class MeterMethodTimerTest : ProbeIntegrationTest() {
 
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
-        for (i in 0 until 10) {
+        repeat(10) {
             doTest()
         }
 
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 }

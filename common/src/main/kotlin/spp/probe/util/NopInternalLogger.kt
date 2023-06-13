@@ -19,6 +19,7 @@ package spp.probe.util
 import io.netty.util.internal.logging.InternalLogLevel
 import io.netty.util.internal.logging.InternalLogger
 
+@Suppress("EmptyFunctionBlock")
 class NopInternalLogger : InternalLogger {
     override fun name(): String {
         return "nop"
