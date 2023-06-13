@@ -24,14 +24,8 @@ open class HitThrottle(private val limit: Int, private val step: ThrottleStep) {
 
     private val lastReset = AtomicLong(-1)
     private val hitCount = AtomicInteger(0)
-
-    protected val _totalHitCount = AtomicInteger(0)
-    val totalHitCount: Int
-        get() = _totalHitCount.get()
-
-    private val _totalLimitedCount = AtomicInteger(0)
-    val totalLimitedCount: Int
-        get() = _totalLimitedCount.get()
+    val totalHitCount = AtomicInteger(0)
+    val totalLimitedCount = AtomicInteger(0)
 
     open fun isRateLimited(): Boolean {
         if (hitCount.getAndIncrement() < limit) {
@@ -39,24 +33,24 @@ open class HitThrottle(private val limit: Int, private val step: ThrottleStep) {
                 lastReset.set(System.currentTimeMillis())
             }
 
-            _totalHitCount.incrementAndGet()
+            totalHitCount.incrementAndGet()
             return false
         }
 
         return if (System.currentTimeMillis() - lastReset.get() > step.toMillis(1)) {
             hitCount.set(1)
-            _totalHitCount.incrementAndGet()
+            totalHitCount.incrementAndGet()
             lastReset.set(System.currentTimeMillis())
             false
         } else {
-            _totalLimitedCount.incrementAndGet()
+            totalLimitedCount.incrementAndGet()
             true
         }
     }
 
     class NOP : HitThrottle(-1, ThrottleStep.SECOND) {
         override fun isRateLimited(): Boolean {
-            _totalHitCount.incrementAndGet()
+            totalHitCount.incrementAndGet()
             return false
         }
     }

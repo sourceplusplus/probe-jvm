@@ -18,6 +18,7 @@ package spp.probe.remotes
 
 import io.vertx.core.AbstractVerticle
 
+@Suppress("TooManyFunctions")
 abstract class ILiveInstrumentRemote : AbstractVerticle() {
     companion object {
         const val INITIAL_INSTRUMENTS_SET = "INITIAL_INSTRUMENTS_SET"

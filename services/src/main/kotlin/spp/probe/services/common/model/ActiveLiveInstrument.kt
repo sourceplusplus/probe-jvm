@@ -37,6 +37,6 @@ class ActiveLiveInstrument @JvmOverloads constructor(
         get() = if (instrument.expiresAt != null && System.currentTimeMillis() >= instrument.expiresAt!!) {
             true
         } else {
-            instrument.hitLimit != -1 && throttle.totalHitCount >= instrument.hitLimit
+            instrument.hitLimit != -1 && throttle.totalHitCount.get() >= instrument.hitLimit
         }
 }

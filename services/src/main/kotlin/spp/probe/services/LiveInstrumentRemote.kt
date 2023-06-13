@@ -59,7 +59,14 @@ class LiveInstrumentRemote : ILiveInstrumentRemote() {
         vertx.eventBus()
             .localConsumer<JsonObject>(ProbeAddress.LIVE_INSTRUMENT_REMOTE + ":" + PROBE_ID)
             .handler { handleInstrumentationRequest(it) }
+
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            dispatchUncaughtException(t, e)
+        }
     }
+
+    @Suppress("UNUSED_PARAMETER") // used by instrument spp_uncaught_exception
+    private fun dispatchUncaughtException(t: Thread, e: Throwable) = Unit
 
     override fun registerRemote() {
         FrameHelper.sendFrame(
