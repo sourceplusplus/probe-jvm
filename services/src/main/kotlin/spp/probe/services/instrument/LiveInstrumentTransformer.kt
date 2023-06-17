@@ -147,6 +147,7 @@ class LiveInstrumentTransformer(
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putBreakpoint(instrument.instrument.id!!)
                     instrument.isApplied = true
+                    log.debug("Marked breakpoint {} as applied", instrument.instrument.id)
                 }
 
                 is LiveLog -> {
@@ -154,6 +155,7 @@ class LiveInstrumentTransformer(
                     isHit(instrument.instrument.id!!, instrumentLabel)
                     putLog(instrument.instrument)
                     instrument.isApplied = true
+                    log.debug("Marked log {} as applied", instrument.instrument.id)
                 }
 
                 is LiveMeter -> {
@@ -168,6 +170,7 @@ class LiveInstrumentTransformer(
                     isHit(meter.id!!, instrumentLabel)
                     putMeter(meter)
                     instrument.isApplied = true
+                    log.debug("Marked meter {} as applied", meter.id)
                 }
 
                 is LiveSpan -> Unit //handled via methodActiveInstruments
