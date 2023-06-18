@@ -94,6 +94,10 @@ tasks {
                 println("Downloaded Apache SkyWalking - Java agent")
             }
         }
+
+        inputs.property("skywalkingAgentVersion", skywalkingAgentVersion)
+        outputs.file(File(buildDir, "agent/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))
+        outputs.cacheIf { true }
     }
 
     register("assembleUp") {
