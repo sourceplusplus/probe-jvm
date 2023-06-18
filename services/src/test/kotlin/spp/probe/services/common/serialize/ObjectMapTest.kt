@@ -20,10 +20,7 @@ import io.vertx.core.json.JsonObject
 import org.apache.skywalking.apm.agent.core.meter.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
-import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 import java.util.concurrent.ConcurrentHashMap
 
 class ObjectMapTest : AbstractSerializeTest {
