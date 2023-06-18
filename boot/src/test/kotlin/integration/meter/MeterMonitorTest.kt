@@ -24,6 +24,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -35,6 +37,7 @@ import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.ViewRule
 
 @Disabled
+@Execution(ExecutionMode.SAME_THREAD)
 class MeterMonitorTest : ProbeIntegrationTest() {
 
     private fun doTest() {
@@ -88,6 +91,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Received live view event: ${it.body()}")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -227,7 +231,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
         ).await()
         instrumentService.addLiveInstrument(lifespanTotalMeter).await()
 
-        val avgMeterId = testNameAsUniqueInstrumentId
+        val avgMeterId = testNameAsUniqueInstrumentId + "_avg"
         viewService.saveRule(
             ViewRule(
                 name = avgMeterId,
@@ -239,7 +243,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
                     append(").downsampling(LATEST)")
                     append(".instance(['service'], ['instance'], Layer.GENERAL)")
                 },
-                meterIds = listOf(lifespanTotalMeter.id!!, constructionCountMeter.id!!)
+                meterIds = listOf(avgMeterId, lifespanTotalMeter.id!!, constructionCountMeter.id!!)
             )
         ).await()
 
@@ -252,6 +256,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Received live view event: ${it.body()}")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
