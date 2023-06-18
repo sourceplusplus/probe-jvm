@@ -46,7 +46,6 @@ class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Test
     fun `test meter partitions`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -62,7 +61,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
                 43,
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
@@ -124,7 +123,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext, 30)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
         assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }
