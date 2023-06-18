@@ -24,6 +24,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
@@ -39,6 +41,7 @@ import java.io.Serializable
 import java.util.*
 import java.util.function.Supplier
 
+@Execution(ExecutionMode.SAME_THREAD)
 class MeterGaugeTest : ProbeIntegrationTest() {
 
     @Suppress("UNUSED_VARIABLE")
