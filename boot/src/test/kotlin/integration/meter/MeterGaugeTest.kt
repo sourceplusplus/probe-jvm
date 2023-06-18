@@ -86,15 +86,13 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.id!!),
-                viewConfig = LiveViewConfig(
-                    "test",
-                    listOf(liveMeter.id!!)
-                )
+                viewConfig = LiveViewConfig("test", listOf(liveMeter.id!!))
             )
         ).await().subscriptionId!!
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Received live view event: $it")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
@@ -153,15 +151,13 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         val subscriptionId = viewService.addLiveView(
             LiveView(
                 entityIds = mutableSetOf(liveMeter.id!!),
-                viewConfig = LiveViewConfig(
-                    "test",
-                    listOf(liveMeter.id!!)
-                )
+                viewConfig = LiveViewConfig("test", listOf(liveMeter.id!!))
             )
         ).await().subscriptionId!!
 
         val testContext = VertxTestContext()
         getLiveViewSubscription(subscriptionId).handler {
+            log.info("Received live view event: ${it.body()}")
             val liveViewEvent = LiveViewEvent(it.body())
             val rawMetrics = JsonObject(liveViewEvent.metricsData)
             testContext.verify {
