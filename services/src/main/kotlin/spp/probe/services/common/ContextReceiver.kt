@@ -286,7 +286,19 @@ object ContextReceiver {
                             value.toDouble()
                         } else {
                             //todo: remove instrument
-                            log.error("Unsupported expression value type: ${value?.javaClass?.name}")
+                            log.error(buildString {
+                                append("Non-number value for gauge.")
+                                append(" Live meter: ")
+                                append(liveMeter.id)
+                                append(" Expression: ")
+                                append(liveMeter.metricValue!!.value)
+                                append(" Value: ")
+                                append(value)
+                                append(" Type: ")
+                                append(value?.javaClass?.name)
+                                append(" Context: ")
+                                append(contextMap)
+                            })
                             Double.MIN_VALUE
                         }
                     }.apply { tagMap.forEach { tag(it.key, it.value) } }.build()
