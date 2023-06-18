@@ -149,6 +149,8 @@ tasks.register<Copy>("untarSkywalkingAgent") {
 
     from(tarTree(resources.gzip(File(projectDir.parentFile, "build/agent/apache-skywalking-java-agent-$skywalkingAgentVersion.tgz"))))
     into(File(projectDir.parentFile, "build/agent/extracted"))
+
+    outputs.cacheIf { true }
 }
 
 tasks.register<Zip>("zipPlatformSkywalkingAgent") {
@@ -172,6 +174,8 @@ tasks.register<Zip>("zipPlatformSkywalkingAgent") {
     }
 
     duplicatesStrategy = DuplicatesStrategy.FAIL
+
+    outputs.cacheIf { true }
 }
 
 tasks.register<Zip>("zipSppSkywalkingAgent") {
@@ -197,6 +201,8 @@ tasks.register<Zip>("zipSppSkywalkingAgent") {
         }
         from(File(projectDir, "../services/build/libs/spp-skywalking-services-${project.version}.jar"))
     }
+
+    outputs.cacheIf { true }
 }
 tasks["classes"].dependsOn("zipSppSkywalkingAgent", "zipPlatformSkywalkingAgent")
 
