@@ -38,6 +38,7 @@ import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import spp.protocol.instrument.LiveInstrument
 import spp.protocol.platform.PlatformAddress
 import spp.protocol.platform.status.InstanceConnection
 import spp.protocol.service.LiveInstrumentService
@@ -128,10 +129,10 @@ abstract class ProbeIntegrationTest {
             )
 
             promise.future().await()
-            instrumentService = ServiceProxyBuilder(vertx)
+            instrumentService = LoggedLiveInstrumentService(ServiceProxyBuilder(vertx)
                 .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_INSTRUMENT)
-                .build(LiveInstrumentService::class.java)
+                .build(LiveInstrumentService::class.java))
             viewService = ServiceProxyBuilder(vertx)
                 .apply { accessToken?.let { setToken(it) } }
                 .setAddress(SourceServices.LIVE_VIEW)
@@ -244,5 +245,28 @@ abstract class ProbeIntegrationTest {
         setupLineLabels = true
         invoke.invoke()
         setupLineLabels = false
+    }
+
+    class LoggedLiveInstrumentService(private val delegate: LiveInstrumentService) : LiveInstrumentService by delegate {
+
+        private val log: Logger by lazy { LoggerFactory.getLogger(javaClass) }
+
+        override fun addLiveInstrument(instrument: LiveInstrument): Future<LiveInstrument> {
+            log.info("Adding live instrument {}", instrument)
+            val value = delegate.addLiveInstrument(instrument)
+            return value.map {
+                log.info("Added live instrument {}: {}", it.id, it)
+                it
+            }
+        }
+
+        override fun removeLiveInstrument(id: String): Future<LiveInstrument?> {
+            log.info("Removing live instrument {}", id)
+            val value = delegate.removeLiveInstrument(id)
+            return value.map {
+                log.info("Removed live instrument {}: {}", id, it)
+                it
+            }
+        }
     }
 }

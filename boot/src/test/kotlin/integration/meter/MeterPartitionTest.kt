@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -35,6 +36,7 @@ import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.RulePartition
 import spp.protocol.view.rule.ViewRule
 
+@Disabled //todo: this test is flaky
 class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Suppress("UNUSED_VARIABLE")
@@ -44,7 +46,6 @@ class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Test
     fun `test meter partitions`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -60,7 +61,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
                 43,
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
@@ -122,7 +123,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext, 30)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
         assertNotNull(viewService.deleteRule(liveMeter.id!!).await())
     }

@@ -115,14 +115,15 @@ class QueuedLiveInstrumentApplier : LiveInstrumentApplier {
             } while (workLoad.clazz != null)
             threadLocal.remove()
 
-            if (instrument.isRemoval) {
-                if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
-            } else if (instrument.isApplied) {
-                if (log.isInfoEnable) log.info("Successfully applied live instrument {}", instrument.instrument.id)
+            if (instrument.isApplied && instrument.sentAppliedEvent.compareAndSet(false, true)) {
+                if (log.isInfoEnable) log.info("Successfully applied live instrument: {}", instrument.instrument.id)
                 LiveInstrumentRemote.EVENT_CONSUMER.accept(
                     ProcessorAddress.LIVE_INSTRUMENT_APPLIED,
                     ModelSerializer.INSTANCE.toJson(instrument.instrument)
                 )
+            }
+            if (instrument.isRemoval) {
+                if (log.isInfoEnable) log.info("Successfully removed live instrument: {}", instrument.instrument.id)
             }
         } catch (ex: Throwable) {
             log.warn(ex, "Failed to apply live instrument: {}", instrument.instrument.id)
