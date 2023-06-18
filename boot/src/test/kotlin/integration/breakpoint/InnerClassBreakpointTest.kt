@@ -40,7 +40,7 @@ class InnerClassBreakpointTest : ProbeIntegrationTest() {
     }
 
     @Test
-    fun `inner class`() = runBlocking {
+    fun `inner class bp`() = runBlocking {
         setupLineLabels {
             InnerClass().doHit()
         }
