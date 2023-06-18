@@ -33,6 +33,8 @@ interface AbstractSerializeTest {
         ProbeConfiguration.variableControl.put("max_object_depth", 5)
         ProbeConfiguration.variableControl.put("max_object_size", 1024L * 1024L) //1MB
         ProbeConfiguration.variableControl.put("max_collection_length", 100)
-        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java)
+        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
+            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(0)
+        }
     }
 }

@@ -20,20 +20,13 @@ import io.vertx.core.json.JsonObject
 import org.apache.skywalking.apm.agent.core.meter.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
-import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
-import java.lang.instrument.Instrumentation
 import java.util.concurrent.ConcurrentHashMap
 
 class ObjectMapTest : AbstractSerializeTest {
 
     @Test
     fun `sw meter map`() {
-        ProbeConfiguration.instrumentation = Mockito.mock(Instrumentation::class.java).apply {
-            Mockito.`when`(this.getObjectSize(Mockito.any())).thenReturn(1024)
-        }
-
         val map = ConcurrentHashMap<MeterId, BaseMeter>()
         val meterId1 = MeterId("test1", MeterType.COUNTER, emptyList())
         map[meterId1] = Counter(meterId1, CounterMode.RATE).apply { increment(2.0) }

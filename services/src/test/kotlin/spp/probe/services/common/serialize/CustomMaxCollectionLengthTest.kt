@@ -20,9 +20,11 @@ import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Isolated
 import spp.probe.ProbeConfiguration
 import spp.probe.services.common.ModelSerializer
 
+@Isolated
 class CustomMaxCollectionLengthTest : AbstractSerializeTest {
 
     @Test

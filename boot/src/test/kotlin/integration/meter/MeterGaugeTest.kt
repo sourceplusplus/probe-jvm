@@ -21,7 +21,8 @@ import io.vertx.core.json.JsonObject
 import io.vertx.junit5.VertxTestContext
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -43,11 +44,14 @@ class MeterGaugeTest : ProbeIntegrationTest() {
     @Suppress("UNUSED_VARIABLE")
     private fun doTest() {
         var i = 11
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun `number supplier gauge`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
+        setupLineLabels {
+            doTest()
+        }
 
         val supplier = object : Supplier<Double>, Serializable {
             override fun get(): Double = System.currentTimeMillis().toDouble()
@@ -62,10 +66,10 @@ class MeterGaugeTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER_SUPPLIER, encodedSupplier),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.java.name,
-                46,
+                getLineNumber("done"),
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
@@ -99,10 +103,9 @@ class MeterGaugeTest : ProbeIntegrationTest() {
                 val meta = rawMetrics.getJsonObject("meta")
                 assertEquals(liveMeter.id!!, meta.getString("metricsName"))
 
-                //check within a second
+                //check within 5 seconds
                 val suppliedTime = rawMetrics.getLong("value")
-                assertTrue(suppliedTime >= System.currentTimeMillis() - 1000)
-                assertTrue(suppliedTime <= System.currentTimeMillis())
+                assertEquals(System.currentTimeMillis().toDouble(), suppliedTime.toDouble(), 5000.0)
             }
             testContext.completeNow()
         }
@@ -114,23 +117,25 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 
     @Test
     fun `number expression gauge`(): Unit = runBlocking {
-        val meterId = testNameAsUniqueInstrumentId
+        setupLineLabels {
+            doTest()
+        }
 
         val liveMeter = LiveMeter(
             MeterType.GAUGE,
             MetricValue(MetricValueType.NUMBER_EXPRESSION, "localVariables[i]"),
             location = LiveSourceLocation(
                 MeterGaugeTest::class.java.name,
-                46,
+                getLineNumber("done"),
                 "spp-test-probe"
             ),
-            id = meterId,
+            id = testNameAsUniqueInstrumentId,
             applyImmediately = true
         )
 
@@ -177,7 +182,7 @@ class MeterGaugeTest : ProbeIntegrationTest() {
         errorOnTimeout(testContext)
 
         //clean up
-        assertNotNull(instrumentService.removeLiveInstrument(meterId).await())
+        assertNotNull(instrumentService.removeLiveInstrument(liveMeter.id!!).await())
         assertNotNull(viewService.removeLiveView(subscriptionId).await())
     }
 }

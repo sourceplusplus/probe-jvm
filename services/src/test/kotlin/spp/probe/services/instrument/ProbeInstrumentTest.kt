@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Isolated
 import org.mockito.Mockito
 import org.springframework.expression.spel.SpelCompilerMode
 import org.springframework.expression.spel.SpelParserConfiguration
@@ -32,6 +33,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import java.lang.instrument.Instrumentation
 import java.util.function.BiConsumer
 
+@Isolated
 class ProbeInstrumentTest {
     companion object {
         private val parser = SpelExpressionParser(
