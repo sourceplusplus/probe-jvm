@@ -61,17 +61,17 @@ jobs:
       - run: ./gradlew check -Dtest.profile=integration
 
       - run: ./gradlew composeLogs
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
 
       - name: Upload docker logs artifact
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: docker-logs_jdk${{ matrix.java }}
           path: ./build/containers-logs
 
       - name: Upload skywalking-api.log artifact
-        if: ${{ always() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
           name: skywalking-api_jdk${{ matrix.java }}.log
