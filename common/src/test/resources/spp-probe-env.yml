@@ -2,6 +2,8 @@ spp:
   platform_host: ${SPP_PROBE_PLATFORM_HOST:-127.0.0.1}
   platform_port: ${SPP_PROBE_PLATFORM_PORT:-1234}
   ssl_enabled: ${SPP_PROBE_SSL_ENABLED:-false}
+  verify_host: ${SPP_PROBE_VERIFY_HOST:-true}
+  delete_probe_directory_on_boot: ${SPP_PROBE_DELETE_PROBE_DIRECTORY_ON_BOOT:-false}
 skywalking:
   logging:
     level: ${SW_LOGGING_LEVEL:-INFO}

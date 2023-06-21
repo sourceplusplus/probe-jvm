@@ -174,7 +174,7 @@ object SourceProbe {
         val options = NetClientOptions()
             .setReconnectAttempts(Int.MAX_VALUE).setReconnectInterval(5000)
             .setSsl(ProbeConfiguration.sslEnabled)
-            .setTrustAll(!ProbeConfiguration.spp.getBoolean("verify_host", true))
+            .setTrustAll(!ProbeConfiguration.spp.getValue("verify_host", true).toString().toBooleanStrict())
             .apply {
                 if (ProbeConfiguration.getString("platform_certificate") != null) {
                     val myCaAsABuffer = Buffer.buffer(
@@ -303,10 +303,9 @@ object SourceProbe {
     }
 
     private fun unzipAgent(skywalkingVersion: String) {
-        val deleteProbeDirOnBoot = ProbeConfiguration.spp.getBoolean(
-            "delete_probe_directory_on_boot",
-            System.getenv("SPP_DELETE_PROBE_DIRECTORY_ON_BOOT")?.lowercase()?.toBooleanStrictOrNull()
-        ) ?: true
+        val deleteProbeDirOnBoot = ProbeConfiguration.spp.getValue(
+            "delete_probe_directory_on_boot", true
+        ).toString().toBooleanStrict()
         if (deleteProbeDirOnBoot) {
             deleteRecursively(PROBE_DIRECTORY)
         }
