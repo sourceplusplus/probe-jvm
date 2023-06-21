@@ -9,6 +9,7 @@ spp:
   quiet_mode: ${SPP_PROBE_QUIET_MODE:-false}
   install_directory: ${SPP_PROBE_INSTALL_DIRECTORY:-/tmp/spp-probe}
   transformed_dump_directory: ${SPP_PROBE_TRANSFORMED_DUMP_DIRECTORY:-/tmp/spp-probe/transformed-classes}
+  wait_for_platform: ${SPP_PROBE_WAIT_FOR_PLATFORM:-true}
 skywalking:
   logging:
     level: ${SW_LOGGING_LEVEL:-DEBUG}
