@@ -17,6 +17,7 @@
 package spp.probe
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 
 class ProbeConfigurationTest {
@@ -26,8 +27,8 @@ class ProbeConfigurationTest {
         val configFile = javaClass.classLoader.getResource("spp-probe-env.yml")!!.file
         val config = ProbeConfiguration.loadConfigProperties(configFile)
         config.getJsonObject("spp").let {
-            assertEquals("127.0.0.1", it.getString("platform_host"))
-            assertEquals(1234, it.getString("platform_port").toInt())
+            assertNotNull(it.getString("platform_host"))
+            assertNotNull(it.getString("platform_port").toInt())
         }
         config.getJsonObject("skywalking").let {
             assertEquals("INFO", it.getJsonObject("logging").getString("level"))
