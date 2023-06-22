@@ -176,7 +176,7 @@ object SourceProbe {
             .setSsl(ProbeConfiguration.sslEnabled)
             .setTrustAll(!ProbeConfiguration.spp.getValue("verify_host", true).toString().toBooleanStrict())
             .apply {
-                if (ProbeConfiguration.getString("platform_certificate") != null) {
+                if (ProbeConfiguration.getString("platform_certificate")?.isNotBlank() == true) {
                     val myCaAsABuffer = Buffer.buffer(
                         "-----BEGIN CERTIFICATE-----" +
                                 ProbeConfiguration.getString("platform_certificate") +
@@ -346,7 +346,7 @@ object SourceProbe {
     private fun updateCaCertIfNecessary() {
         val caCertFile = File(PROBE_DIRECTORY, "ca" + File.separator + "ca.crt")
         if (ProbeConfiguration.sslEnabled && !caCertFile.exists()) {
-            if (ProbeConfiguration.getString("platform_certificate") != null) {
+            if (ProbeConfiguration.getString("platform_certificate")?.isNotBlank() == true) {
                 val myCaAsABuffer = Buffer.buffer(
                     "-----BEGIN CERTIFICATE-----\n" +
                             ProbeConfiguration.getString("platform_certificate").let {
