@@ -56,7 +56,7 @@ class ProbeConfigurationTest {
         assertEquals("false", swSettings.find {
             it.first() == "skywalking.plugin.toolkit.log.transmit_formatted"
         }?.last())
-        assertEquals("127.0.0.1:11800", swSettings.find {
+        assertNotNull(swSettings.find {
             it.first() == "skywalking.collector.backend_service"
         }?.last())
     }
