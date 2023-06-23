@@ -1,20 +1,18 @@
 spp:
-  enabled: ${SPP_PROBE_ENABLED:-true}
+  enabled: true
   authentication:
-    client_id: ${SPP_PROBE_CLIENT_ID:-test-id}
-    client_secret: ${SPP_PROBE_CLIENT_SECRET:-test-secret}
-    tenant_id: ${SPP_PROBE_TENANT_ID:-test-tenant}
-  probe_id: ${SPP_PROBE_ID:-}
-  platform_host: ${SPP_PROBE_PLATFORM_HOST:-localhost}
-  platform_port: ${SPP_PROBE_PLATFORM_PORT:-12800}
-  quiet_mode: ${SPP_PROBE_QUIET_MODE:-false}
-  install_directory: ${SPP_PROBE_INSTALL_DIRECTORY:-/tmp/spp-probe}
-  transformed_dump_directory: ${SPP_PROBE_TRANSFORMED_DUMP_DIRECTORY:-/tmp/spp-probe/transformed-classes}
-  wait_for_platform: ${SPP_PROBE_WAIT_FOR_PLATFORM:-true}
+    client_id: "test-id"
+    client_secret: "test-secret"
+  platform_host: localhost
+  platform_port: 12800
+  quiet_mode: false
+  install_directory: "/tmp/spp-probe"
+  transformed_dump_directory: "/tmp/spp-probe/transformed-classes"
+  wait_for_platform: true
 skywalking:
   logging:
-    level: ${SW_LOGGING_LEVEL:-DEBUG}
+    level: DEBUG
   agent:
-    service_name: ${SW_AGENT_NAME:-spp-test-probe}
+    service_name: "spp-test-probe"
   meter:
-    report_interval: ${SW_METER_REPORT_INTERVAL:-5}
+    report_interval: 5
