@@ -1,8 +1,9 @@
 spp:
   enabled: ${SPP_PROBE_ENABLED:-true}
   authentication:
-    client_id: "test-id"
-    client_secret: "test-secret"
+    client_id: ${SPP_PROBE_CLIENT_ID:-test-id}
+    client_secret: ${SPP_PROBE_CLIENT_SECRET:-test-secret}
+    tenant_id: ${SPP_PROBE_TENANT_ID:-test-tenant}
   probe_id: ${SPP_PROBE_ID:-}
   platform_host: ${SPP_PROBE_PLATFORM_HOST:-localhost}
   platform_port: ${SPP_PROBE_PLATFORM_PORT:-12800}
