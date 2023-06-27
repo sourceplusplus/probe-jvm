@@ -230,6 +230,11 @@ object SourceProbe {
                 meta.putAll(ProbeConfiguration.spp.getJsonObject("probe_metadata").map)
             }
 
+            //add application metadata
+            if (ProbeConfiguration.spp.containsKey("application")) {
+                meta["application"] = ProbeConfiguration.spp.getJsonObject("application").map
+            }
+
             //add probe auth headers
             ProbeConfiguration.getJsonObject("authentication")?.let {
                 it.getString("client_id")?.let { probeMessageHeaders.put("client_id", it) }
