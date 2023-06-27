@@ -25,7 +25,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import spp.protocol.instrument.LiveMeter
 import spp.protocol.instrument.location.LiveSourceLocation
@@ -36,16 +35,20 @@ import spp.protocol.view.LiveViewEvent
 import spp.protocol.view.rule.RulePartition
 import spp.protocol.view.rule.ViewRule
 
-@Disabled //todo: this test is flaky
 class MeterPartitionTest : ProbeIntegrationTest() {
 
     @Suppress("UNUSED_VARIABLE")
     private fun doTest(index: Int) {
         var i = index % 2 == 0
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun `test meter partitions`(): Unit = runBlocking {
+        setupLineLabels {
+            doTest(-1)
+        }
+
         val liveMeter = LiveMeter(
             MeterType.COUNT,
             MetricValue(MetricValueType.NUMBER, "1"),
@@ -58,7 +61,7 @@ class MeterPartitionTest : ProbeIntegrationTest() {
             meta = mapOf("metric.mode" to "RATE"),
             location = LiveSourceLocation(
                 MeterPartitionTest::class.java.name,
-                43,
+                getLineNumber("done"),
                 "spp-test-probe"
             ),
             id = testNameAsUniqueInstrumentId,
