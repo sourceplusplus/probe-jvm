@@ -119,7 +119,6 @@ class MeterPartitionTest : ProbeIntegrationTest() {
         assertNotNull(instrumentService.addLiveInstrument(liveMeter).await())
 
         repeat(10) {
-            delay(500)
             doTest(it)
         }
 
