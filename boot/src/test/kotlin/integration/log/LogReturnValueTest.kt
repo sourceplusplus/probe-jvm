@@ -28,6 +28,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.event.LiveLogHit
 import spp.protocol.instrument.location.LiveSourceLocation
+import spp.protocol.platform.general.Service
 
 class LogReturnValueTest : ProbeIntegrationTest() {
 
@@ -59,8 +60,8 @@ class LogReturnValueTest : ProbeIntegrationTest() {
                     listOf("@return"),
                     location = LiveSourceLocation(
                         source = LogReturnValueTest::class.java.name,
-                        line = 37,
-                        service = "spp-test-probe"
+                        line = 38,
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId

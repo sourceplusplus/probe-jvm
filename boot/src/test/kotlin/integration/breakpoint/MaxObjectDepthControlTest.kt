@@ -32,6 +32,7 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
+import spp.protocol.platform.general.Service
 
 class MaxObjectDepthControlTest : ProbeIntegrationTest() {
 
@@ -77,8 +78,8 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     ),
                     location = LiveSourceLocation(
                         source = MaxObjectDepthControlTest::class.java.name,
-                        line = 42,
-                        service = "spp-test-probe"
+                        line = 43,
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId
@@ -142,8 +143,8 @@ class MaxObjectDepthControlTest : ProbeIntegrationTest() {
                     ),
                     location = LiveSourceLocation(
                         source = MaxObjectDepthControlTest::class.java.name,
-                        line = 42,
-                        service = "spp-test-probe"
+                        line = 43,
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId

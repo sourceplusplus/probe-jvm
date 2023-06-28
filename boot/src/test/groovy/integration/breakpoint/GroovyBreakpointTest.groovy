@@ -25,6 +25,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.throttle.InstrumentThrottle
+import spp.protocol.platform.general.Service
 
 import static org.junit.jupiter.api.Assertions.assertEquals
 import static org.junit.jupiter.api.Assertions.assertNotNull
@@ -73,8 +74,8 @@ class GroovyBreakpointTest extends ProbeIntegrationTest {
                         null,
                         new LiveSourceLocation(
                                 GroovyBreakpointTest.class.name,
-                                42, //todo: breaks if bp on return
-                                "spp-test-probe"
+                                43, //todo: breaks if bp on return
+                                Service.fromName("spp-test-probe")
                         ),
                         null,
                         null,

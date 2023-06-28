@@ -31,6 +31,7 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
+import spp.protocol.platform.general.Service
 
 class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
 
@@ -135,8 +136,8 @@ class MaxCollectionLengthControlTest : ProbeIntegrationTest() {
                     ),
                     location = LiveSourceLocation(
                         source = MaxCollectionLengthControlTest::class.java.name,
-                        line = 43,
-                        service = "spp-test-probe"
+                        line = 44,
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId

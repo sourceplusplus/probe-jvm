@@ -28,6 +28,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableScope
+import spp.protocol.platform.general.Service
 
 @Suppress("UNUSED_VARIABLE")
 class InnerClassBreakpointTest : ProbeIntegrationTest() {
@@ -75,7 +76,7 @@ class InnerClassBreakpointTest : ProbeIntegrationTest() {
                 location = LiveSourceLocation(
                     InnerClass::class.java.name,
                     getLineNumber("done"),
-                    "spp-test-probe"
+                    Service.fromName("spp-test-probe")
                 ),
                 applyImmediately = true,
                 id = breakpointId

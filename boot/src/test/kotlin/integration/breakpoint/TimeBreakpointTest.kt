@@ -28,6 +28,7 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
+import spp.protocol.platform.general.Service
 import java.time.*
 import java.util.*
 
@@ -175,8 +176,8 @@ class TimeBreakpointTest : ProbeIntegrationTest() {
             LiveBreakpoint(
                 location = LiveSourceLocation(
                     TimeBreakpointTest::class.java.name,
-                    49,
-                    "spp-test-probe"
+                    50,
+                    Service.fromName("spp-test-probe")
                 ),
                 applyImmediately = true,
                 id = testNameAsInstrumentId

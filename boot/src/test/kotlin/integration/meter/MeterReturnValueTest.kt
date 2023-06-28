@@ -29,6 +29,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
+import spp.protocol.platform.general.Service
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -48,8 +49,8 @@ class MeterReturnValueTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 MeterReturnValueTest::class.java.name,
-                42,
-                "spp-test-probe"
+                43,
+                Service.fromName("spp-test-probe")
             ),
             id = testNameAsUniqueInstrumentId,
             applyImmediately = true,

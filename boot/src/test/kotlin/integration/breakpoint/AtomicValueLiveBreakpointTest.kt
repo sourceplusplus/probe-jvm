@@ -30,6 +30,7 @@ import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariable
+import spp.protocol.platform.general.Service
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
@@ -40,10 +41,15 @@ class AtomicValueLiveBreakpointTest : ProbeIntegrationTest() {
         val atomicMap = AtomicReference(mapOf("test" to "test"))
         val atomicString = AtomicReference<String>().apply { set("test") }
         val atomicInteger = AtomicInteger(1)
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun `atomic value`(): Unit = runBlocking {
+        setupLineLabels {
+            atomicValue()
+        }
+
         val testContext = VertxTestContext()
         getLiveInstrumentSubscription(testNameAsInstrumentId).handler {
             val event = LiveInstrumentEvent.fromJson(it.body())
@@ -112,8 +118,8 @@ class AtomicValueLiveBreakpointTest : ProbeIntegrationTest() {
                 id = testNameAsInstrumentId,
                 location = LiveSourceLocation(
                     source = AtomicValueLiveBreakpointTest::class.java.name,
-                    line = 43,
-                    service = "spp-test-probe"
+                    line = getLineNumber("done"),
+                    service = Service.fromName("spp-test-probe")
                 ),
                 applyImmediately = true
             )

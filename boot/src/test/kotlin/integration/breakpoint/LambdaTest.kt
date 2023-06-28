@@ -31,6 +31,7 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.location.LocationScope
 import spp.protocol.instrument.throttle.InstrumentThrottle
+import spp.protocol.platform.general.Service
 import java.util.concurrent.atomic.AtomicInteger
 
 @Execution(ExecutionMode.SAME_THREAD)
@@ -74,9 +75,9 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 45,
+                        line = 46,
                         scope = LocationScope.LAMBDA,
-                        service = "spp-test-probe"
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId
@@ -118,9 +119,9 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 95,
+                        line = 96,
                         scope = LocationScope.LINE,
-                        service = "spp-test-probe"
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId
@@ -162,9 +163,9 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 139,
+                        line = 140,
                         scope = LocationScope.LAMBDA,
-                        service = "spp-test-probe"
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId
@@ -209,9 +210,9 @@ class LambdaTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LambdaTest::class.java.name,
-                        line = 183,
+                        line = 184,
                         scope = LocationScope.BOTH,
-                        service = "spp-test-probe"
+                        service = Service.fromName("spp-test-probe")
                     ),
                     throttle = InstrumentThrottle.NONE,
                     applyImmediately = true,

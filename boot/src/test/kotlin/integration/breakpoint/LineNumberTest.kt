@@ -28,6 +28,7 @@ import spp.protocol.instrument.event.LiveBreakpointHit
 import spp.protocol.instrument.event.LiveInstrumentEvent
 import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
+import spp.protocol.platform.general.Service
 
 class LineNumberTest : ProbeIntegrationTest() {
 
@@ -35,10 +36,15 @@ class LineNumberTest : ProbeIntegrationTest() {
     private fun doTest() {
         val a = 1
         val b = "test"
+        addLineLabel("done") { Throwable().stackTrace[0].lineNumber }
     }
 
     @Test
     fun testLineNumber(): Unit = runBlocking {
+        setupLineLabels {
+            doTest()
+        }
+
         val breakpointId = testNameAsUniqueInstrumentId
         val testContext = VertxTestContext()
         getLiveInstrumentSubscription(breakpointId).handler {
@@ -49,8 +55,8 @@ class LineNumberTest : ProbeIntegrationTest() {
                     val vars = item.stackTrace.first().variables
                     assertEquals(3, vars.size)
 
-                    assertEquals(36, vars.first { it.name == "a" }.lineNumber)
-                    assertEquals(37, vars.first { it.name == "b" }.lineNumber)
+                    assertEquals(37, vars.first { it.name == "a" }.lineNumber)
+                    assertEquals(38, vars.first { it.name == "b" }.lineNumber)
 
                     testContext.completeNow()
                 }
@@ -62,8 +68,8 @@ class LineNumberTest : ProbeIntegrationTest() {
                 LiveBreakpoint(
                     location = LiveSourceLocation(
                         source = LineNumberTest::class.java.name,
-                        line = 38,
-                        service = "spp-test-probe"
+                        line = getLineNumber("done"),
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = breakpointId

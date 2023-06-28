@@ -31,6 +31,7 @@ import spp.protocol.instrument.event.LiveInstrumentEventType
 import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.variable.LiveVariableControl
 import spp.protocol.instrument.variable.LiveVariableControlBase
+import spp.protocol.platform.general.Service
 
 class MaxObjectSizeControlTest : ProbeIntegrationTest() {
 
@@ -104,8 +105,8 @@ class MaxObjectSizeControlTest : ProbeIntegrationTest() {
                     ),
                     location = LiveSourceLocation(
                         source = MaxObjectSizeControlTest::class.java.name,
-                        line = 41,
-                        service = "spp-test-probe"
+                        line = 42,
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId

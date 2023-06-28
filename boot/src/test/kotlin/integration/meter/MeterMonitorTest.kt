@@ -31,6 +31,7 @@ import spp.protocol.instrument.location.LiveSourceLocation
 import spp.protocol.instrument.meter.MeterType
 import spp.protocol.instrument.meter.MetricValue
 import spp.protocol.instrument.meter.MetricValueType
+import spp.protocol.platform.general.Service
 import spp.protocol.view.LiveView
 import spp.protocol.view.LiveViewConfig
 import spp.protocol.view.LiveViewEvent
@@ -57,7 +58,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
-                service = "spp-test-probe"
+                service = Service.fromName("spp-test-probe")
             ),
             id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
@@ -121,7 +122,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
-                service = "spp-test-probe"
+                service = Service.fromName("spp-test-probe")
             ),
             id = testNameAsUniqueInstrumentId,
             applyImmediately = true
@@ -182,7 +183,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.NUMBER, "1"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
-                service = "spp-test-probe"
+                service = Service.fromName("spp-test-probe")
             ),
             id = testNameAsUniqueInstrumentId,
             applyImmediately = true,
@@ -209,7 +210,7 @@ class MeterMonitorTest : ProbeIntegrationTest() {
             MetricValue(MetricValueType.OBJECT_LIFESPAN, "0"),
             location = LiveSourceLocation(
                 LifespanObject::class.java.name + ".<init>(...)",
-                service = "spp-test-probe"
+                service = Service.fromName("spp-test-probe")
             ),
             id = testNameAsUniqueInstrumentId,
             applyImmediately = true,

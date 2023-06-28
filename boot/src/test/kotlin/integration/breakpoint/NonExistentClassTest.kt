@@ -27,6 +27,7 @@ import org.junit.jupiter.api.fail
 import org.junit.jupiter.api.parallel.Isolated
 import spp.protocol.instrument.LiveBreakpoint
 import spp.protocol.instrument.location.LiveSourceLocation
+import spp.protocol.platform.general.Service
 import spp.protocol.service.error.LiveInstrumentException
 
 @Isolated
@@ -41,7 +42,7 @@ class NonExistentClassTest : ProbeIntegrationTest() {
                     location = LiveSourceLocation(
                         source = "non-existent-class",
                         line = 1,
-                        service = "spp-test-probe"
+                        service = Service.fromName("spp-test-probe")
                     ),
                     applyImmediately = true,
                     id = instrumentId
