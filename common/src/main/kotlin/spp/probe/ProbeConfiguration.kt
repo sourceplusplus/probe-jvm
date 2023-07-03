@@ -230,10 +230,15 @@ object ProbeConfiguration {
             },
             getJsonObject("authentication")?.let {
                 val clientId = it.getString("client_id")
+                    .takeIf { it != null && it.isNotBlank() }
                 val clientSecret = it.getString("client_secret")
+                    .takeIf { it != null && it.isNotBlank() }
                 val tenantId = it.getString("tenant_id")
+                    .takeIf { it != null && it.isNotBlank() }
                 val environment = spp.getJsonObject("application")?.getString("environment")
+                    .takeIf { it != null && it.isNotBlank() }
                 val version = spp.getJsonObject("application")?.getString("version")
+                    .takeIf { it != null && it.isNotBlank() }
                 arrayOf("skywalking.agent.authentication", "$clientId:$clientSecret:$tenantId:$environment:$version")
             }
         ).filterNotNull().toMutableSet()
