@@ -240,6 +240,11 @@ object SourceProbe {
                 it.getString("client_id")?.let { probeMessageHeaders.put("client_id", it) }
                 it.getString("client_secret")?.let { probeMessageHeaders.put("client_secret", it) }
                 it.getString("tenant_id")?.let { probeMessageHeaders.put("tenant_id", it) }
+
+                if (ProbeConfiguration.spp.containsKey("application")) {
+                    it.getString("environment")?.let { probeMessageHeaders.put("environment", it) }
+                    it.getString("version")?.let { probeMessageHeaders.put("version", it) }
+                }
             }
 
             //send probe connected status

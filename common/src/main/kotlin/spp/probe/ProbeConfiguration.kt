@@ -232,14 +232,9 @@ object ProbeConfiguration {
                 val clientId = it.getString("client_id")
                 val clientSecret = it.getString("client_secret")
                 val tenantId = it.getString("tenant_id")
-                val clientAuth = "$clientId:$clientSecret".let {
-                    if (tenantId != null) {
-                        "$it:$tenantId"
-                    } else {
-                        it
-                    }
-                }
-                arrayOf("skywalking.agent.authentication", clientAuth)
+                val environment = spp.getJsonObject("application")?.getString("environment")
+                val version = spp.getJsonObject("application")?.getString("version")
+                arrayOf("skywalking.agent.authentication", "$clientId:$clientSecret:$tenantId:$environment:$version")
             }
         ).filterNotNull().toMutableSet()
     }
