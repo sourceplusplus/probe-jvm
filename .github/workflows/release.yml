@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       #Note: must use < JDK 16 to avoid Stream.toList() overriding StreamsKT.toList() (KT-47039)
       #Todo: might be fixed by 3a16a8c4e99d22845ca8529923e0a01ef8f7ec17
