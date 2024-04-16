@@ -26,12 +26,12 @@ dependencies {
     compileOnly("io.vertx:vertx-tcp-eventbus-bridge:$vertxVersion")
     compileOnly("io.vertx:vertx-core:$vertxVersion")
     compileOnly("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    compileOnly("org.apache.commons:commons-text:1.10.0")
+    compileOnly("org.apache.commons:commons-text:1.12.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-core:$vertxVersion")
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:$jacksonVersion")
-    testImplementation("org.apache.commons:commons-text:1.10.0")
+    testImplementation("org.apache.commons:commons-text:1.12.0")
 }
 
 tasks {
