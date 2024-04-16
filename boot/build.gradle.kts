@@ -77,7 +77,7 @@ dependencies {
         isTransitive = false
     }
     implementation(projectDependency(":common"))
-    implementation("org.apache.commons:commons-text:1.10.0")
+    implementation("org.apache.commons:commons-text:1.12.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:$jupiterVersion")
     testImplementation("io.vertx:vertx-junit5:$vertxVersion")
